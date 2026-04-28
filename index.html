@@ -18,7 +18,15 @@
             --promo-dot: #2eb82e;
             --gain: #2eb82e;
             --loss: #ff4444;
+            --scrollbar-bg: #0f0f0f;
+            --scrollbar-thumb: #333;
         }
+
+        /* СКРОЛЛБАР ДЛЯ ВСЕГО САЙТА */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--scrollbar-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; border: 2px solid var(--scrollbar-bg); }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
 
         body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         .layout { display: grid; grid-template-columns: 320px 1fr; gap: 25px; width: 100%; max-width: 1400px; }
@@ -27,25 +35,43 @@
         .card { background: var(--bg-card); padding: 25px; border-radius: 16px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.7); height: fit-content; }
         h2 { color: var(--gold); text-transform: uppercase; font-size: 1.1em; letter-spacing: 2px; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 20px; margin-top: 0; }
 
-        .table-wrapper { max-height: 650px; overflow-y: auto; border-radius: 8px; }
-        .table-wrapper::-webkit-scrollbar, #logItems::-webkit-scrollbar { width: 6px; }
-        .table-wrapper::-webkit-scrollbar-thumb, #logItems::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        /* СКРОЛЛ ТАБЛИЦЫ - РОВНО НА 10 ИГРОКОВ */
+        .table-wrapper { 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            max-height: 598px; 
+            overflow-y: auto; 
+            border: 1px solid #252525;
+            position: relative;
+        }
+
+        /* СКРОЛЛ ИСТОРИИ МАТЧЕЙ */
+        #logItems { 
+            max-height: 250px; 
+            overflow-y: auto; 
+            margin-top: 10px; 
+            padding-right: 10px;
+            border-bottom: 1px solid #222;
+        }
 
         .search-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; margin-bottom: 20px; padding-bottom: 10px; }
         .search-container h2 { border: none; margin: 0; padding: 0; }
         .search-input { background: #252525; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 6px; width: 200px; font-size: 0.85em; outline: none; }
         .search-input:focus { border-color: var(--gold); }
 
-        table { width: 100%; border-collapse: collapse; }
-        th { position: sticky; top: 0; background: #252525; padding: 15px; color: #888; font-size: 0.8em; text-align: left; z-index: 10; }
+        table { width: 100%; border-collapse: collapse; table-layout: auto; }
+        th { background: #252525; padding: 15px; color: #888; font-size: 0.8em; text-align: left; position: sticky; top: 0; z-index: 100; }
         td { padding: 16px 15px; border-bottom: 1px solid #252525; }
 
+        /* ИСПРАВЛЕННОЕ СВЕЧЕНИЕ ДЛЯ ССЫЛОК В ТОП-3 */
         .top-1 { background: rgba(255, 204, 0, 0.08) !important; border-left: 4px solid var(--gold); }
-        .top-1 .player-name { color: var(--gold); text-shadow: 0 0 15px rgba(255, 204, 0, 0.6); font-weight: bold; }
+        .top-1 .player-name a { color: var(--gold) !important; text-shadow: 0 0 15px rgba(255, 204, 0, 0.6); font-weight: bold; }
+        
         .top-2 { background: rgba(224, 224, 224, 0.05) !important; border-left: 4px solid var(--silver); }
-        .top-2 .player-name { color: var(--silver); text-shadow: 0 0 12px rgba(224, 224, 224, 0.4); font-weight: bold; }
+        .top-2 .player-name a { color: var(--silver) !important; text-shadow: 0 0 12px rgba(224, 224, 224, 0.4); font-weight: bold; }
+        
         .top-3 { background: rgba(205, 127, 50, 0.05) !important; border-left: 4px solid var(--bronze); }
-        .top-3 .player-name { color: var(--bronze); text-shadow: 0 0 12px rgba(205, 127, 50, 0.4); font-weight: bold; }
+        .top-3 .player-name a { color: var(--bronze) !important; text-shadow: 0 0 12px rgba(205, 127, 50, 0.4); font-weight: bold; }
 
         .tier-badge { padding: 4px 10px; border-radius: 4px; font-size: 0.7em; font-weight: bold; }
         .t-newbie { background: var(--tier-newbie-bg); color: var(--tier-newbie-text); }
@@ -53,8 +79,6 @@
         .t-high { background: var(--tier-high-bg); color: var(--tier-high-text); }
 
         .forecast-box { background: #000; padding: 15px; border-radius: 8px; border: 1px dashed #444; margin: 15px 0; display: none; line-height: 1.6; }
-        .forecast-name { font-weight: bold; color: #fff; }
-        .slash { color: #555; margin: 0 3px; }
         .gain { color: var(--gain); font-weight: bold; }
         .loss { color: var(--loss); font-weight: bold; }
 
@@ -75,8 +99,17 @@
         
         .select-filter { padding: 6px 10px; font-size: 0.8em; margin-bottom: 5px; border-color: #444; }
 
-        .history-header { position: sticky; top: 0; background: var(--bg-card); z-index: 5; padding-top: 25px; margin-top: 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 10px; }
-        #logItems { max-height: 200px; overflow-y: auto; margin-top: 0; padding-right: 5px; }
+        .history-header { border-top: 1px solid #333; padding-top: 25px; margin-top: 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 10px; }
+
+        .main-timer { background: #222; border: 1px solid #444; border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: center; }
+        #timerDisplay { color: var(--gold); font-weight: bold; font-family: monospace; font-size: 1.6em; text-shadow: 0 0 10px rgba(255,204,0,0.3); }
+
+        .archive-section { margin-top: 25px; border-top: 1px solid #333; padding-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .archive-item { display: flex; align-items: center; background: #222; border-radius: 6px; border: 1px solid #333; overflow: hidden; }
+        .archive-btn { background: transparent; color: #fff; padding: 8px 15px; border: none; cursor: pointer; font-size: 0.8em; transition: 0.2s; }
+        .archive-btn:hover { background: #333; }
+        .archive-del { background: #441111; color: #ff4444; border: none; padding: 8px 10px; cursor: pointer; font-size: 0.8em; border-left: 1px solid #333; display: none; }
+        .archive-del:hover { background: #662222; }
     </style>
 </head>
 <body>
@@ -84,6 +117,7 @@
 <div class="layout no-admin" id="mainLayout">
     <div class="card admin-only">
         <h2>Control Panel</h2>
+        <button onclick="setTimer()" style="background:#444; margin-bottom:15px;">⏳ Установить таймер</button>
         <input type="text" id="playerName" placeholder="Имя игрока">
         <button onclick="addPlayer()">Добавить игрока</button>
         <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
@@ -103,14 +137,24 @@
         </select>
         <button class="btn-play" onclick="playMatch()">⚔️ Записать матч</button>
         <button onclick="finalizeTournament()" style="background:#2eb82e; color:white; border:none; margin-top:10px;">✅ Применить итоги</button>
+        <button onclick="resetSeason()" style="background:none; border:1px solid #ff4444; color:#ff4444; margin-top:10px;">📦 Сброс сезона</button>
         <button onclick="logout()" style="background:none; color:#555; border:none; margin-top:20px;">Выйти</button>
     </div>
 
     <div class="card">
-        <div class="search-container">
-            <h2>Турнирная Таблица ZZZ</h2>
-            <input type="text" id="playerSearch" class="search-input" placeholder="Поиск в таблице..." onkeyup="filterTable()">
+        <div class="main-timer">
+            <div style="font-size: 0.7em; color: #888; letter-spacing: 1px; margin-bottom: 5px;">ДО КОНЦА ЛИГИ:</div>
+            <div id="timerDisplay">0д 00:00:00</div>
         </div>
+
+        <div class="search-container">
+            <h2 id="tableTitle">Турнирная Таблица ZZZ</h2>
+            <div>
+                <button id="backToLive" onclick="loadLiveTable()" style="display:none; width:auto; padding:5px 15px; font-size:0.7em; background:var(--gold); color:#000; border:none; margin-right:10px;">← ТЕКУЩАЯ ЛИГА</button>
+                <input type="text" id="playerSearch" class="search-input" placeholder="Поиск...">
+            </div>
+        </div>
+
         <div class="table-wrapper">
             <table id="leaderboard">
                 <thead>
@@ -120,11 +164,16 @@
                         <th>Игрок</th>
                         <th>ELO</th>
                         <th>LVL</th>
-                        <th class="admin-only">Опции</th>
+                        <th class="admin-only-cell">Опции</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
+        </div>
+
+        <div class="archive-section">
+            <div style="width:100%; color:#555; font-size:0.8em; margin-bottom:5px;">АРХИВ СЕЗОНОВ:</div>
+            <div id="archiveButtons" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
         </div>
         
         <div class="history-header">
@@ -150,7 +199,7 @@
     
     let isAdmin = false;
     let players = [];
-    let lastPlayerCount = 0;
+    let isViewingArchive = false;
 
     auth.onAuthStateChanged(user => {
         isAdmin = !!user;
@@ -158,38 +207,130 @@
         updateUI();
     });
 
-    db.ref('players').on('value', snap => {
-        const data = snap.val();
-        players = data ? Object.values(data) : [];
-        updateUI();
+    db.ref('timer').on('value', snap => {
+        const endTime = snap.val();
+        if (!endTime) return;
+        const updateTimer = () => {
+            const diff = endTime - new Date().getTime();
+            if (diff <= 0) { document.getElementById('timerDisplay').innerText = "СЕЗОН ОКОНЧЕН"; return; }
+            const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+            document.getElementById('timerDisplay').innerText = `${d}д ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        };
+        if (window.tInt) clearInterval(window.tInt);
+        window.tInt = setInterval(updateTimer, 1000); updateTimer();
     });
 
-    db.ref('history').on('value', snap => {
+    function setTimer() {
+        const hours = prompt("Через сколько часов закончить?");
+        if (hours) db.ref('timer').set(new Date().getTime() + (parseFloat(hours) * 3600000));
+    }
+
+    db.ref('archives').on('value', snap => {
+        const container = document.getElementById('archiveButtons');
         const data = snap.val();
-        if (!data) { document.getElementById('logItems').innerHTML = ""; return; }
-        document.getElementById('logItems').innerHTML = Object.values(data).reverse().map(m => `
-            <div style="font-size:0.85em; padding:8px 0; border-bottom:1px solid #222; color:#999;">
-                <b>${m.p1}</b> vs <b>${m.p2}</b>: <span class="${m.change >= 0 ? 'gain' : 'loss'}">${m.change >= 0 ? '+' : ''}${m.change} ELO</span>
+        if (!data) { container.innerHTML = ""; return; }
+        container.innerHTML = Object.keys(data).reverse().map(key => `
+            <div class="archive-item">
+                <button class="archive-btn" onclick="loadArchiveTable('${key}')">${key}</button>
+                <button class="archive-del admin-only" onclick="deleteArchive('${key}')" style="display: ${isAdmin ? 'block' : 'none'}">✕</button>
             </div>
         `).join('');
     });
 
-    function filterTable() {
-        const query = document.getElementById('playerSearch').value.toLowerCase();
-        const rows = document.querySelectorAll('#leaderboard tbody tr');
-        rows.forEach(row => {
-            const name = row.querySelector('.player-name').textContent.toLowerCase();
-            row.style.display = name.includes(query) ? "" : "none";
+    function deleteArchive(key) {
+        if(confirm(`Удалить сезон "${key}" навсегда?`)) db.ref('archives/' + key).remove();
+    }
+
+    function loadArchiveTable(key) {
+        isViewingArchive = true;
+        document.getElementById('tableTitle').innerText = "Архив: " + key;
+        document.getElementById('backToLive').style.display = "inline-block";
+        db.ref('archives/' + key).once('value', snap => renderTable(snap.val(), true));
+    }
+
+    function loadLiveTable() {
+        isViewingArchive = false;
+        document.getElementById('tableTitle').innerText = "Турнирная Таблица ZZZ";
+        document.getElementById('backToLive').style.display = "none";
+        updateUI();
+    }
+
+    function resetSeason() {
+        const name = prompt("Название сезона для архива:");
+        if (!name) return;
+        db.ref('archives/' + name).set(players.map(p => ({
+            name: p.name, elo: p.elo || 1000, 
+            isMidConfirmed: p.isMidConfirmed || false, 
+            isHighConfirmed: p.isHighConfirmed || false
+        })));
+        players.forEach(p => {
+            let start = p.isHighConfirmed ? 1400 : (p.isMidConfirmed ? 1200 : 1000);
+            db.ref('players/' + p.name).update({ elo: start, tournamentPoints: 0, promoStreak: 0 });
+        });
+        db.ref('history').remove();
+    }
+
+    db.ref('players').on('value', snap => {
+        players = snap.val() ? Object.values(snap.val()) : [];
+        if (!isViewingArchive) updateUI();
+    });
+
+    db.ref('history').on('value', snap => {
+        const data = snap.val();
+        document.getElementById('logItems').innerHTML = data ? Object.values(data).reverse().map(m => `
+            <div style="font-size:0.85em; padding:8px 0; border-bottom:1px solid #222; color:#999;">
+                <b>${m.p1}</b> vs <b>${m.p2}</b>: <span class="${m.change >= 0 ? 'gain' : 'loss'}">${m.change >= 0 ? '+' : ''}${m.change} ELO</span>
+            </div>
+        `).join('') : "";
+    });
+
+    function renderTable(dataList, hideOptions = false) {
+        const tbody = document.querySelector('#leaderboard tbody');
+        const sorted = [...dataList].sort((a,b) => (b.elo || 1000) - (a.elo || 1000));
+        tbody.innerHTML = "";
+        
+        sorted.forEach((p, i) => {
+            const elo = p.elo || 1000;
+            const streak = p.promoStreak || 0;
+            const isMid = p.isMidConfirmed || false;
+            const isHigh = p.isHighConfirmed || false;
+            
+            let tClass = "t-newbie", tName = "NEWBIE";
+            if (isHigh) { tClass = "t-high"; tName = "HIGH TIER"; }
+            else if (isMid) { tClass = "t-mid"; tName = "MID TIER"; }
+
+            let promoHtml = (elo >= 1200 && elo < 1400 && !isMid) ? 
+                `<div class="promo-wrap"><div class="dot ${streak >= 1 ? 'active' : ''}"></div><div class="dot ${streak >= 2 ? 'active' : ''}"></div><div class="dot ${streak >= 3 ? 'active' : ''}"></div></div>` : "";
+
+            tbody.innerHTML += `
+                <tr class="${(i+1) <= 3 ? 'top-'+(i+1) : ''}">
+                    <td>${i+1}</td>
+                    <td><span class="tier-badge ${tClass}">${tName}</span></td>
+                    <td class="player-name">
+                        <a href="profile.html?player=${encodeURIComponent(p.name)}" style="color: inherit; text-decoration: none;">${p.name}</a> 
+                        ${promoHtml}
+                    </td>
+                    <td><b>${elo}</b> ${p.tournamentPoints ? `<small class="${p.tournamentPoints > 0 ? 'gain' : 'loss'}">(${p.tournamentPoints > 0 ? '+' : ''}${p.tournamentPoints})</small>` : ''}</td>
+                    <td><span class="lvl-badge">L${Math.min(10, Math.floor((elo - 1000) / 40) + 1)}</span></td>
+                    ${isAdmin && !hideOptions ? `<td class="admin-only-cell" style="display: flex; gap: 10px;">
+                        <button onclick="manualElo('${p.name}', ${elo})" style="background:none; border:none; width:auto; padding:0; cursor:pointer;">⚙️</button>
+                        <button onclick="deletePlayer('${p.name}')" style="background:none; border:none; width:auto; padding:0; cursor:pointer; color:#ff4444;">✕</button>
+                    </td>` : (isAdmin ? '<td class="admin-only-cell"></td>' : '')}
+                </tr>`;
         });
     }
 
-    function filterSelect(inputId, selectId) {
-        const query = document.getElementById(inputId).value.toLowerCase();
-        const select = document.getElementById(selectId);
-        const options = select.options;
-        for (let i = 0; i < options.length; i++) {
-            const text = options[i].text.toLowerCase();
-            options[i].style.display = text.includes(query) ? "" : "none";
+    function updateUI() {
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'block' : 'none');
+        document.querySelectorAll('.admin-only-cell').forEach(el => el.style.display = isAdmin ? 'table-cell' : 'none');
+        
+        if (!isViewingArchive) {
+            renderTable(players);
+            const p1 = document.getElementById('p1Select'), p2 = document.getElementById('p2Select');
+            const v1 = p1.value, v2 = p2.value;
+            const opts = players.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+            p1.innerHTML = opts; p2.innerHTML = opts;
+            if(v1) p1.value = v1; if(v2) p2.value = v2;
         }
     }
 
@@ -205,70 +346,12 @@
     function showForecast() {
         const p1 = players.find(p => p.name === document.getElementById('p1Select').value);
         const p2 = players.find(p => p.name === document.getElementById('p2Select').value);
-        if (!p1 || !p2 || p1.name === p2.name) return alert("Выберите разных игроков");
-        
-        const win1 = calculateEloChange(p1, p2, 1);
-        const loss1 = calculateEloChange(p1, p2, 0);
-        const win2 = calculateEloChange(p2, p1, 1);
-        const loss2 = calculateEloChange(p2, p1, 0);
-
+        if (!p1 || !p2 || p1.name === p2.name) return alert("Выберите разных");
+        const w1 = calculateEloChange(p1, p2, 1), l1 = calculateEloChange(p1, p2, 0);
+        const w2 = calculateEloChange(p2, p1, 1), l2 = calculateEloChange(p2, p1, 0);
         const fBox = document.getElementById('forecast');
         fBox.style.display = 'block';
-        fBox.innerHTML = `
-            <div><span class="forecast-name">${p1.name}:</span> <span class="gain">+${win1}</span><span class="slash">/</span><span class="loss">${loss1}</span></div>
-            <div style="font-size:0.9em; opacity:0.7;"><span class="forecast-name">${p2.name}:</span> <span class="gain">+${win2}</span><span class="slash">/</span><span class="loss">${loss2}</span></div>
-        `;
-    }
-
-    function updateUI() {
-        document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'block' : 'none');
-        const thAdmin = document.querySelector('th.admin-only');
-        if(thAdmin) thAdmin.style.display = isAdmin ? 'table-cell' : 'none';
-
-        const tbody = document.querySelector('#leaderboard tbody');
-        const sorted = [...players].sort((a,b) => (b.elo || 1000) - (a.elo || 1000));
-        tbody.innerHTML = "";
-        
-        sorted.forEach((p, i) => {
-            const elo = p.elo || 1000;
-            const streak = p.promoStreak || 0;
-            const isMid = p.isMidConfirmed || false;
-            const isHigh = p.isHighConfirmed || false;
-            const rank = i + 1;
-            
-            let tClass = "t-newbie", tName = "NEWBIE";
-            if (isHigh && elo >= 1350) { tClass = "t-high"; tName = "HIGH TIER"; }
-            else if (isMid && elo >= 1150) { tClass = "t-mid"; tName = "MID TIER"; }
-
-            let promoHtml = "";
-            if (elo >= 1200 && elo < 1400 && !isMid) {
-                promoHtml = `<div class="promo-wrap"><div class="dot ${streak >= 1 ? 'active' : ''}"></div><div class="dot ${streak >= 2 ? 'active' : ''}"></div><div class="dot ${streak >= 3 ? 'active' : ''}"></div></div>`;
-            }
-
-            const curPts = p.tournamentPoints || 0;
-            const level = Math.min(10, Math.floor((elo - 1000) / 40) + 1);
-
-            tbody.innerHTML += `
-                <tr class="${rank <= 3 ? 'top-'+rank : ''}">
-                    <td>${rank}</td>
-                    <td><span class="tier-badge ${tClass}">${tName}</span></td>
-                    <td class="player-name">${p.name} ${promoHtml}</td>
-                    <td><b>${elo}</b> ${curPts !== 0 ? `<small class="${curPts > 0 ? 'gain' : 'loss'}">(${curPts > 0 ? '+' : ''}${curPts})</small>` : ''}</td>
-                    <td><span class="lvl-badge">L${level < 1 ? 1 : level}</span></td>
-                    ${isAdmin ? `<td style="display: flex; gap: 10px; justify-content: center;">
-                        <button onclick="manualElo('${p.name}', ${elo})" style="background:none; border:none; width:auto; padding:0; cursor:pointer; font-size:1.1em;">⚙️</button>
-                        <button onclick="deletePlayer('${p.name}')" style="background:none; border:none; width:auto; padding:0; cursor:pointer; color:#ff4444; font-size:1.1em;">✕</button>
-                    </td>` : ''}
-                </tr>`;
-        });
-
-        if (isAdmin && players.length !== lastPlayerCount) {
-            const s1 = document.getElementById('p1Select'), s2 = document.getElementById('p2Select');
-            const opts = players.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-            s1.innerHTML = opts; s2.innerHTML = opts;
-            lastPlayerCount = players.length;
-        }
-        filterTable();
+        fBox.innerHTML = `<div>${p1.name}: <span class="gain">+${w1}</span> / <span class="loss">${l1}</span></div><div>${p2.name}: <span class="gain">+${w2}</span> / <span class="loss">${l2}</span></div>`;
     }
 
     function playMatch() {
@@ -276,13 +359,8 @@
         const p2 = players.find(p => p.name === document.getElementById('p2Select').value);
         const res = parseFloat(document.getElementById('matchResult').value);
         if(!p1 || !p2 || p1.name === p2.name) return;
-        
-        const c1 = calculateEloChange(p1, p2, res);
-        const c2 = calculateEloChange(p2, p1, res === 1 ? 0 : 1);
-        
-        updateMatchData(p1, c1, res === 1);
-        updateMatchData(p2, c2, res === 0);
-        
+        const c1 = calculateEloChange(p1, p2, res), c2 = calculateEloChange(p2, p1, res === 1 ? 0 : 1);
+        updateMatchData(p1, c1, res === 1); updateMatchData(p2, c2, res === 0);
         db.ref('history').push({ p1: p1.name, p2: p2.name, change: c1 });
         document.getElementById('forecast').style.display = 'none';
     }
@@ -291,32 +369,43 @@
         let streak = p.promoStreak || 0, confirmed = p.isMidConfirmed || false;
         if ((p.elo || 1000) >= 1200 && !confirmed) {
             if (isWin) { streak++; if(streak >= 3) { confirmed = true; streak = 0; } }
-            else { streak = 0; }
+            else streak = 0;
         }
         db.ref('players/' + p.name).update({ tournamentPoints: (p.tournamentPoints || 0) + change, promoStreak: streak, isMidConfirmed: confirmed });
     }
 
     function finalizeTournament() {
-        if(!confirm("Применить изменения?")) return;
+        if(!confirm("Применить очки?")) return;
         players.forEach(p => {
-            const newElo = (p.elo || 1000) + (p.tournamentPoints || 0);
-            let mStatus = p.isMidConfirmed || false, hStatus = p.isHighConfirmed || false;
-            if (mStatus && newElo < 1150) mStatus = false;
-            if (hStatus && newElo < 1350) hStatus = false;
-            if (newElo >= 1400) hStatus = true;
-            db.ref('players/' + p.name).update({ elo: newElo, tournamentPoints: 0, isMidConfirmed: mStatus, isHighConfirmed: hStatus });
+            const next = (p.elo || 1000) + (p.tournamentPoints || 0);
+            let m = p.isMidConfirmed, h = p.isHighConfirmed;
+            if (m && next < 1150) m = false; if (h && next < 1350) h = false; if (next >= 1400) h = true;
+            db.ref('players/' + p.name).update({ elo: next, tournamentPoints: 0, isMidConfirmed: m, isHighConfirmed: h });
         });
     }
 
     function manualElo(n, c) {
-        const v = prompt(`Установить ELO для ${n}:`, c);
-        if (v !== null && !isNaN(v)) {
+        const v = prompt(`Новое ELO для ${n}:`, c);
+        if (v) {
             const val = parseInt(v);
             db.ref('players/'+n).update({ elo: val, isMidConfirmed: val >= 1200, isHighConfirmed: val >= 1400, promoStreak: 0 });
         }
     }
 
-    function clearHistory() { if(confirm("Удалить историю матчей?")) db.ref('history').remove(); }
+    document.getElementById('playerSearch').addEventListener('keyup', e => {
+        const q = e.target.value.toLowerCase();
+        document.querySelectorAll('#leaderboard tbody tr').forEach(r => {
+            r.style.display = r.innerText.toLowerCase().includes(q) ? "" : "none";
+        });
+    });
+
+    function filterSelect(i, s) {
+        const q = document.getElementById(i).value.toLowerCase();
+        const opts = document.getElementById(s).options;
+        for (let i = 0; i < opts.length; i++) opts[i].style.display = opts[i].text.toLowerCase().includes(q) ? "" : "none";
+    }
+
+    function clearHistory() { if(confirm("Очистить историю?")) db.ref('history').remove(); }
     async function login() {
         const e = prompt("Email:"), p = prompt("Pass:");
         if(e && p) await auth.signInWithEmailAndPassword(e, p).catch(a => alert(a.message));
