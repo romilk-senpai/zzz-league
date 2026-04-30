@@ -4,12 +4,9 @@ let players = [];
 let isViewingArchive = false;
 
 auth.onAuthStateChanged(async user => {
-	console.log(user);
 	if (user) {
 		const playerRef = db.ref('players/' + user.uid);
 		const snapshot = await playerRef.once('value');
-		
-		console.log(user.uid);
 
 		if (snapshot.exists()) {
 			const userData = snapshot.val();
@@ -22,8 +19,6 @@ auth.onAuthStateChanged(async user => {
 				isMidConfirmed: userData.isMidConfirmed,
 				isHighConfirmed: userData.isHighConfirmed
 			};
-			
-			console.log(currentUser);
 
 			isAdmin = !!userData.isAdmin;
 		}
