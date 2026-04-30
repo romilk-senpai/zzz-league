@@ -1,11 +1,3 @@
-const firebaseConfig = {
-	apiKey: "AIzaSyAlcnUiLJ1cq7ekCQFi_NOPAQ6UiG92ZqM",
-	databaseURL: "https://zzz-league-default-rtdb.firebaseio.com",
-	projectId: "zzz-league"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
 // Получаем имя из ссылки: profile.html?player=Name
 const params = new URLSearchParams(window.location.search);
 const playerName = params.get('player');

@@ -1,16 +1,3 @@
-const firebaseConfig = {
-	apiKey: "AIzaSyCCACnq23Ozr0KGUW2MNAti2rltAoBR3EA",
-	databaseURL: "https://zzz-shad1w-default-rtdb.firebaseio.com",
-	projectId: "zzz-shad1w"
-	/* apiKey: "AIzaSyAlcnUiLJ1cq7ekCQFi_NOPAQ6UiG92ZqM",
-	databaseURL: "https://zzz-league-default-rtdb.firebaseio.com",
-	projectId: "zzz-league" */
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const auth = firebase.auth();
-
 let currentUser = null;
 let isAdmin = false;
 let players = [];
@@ -71,15 +58,15 @@ async function handleUserRegister() {
 		return;
 	}
 
-	const usernameRef = db.ref('usernames/' + username);
-	const usernameSnapshot = await usernameRef.once('value');
-	if (usernameSnapshot.exists()) {
-		status.innerText = "Никнейм уже занят";
-		status.style.color = "var(--loss)";
-		return;
-	}
-
 	try {
+		const usernameRef = db.ref('usernames/' + username);
+		const usernameSnapshot = await usernameRef.once('value');
+		if (usernameSnapshot.exists()) {
+			status.innerText = "Никнейм уже занят";
+			status.style.color = "var(--loss)";
+			return;
+		}
+
 		const userCredential = await auth.createUserWithEmailAndPassword(email, password)
 		const user = userCredential.user;
 		const prevPlayerRef = db.ref('players/' + username);
@@ -117,7 +104,8 @@ async function handleUserRegister() {
 				};
 			}
 
-			playerRef.set(currentUser);
+			await usernameRef.set(true);
+			await playerRef.set(currentUser);
 		}
 
 		closeRegisterPopup();
