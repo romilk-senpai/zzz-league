@@ -1,75 +1,36 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
 const admin = require("firebase-admin");
 
 const {setGlobalOptions} = require("firebase-functions");
-const {onRequest, HttpsError} = require("firebase-functions/https");
+const {onCall, HttpsError} = require("firebase-functions/https");
 const logger = require("firebase-functions/logger");
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
 setGlobalOptions({maxInstances: 10});
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+admin.initializeApp();
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+const db = admin.database();
+const auth = admin.auth();
 
-exports.register = onRequest(async (request, response) => {
-  const {username, email, password, discord} = request.body;
-
-  logger.info(request.body);
-
-  if (!username || !email || !password || !discord) {
-    throw new HttpsError(
-        "invalid-argument",
-        "Missing fields",
-    );
-  }
-
-  const db = admin.database();
-
-  const usernameRef = db.ref("usernames/" + username);
-  const usernameSnap = await usernameRef.once("value");
-
-  if (usernameSnap.exists()) {
-    throw new HttpsError(
-        "already-exists",
-        "Username already taken",
-    );
-  }
-
-  let userRecord = [];
+exports.register = onCall({cors: true}, async (request) => {
+  let userRecord = null;
   try {
-    userRecord = await admin.auth().createUser({
-      email,
-      password,
-    });
+    const {username, email, password, discord} = request.data;
 
+    if (!username || !email || !password || !discord) {
+      throw new HttpsError("invalid-argument", "Missing required fields");
+    }
+
+    const usernameSnap = await db.ref("usernames/" + username).once("value");
+    if (usernameSnap.exists()) {
+      throw new HttpsError("already-exists", "Username is already taken");
+    }
+
+    userRecord = await auth.createUser({email, password});
     const uid = userRecord.uid;
 
-    const prevPlayerRef = db.ref("players/" + username);
-    const prevSnapshot = await prevPlayerRef.once("value");
+    const prevSnapshot = await db.ref("players/" + username).once("value");
 
-    let playerData = [];
+    let playerData = null;
 
     if (prevSnapshot.exists()) {
       const prevUserData = prevSnapshot.val();
@@ -96,27 +57,18 @@ exports.register = onRequest(async (request, response) => {
       };
     }
 
-    const updates = {};
-    updates["players/" + uid] = playerData;
-    updates["usernames/" + username] = true;
+    await db.ref().update({
+      ["players/" + uid]: playerData,
+      ["usernames/" + username]: true,
+      ["players/" + username]: null,
+    });
 
-    await db.ref().update(updates);
-
-    const token = await admin.auth().createCustomToken(uid);
-
-    return {
-      token,
-    };
+    const token = await auth.createCustomToken(uid);
+    return {success: true, token};
   } catch (error) {
     logger.error(error);
-
-    if (userRecord) {
-      await admin.auth().deleteUser(userRecord.uid);
-    }
-
-    throw new HttpsError(
-        "internal",
-        error.message,
-    );
+    if (userRecord) await auth.deleteUser(userRecord.uid);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("internal", error.message ?? "Internal server error");
   }
 });

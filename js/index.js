@@ -61,23 +61,20 @@ async function handleUserRegister() {
 	const registerUser = functions.httpsCallable('register');
 
 	try {
-		const userData = {
+		const result = await registerUser({
 			username,
 			email,
 			password,
 			discord
-		};
-		console.log(userData);
+		});
 
-		const result = await registerUser(userData);
-		const token = result.data.token;
-		await auth.signInWithCustomToken(token);
+		await auth.signInWithCustomToken(result.data.token);
 
 		closeRegisterPopup();
 	}
 	catch (error) {
 		console.error(error);
-		status.innerText = error.message;
+		status.innerText = error;
 		status.style.color = "var(--loss)";
 	}
 }
