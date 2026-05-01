@@ -58,60 +58,25 @@ async function handleUserRegister() {
 		return;
 	}
 
+	const registerUser = functions.httpsCallable('register');
+
 	try {
-		const usernameRef = db.ref('usernames/' + username);
-		const usernameSnapshot = await usernameRef.once('value');
-		if (usernameSnapshot.exists()) {
-			status.innerText = "Никнейм уже занят";
-			status.style.color = "var(--loss)";
-			return;
-		}
+		const userData = {
+			username,
+			email,
+			password,
+			discord
+		};
+		console.log(userData);
 
-		const userCredential = await auth.createUserWithEmailAndPassword(email, password)
-		const user = userCredential.user;
-		const prevPlayerRef = db.ref('players/' + username);
-		const prevSnapshot = await prevPlayerRef.once('value');
-
-		const playerRef = db.ref('players/' + user.uid);
-		const snapshot = await playerRef.once('value');
-
-		if (!snapshot.exists()) {
-			console.log(prevSnapshot.elo);
-			if (prevSnapshot.exists()) {
-				const prevUserData = prevSnapshot.val();
-				currentUser = {
-					uid: user.uid,
-					name: username,
-					elo: prevUserData?.elo ?? 1000,
-					tournamentPoints: prevUserData?.tournamentPoints ?? 0,
-					promoStreak: prevUserData?.promoStreak ?? 0,
-					isMidConfirmed: prevUserData?.isMidConfirmed ?? false,
-					isHighConfirmed: prevUserData?.isHighConfirmed ?? false,
-					discord: discord
-				};
-
-				await prevPlayerRef.remove();
-			}
-			else {
-				currentUser = {
-					uid: user.uid,
-					name: username,
-					elo: 1000,
-					tournamentPoints: 0,
-					promoStreak: 0,
-					isMidConfirmed: false,
-					isHighConfirmed: false,
-					discord: discord
-				};
-			}
-
-			await usernameRef.set(true);
-			await playerRef.set(currentUser);
-		}
+		const result = await registerUser(userData);
+		const token = result.data.token;
+		await auth.signInWithCustomToken(token);
 
 		closeRegisterPopup();
 	}
 	catch (error) {
+		console.error(error);
 		status.innerText = error.message;
 		status.style.color = "var(--loss)";
 	}
@@ -385,8 +350,8 @@ async function deletePlayer(uid) {
 		const username = snapshot.val().name;
 
 		if (snapshot.exists())
-			db.ref('usernames/' + username).remove();
+			await db.ref('usernames/' + username).remove();
 
-		db.ref('players/' + uid).remove();
+		await db.ref('players/' + uid).remove();
 	}
 }
