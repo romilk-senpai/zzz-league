@@ -305,13 +305,13 @@ function finalizeTournament() {
 }
 
 async function manualElo(uid, currentElo) {
-	const newElo = prompt(`Новое ELO для ${uid}:`, currentElo);
-	if (newElo) {
-		const val = parseInt(newElo);
+	const propmt = prompt(`Новое ELO для ${uid}:`, currentElo);
+	if (propmt) {
+		const elo = parseInt(propmt);
 		
 		const updatePlayerElo = functions.httpsCallable('updatePlayerElo');
 		try {
-			await updatePlayerElo({ uid, val });
+			await updatePlayerElo({ uid, elo });
 		} catch (error) {
 			alert(error);
 		}

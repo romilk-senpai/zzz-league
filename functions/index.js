@@ -1,20 +1,20 @@
 const admin = require("firebase-admin");
 
-const { setGlobalOptions } = require("firebase-functions");
-const { onCall, HttpsError } = require("firebase-functions/https");
+const {setGlobalOptions} = require("firebase-functions");
+const {onCall, HttpsError} = require("firebase-functions/https");
 const logger = require("firebase-functions/logger");
 
-setGlobalOptions({ maxInstances: 10 });
+setGlobalOptions({maxInstances: 10});
 
 admin.initializeApp();
 
 const db = admin.database();
 const auth = admin.auth();
 
-exports.register = onCall({ cors: true }, async (request) => {
+exports.register = onCall({cors: true}, async (request) => {
   let userRecord = null;
   try {
-    const { username, email, password, discord } = request.data;
+    const {username, email, password, discord} = request.data;
 
     if (!username || !email || !password || !discord) {
       throw new HttpsError("invalid-argument", "Missing required fields");
@@ -25,7 +25,7 @@ exports.register = onCall({ cors: true }, async (request) => {
       throw new HttpsError("already-exists", "Username is already taken");
     }
 
-    userRecord = await auth.createUser({ email, password });
+    userRecord = await auth.createUser({email, password});
     const uid = userRecord.uid;
 
     const prevSnapshot = await db.ref("players/" + username).once("value");
@@ -64,7 +64,7 @@ exports.register = onCall({ cors: true }, async (request) => {
     });
 
     const token = await auth.createCustomToken(uid);
-    return { success: true, token };
+    return {success: true, token};
   } catch (error) {
     logger.error(error);
     if (userRecord) await auth.deleteUser(userRecord.uid);
@@ -81,15 +81,15 @@ async function validateRequest(request) {
   }
 
   const callerSnapshot = await db.ref("players/" + callerUid).once("value");
-  if (!callerSnapshot.exists() || callerSnapshot.val().isAdmin == true) {
-    throw new HttpsError("permission-denied", "Only admins can delete players");
+  if (!callerSnapshot.exists() || callerSnapshot.val().isAdmin !== true) {
+    throw new HttpsError("permission-denied", "Permission denied");
   }
 }
 
-exports.deletePlayer = onCall({ cors: true }, async (request) => {
+exports.deletePlayer = onCall({cors: true}, async (request) => {
   await validateRequest(request);
 
-  const { uid } = request.data;
+  const {uid} = request.data;
 
   if (!uid) {
     throw new HttpsError("invalid-argument", "uid is required");
@@ -110,13 +110,13 @@ exports.deletePlayer = onCall({ cors: true }, async (request) => {
 
   await auth.deleteUser(uid);
 
-  return { success: true };
+  return {success: true};
 });
 
-exports.updatePlayerElo = onCall({ cors: true }, async (request) => {
+exports.updatePlayerElo = onCall({cors: true}, async (request) => {
   await validateRequest(request);
 
-  const { uid, elo } = request.data;
+  const {uid, elo} = request.data;
 
   if (!uid) {
     throw new HttpsError("invalid-argument", "uid is required");
