@@ -98,6 +98,7 @@ function handleUserLogout() { auth.signOut(); }
 
 function openLoginPopup() {
 	document.getElementById("loginPopup").style.display = "flex";
+	document.getElementById('loginStatus').innerText = "";
 }
 
 function closeLoginPopup() {
@@ -106,6 +107,7 @@ function closeLoginPopup() {
 
 function openRegisterPopup() {
 	document.getElementById("registerPopup").style.display = "flex";
+	document.getElementById('registerStatus').innerText = "";
 }
 
 function closeRegisterPopup() {
@@ -302,11 +304,17 @@ function finalizeTournament() {
 	});
 }
 
-function manualElo(uid, elo) {
-	const v = prompt(`Новое ELO для ${uid}:`, elo);
-	if (v) {
-		const val = parseInt(v);
-		db.ref('players/' + uid).update({ elo: val, isMidConfirmed: val >= 1200, isHighConfirmed: val >= 1400, promoStreak: 0 });
+async function manualElo(uid, currentElo) {
+	const newElo = prompt(`Новое ELO для ${uid}:`, currentElo);
+	if (newElo) {
+		const val = parseInt(newElo);
+		
+		const updatePlayerElo = functions.httpsCallable('updatePlayerElo');
+		try {
+			await updatePlayerElo({ uid, val });
+		} catch (error) {
+			alert(error);
+		}
 	}
 }
 
@@ -342,13 +350,12 @@ function addPlayer() {
 
 async function deletePlayer(uid) {
 	if (confirm("Удалить игрока?")) {
-		const playerRef = db.ref('players/' + uid);
-		const snapshot = await playerRef.once('value');
-		const username = snapshot.val().name;
+		const registerUser = functions.httpsCallable('deletePlayer');
 
-		if (snapshot.exists())
-			await db.ref('usernames/' + username).remove();
-
-		await db.ref('players/' + uid).remove();
+		try {
+			await registerUser({ uid });
+		} catch (error) {
+			alert(error);
+		}
 	}
 }
