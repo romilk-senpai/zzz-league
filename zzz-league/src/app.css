@@ -413,6 +413,12 @@ select {
 	flex-wrap: wrap;
 }
 
+.archive-buttons {
+	display: flex;
+	flex-direction: row;
+	gap: 8px;
+}
+
 .archive-item {
 	display: flex;
 	align-items: center;
