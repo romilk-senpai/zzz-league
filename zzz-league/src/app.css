@@ -478,6 +478,10 @@ select {
 	margin-bottom: 0;
 }
 
+.error {
+	color: red;
+}
+
 .rules-list {
 	padding-left: 18px;
 	margin: 0;
