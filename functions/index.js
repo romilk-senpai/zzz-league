@@ -202,50 +202,109 @@ exports.resetSeason = onCall({cors: true}, async (request) => {
   await validateRequest(request);
 
   const {seasonName} = request.data;
+  if (!seasonName) {
+    throw new HttpsError("invalid-argument", "seasonName is required");
+  }
 
-  const allPlayers = await db.ref("players").once("value");
+  const snap = await db.ref("players").once("value");
+  const playersObj = snap.val();
+  if (!playersObj) {
+    throw new HttpsError("not-found", "No players found");
+  }
 
-  await db.ref("archives/" + seasonName).set(
-      allPlayers.map((player) => ({
-        name: player.name,
-        elo: player.elo || 1000,
-        isMidConfirmed: player.isMidConfirmed || false,
-        isHighConfirmed: player.isHighConfirmed || false,
-      })),
-  );
+  const players = Object.values(playersObj);
 
-  allPlayers.forEach((player) => {
+  const updates = {};
+
+  updates["archives/" + seasonName] = players.map((player) => ({
+    name: player.name,
+    elo: player.elo || 1000,
+    isMidConfirmed: player.isMidConfirmed || false,
+    isHighConfirmed: player.isHighConfirmed || false,
+  }));
+
+  players.forEach((player) => {
     const start = player.isHighConfirmed ?
       1400 : player.isMidConfirmed ? 1200 : 1000;
-    db.ref("players/" + player.uid).update({
-      elo: start,
-      tournamentPoints: 0,
-      promoStreak: 0,
-    });
+    updates["players/" + player.uid + "/elo"] = start;
+    updates["players/" + player.uid + "/tournamentPoints"] = 0;
+    updates["players/" + player.uid + "/promoStreak"] = 0;
   });
 
-  await db.ref("history").remove();
+  updates["history"] = null;
+
+  await db.ref().update(updates);
 
   return {success: true};
 });
 
 exports.finalizeTournament = onCall({cors: true}, async (request) => {
-  validateRequest();
+  await validateRequest(request);
 
-  const allPlayers = await db.ref("players").once("value");
+  const snap = await db.ref("players").once("value");
+  const playersObj = snap.val();
+  if (!playersObj) {
+    throw new HttpsError("not-found", "No players found");
+  }
 
-  allPlayers.forEach((p) => {
+  const updates = {};
+
+  Object.values(playersObj).forEach((p) => {
     const next = (p.elo || 1000) + (p.tournamentPoints || 0);
-    let m = p.isMidConfirmed;
-    let h = p.isHighConfirmed;
-    if (m && next < 1150) m = false;
-    if (h && next < 1350) h = false;
-    if (next >= 1400) h = true;
-    db.ref("players/" + p.uid).update({
-      elo: next,
-      tournamentPoints: 0,
-      isMidConfirmed: m,
-      isHighConfirmed: h,
-    });
+    let mid = p.isMidConfirmed;
+    let high = p.isHighConfirmed;
+    if (mid && next < 1150) mid = false;
+    if (high && next < 1350) high = false;
+    if (next >= 1400) high = true;
+
+    updates["players/" + p.uid + "/elo"] = next;
+    updates["players/" + p.uid + "/tournamentPoints"] = 0;
+    updates["players/" + p.uid + "/isMidConfirmed"] = mid;
+    updates["players/" + p.uid + "/isHighConfirmed"] = high;
   });
+
+  await db.ref().update(updates);
+
+  return {success: true};
+});
+
+exports.deleteArchive = onCall({cors: true}, async (request) => {
+  await validateRequest(request);
+
+  const {key} = request.data;
+  await db.ref("archives/" + key).remove();
+
+  return {success: true};
+});
+
+exports.addPlayer = onCall({cors: true}, async (request) => {
+  await validateRequest(request);
+
+  const {name} = request.data;
+  const trimmedName = name.trim();
+
+  if (!name || trimmedName.length < 2) {
+    throw new HttpsError("invalid-argument", "Name is required");
+  }
+
+  const existing = await db.ref("players")
+      .orderByChild("name").equalTo(trimmedName).once("value");
+  if (existing.exists()) {
+    throw new HttpsError("already-exists", "Player already exists");
+  }
+
+  const player = {
+    uid: trimmedName,
+    name: trimmedName,
+    elo: 1000,
+    tournamentPoints: 0,
+    promoStreak: 0,
+    isMidConfirmed: false,
+    isHighConfirmed: false,
+    discord: "",
+  };
+
+  await db.ref("players/" + trimmedName).set(player);
+
+  return {success: true};
 });

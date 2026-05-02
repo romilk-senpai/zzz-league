@@ -2,10 +2,7 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, signInWithCustomToken } from 'firebase/auth'
 import { getDatabase } from 'firebase/database'
 import { getFunctions } from 'firebase/functions'
-import { ref, set } from 'firebase/database'
 import { httpsCallable } from 'firebase/functions'
-
-import type { Player } from './types'
 
 const firebaseConfig = {
 	apiKey: "AIzaSyCCACnq23Ozr0KGUW2MNAti2rltAoBR3EA",
@@ -13,35 +10,24 @@ const firebaseConfig = {
 	projectId: "zzz-shad1w"
 }
 
-const app = initializeApp(firebaseConfig)
+const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app)
-export const db = getDatabase(app)
-export const functions = getFunctions(app)
+export const auth = getAuth(app);
+export const db = getDatabase(app);
+export const functions = getFunctions(app);
 
 export async function addPlayer(name: string): Promise<void> {
 	if (!name.trim()) return;
 
-	const player: Player = {
-		uid: name,
-		name,
-		elo: 1000,
-		tournamentPoints: 0,
-		promoStreak: 0,
-		isMidConfirmed: false,
-		isHighConfirmed: false,
-		discord: ""
-	}
-	await set(ref(db, 'players/' + name), player)
+	await httpsCallable(functions, 'addPlayer')({ name });
 }
 
 export async function deletePlayer(uid: string): Promise<void> {
-	if (!confirm('Удалить игрока?')) return
-	await httpsCallable(functions, 'deletePlayer')({ uid })
+	await httpsCallable(functions, 'deletePlayer')({ uid });
 }
 
 export async function updatePlayerElo(uid: string, elo: number): Promise<void> {
-	await httpsCallable(functions, 'updatePlayerElo')({ uid, elo })
+	await httpsCallable(functions, 'updatePlayerElo')({ uid, elo });
 }
 
 export async function registerUser(
@@ -50,9 +36,9 @@ export async function registerUser(
 	password: string,
 	discord: string
 ): Promise<void> {
-	const fn = httpsCallable(functions, 'register')
-	const result = await fn({ username, email, password, discord }) as any
-	await signInWithCustomToken(auth, result.data.token)
+	const fn = httpsCallable(functions, 'register');
+	const result = await fn({ username, email, password, discord }) as any;
+	await signInWithCustomToken(auth, result.data.token);
 }
 
 export async function addHistoryEntry(playerName1: string, playerName2: string, change: number): Promise<void> {
@@ -77,4 +63,8 @@ export async function resetSeason(name: string): Promise<void> {
 
 export async function finalizeTournament(): Promise<void> {
 	await httpsCallable(functions, "finalizeTournament")();
+}
+
+export async function deleteArchive(key: string): Promise<void> {
+	await httpsCallable(functions, "deleteArchive")({ key });
 }

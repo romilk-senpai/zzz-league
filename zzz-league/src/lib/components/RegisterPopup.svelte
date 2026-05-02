@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { registerUser } from "$lib/firebase";
-	
+
 	let { open = $bindable(false) } = $props();
 
 	let username = $state("");
@@ -50,10 +50,12 @@
 			/>
 			{#if status}<p class="status error">{status}</p>{/if}
 			<div class="btn-row">
-				<button class="btn-play" onclick={handleRegister}
+				<button class="btn-common btn-play" onclick={handleRegister}
 					>Зарегистрироваться</button
 				>
-				<button onclick={() => (open = false)}>Закрыть</button>
+				<button class="btn-common" onclick={() => (open = false)}
+					>Закрыть</button
+				>
 			</div>
 		</div>
 	</div>

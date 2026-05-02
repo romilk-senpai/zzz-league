@@ -16,8 +16,6 @@
 
 	let { players = [] }: Props = $props();
 
-	let addingPlayerName = $state("");
-
 	let searchQueryP1 = $state("");
 	let selectedPlayer1: Player | null = $state(null);
 	let filteredPlayers1 = $derived(
@@ -34,6 +32,15 @@
 		),
 	);
 
+	$effect(() => {
+		if (filteredPlayers1.length > 0) {
+			selectedPlayer1 = filteredPlayers1[0];
+		}
+		if (filteredPlayers2.length > 0) {
+			selectedPlayer2 = filteredPlayers2[0];
+		}
+	});
+
 	type Forecast = {
 		p1: { player: Player; w: number; l: number };
 		p2: { player: Player; w: number; l: number };
@@ -42,18 +49,25 @@
 	let showingForecast = $state(false);
 	let forecast = $state<Forecast | null>(null);
 
-	let winningPlayer = $state(0);
+	let winningPlayer = $state("0");
 
-	function handleSetTimer() {
+	async function handleSetTimer() {
 		const hours = prompt("Через сколько часов закончить?");
-		if (hours) setTimer(new Date().getTime() + parseFloat(hours) * 3600000);
+		if (hours) {
+			try {
+				await setTimer(new Date().getTime() + parseFloat(hours) * 3600000);
+			} catch (error) {
+				alert(error);
+			}
+		}
 	}
 
-	function handleAddPlayer() {
-		const playerName = addingPlayerName.trim();
+	async function handleAddPlayer() {
+		const playerName = prompt("Введите ник для игрока:");
+		if (!playerName) return;
 		if (playerName.length < 2) alert("Мала букв");
 		try {
-			addPlayer(playerName);
+			await addPlayer(playerName);
 		} catch (error) {
 			alert(error);
 		}
@@ -99,22 +113,26 @@
 			!selectedPlayer1 ||
 			!selectedPlayer2 ||
 			selectedPlayer1.name === selectedPlayer2.name
-		)
+		) {
+			alert("Выберите разных игроков");
 			return;
+		}
+
+		const winner = parseInt(winningPlayer);
 
 		const change1 = calculateEloChange(
 			selectedPlayer1,
 			selectedPlayer2,
-			winningPlayer,
+			winner,
 		);
 		const change2 = calculateEloChange(
 			selectedPlayer2,
 			selectedPlayer1,
-			winningPlayer === 1 ? 0 : 1,
+			winner === 1 ? 0 : 1,
 		);
 
-		handleUpdateMatchData(selectedPlayer1, change1, winningPlayer === 1);
-		handleUpdateMatchData(selectedPlayer2, change2, winningPlayer === 0);
+		handleUpdateMatchData(selectedPlayer1, change1, winner === 1);
+		handleUpdateMatchData(selectedPlayer2, change2, winner === 0);
 
 		try {
 			await addHistoryEntry(
@@ -129,10 +147,14 @@
 		showingForecast = false;
 	}
 
-	function handleResetSeason() {
+	async function handleResetSeason() {
 		const name = prompt("Название сезона для архива:");
 		if (!name) return;
-		resetSeason(name);
+		try {
+			await resetSeason(name);
+		} catch (error) {
+			alert(error);
+		}
 	}
 
 	function handleUpdateMatchData(
@@ -158,21 +180,16 @@
 	}
 </script>
 
-<div class="card">
+<div class="card admin-card">
 	<h2>Control Panel</h2>
 	<button class="btn-common" onclick={() => handleSetTimer()}
 		>⏳ Установить таймер</button
 	>
-	<input
-		type="text"
-		id="playerName"
-		placeholder="Имя игрока"
-		bind:value={addingPlayerName}
-	/>
 	<button class="btn-common" onclick={() => handleAddPlayer()}
-		>Добавить игрока (Admin)</button
-	>
-	<hr />
+		>Добавить игрока
+	</button>
+
+	<hr style="width: 100%" />
 
 	<input
 		type="text"
@@ -222,12 +239,15 @@
 		<option value="1">Победа Игрока 1</option>
 		<option value="0">Победа Игрока 2</option>
 	</select>
-	<button class="btn-common btn-play" onclick={() => playMatch()}>⚔️ Записать матч</button
+	<button type="button" class="btn-common btn-play" onclick={() => playMatch()}
+		>⚔️ Записать матч</button
 	>
-	<button class="btn-common" onclick={() => handleFinalizeTournament()}
-		>✅ Применить итоги</button
+	<button
+		type="button"
+		class="btn-common"
+		onclick={() => handleFinalizeTournament()}>✅ Применить итоги</button
 	>
-	<button class="btn-common" onclick={() => handleResetSeason()}
+	<button type="button" class="btn-common" onclick={() => handleResetSeason()}
 		>📦 Сброс сезона</button
 	>
 </div>

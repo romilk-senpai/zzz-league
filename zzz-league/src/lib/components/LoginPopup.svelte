@@ -34,8 +34,12 @@
 			/>
 			{#if status}<p class="status error">{status}</p>{/if}
 			<div class="btn-row">
-				<button class="btn-play" onclick={handleLogin}>Войти</button>
-				<button onclick={() => (open = false)}>Закрыть</button>
+				<button class="btn-common btn-play" onclick={handleLogin}
+					>Войти</button
+				>
+				<button class="btn-common" onclick={() => (open = false)}
+					>Закрыть</button
+				>
 			</div>
 		</div>
 	</div>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { auth, db } from "$lib/firebase";
+	import { auth, clearHistory, db, deleteArchive } from "$lib/firebase";
 	import { onAuthStateChanged, signOut } from "firebase/auth";
 	import { ref, onValue } from "firebase/database";
 	import type { Player } from "$lib/types";
@@ -100,6 +100,24 @@
 		isViewingArchive = false;
 		archiveKey = "";
 	}
+
+	async function handleDeleteArcive(key: string) {
+		try {
+			await deleteArchive(key);
+		} catch (error) {
+			alert(error);
+		}
+	}
+
+	async function handleClearHistory() {
+		if (!confirm("УАДЛИТЬ ИСТОРИЮ?")) return;
+
+		try {
+			await clearHistory();
+		} catch (error) {
+			alert(error);
+		}
+	}
 </script>
 
 <div class="layout" class:no-admin={!isAdmin}>
@@ -125,60 +143,64 @@
 			</div>
 		{/if}
 
-		<div class="card">
-			<h2>🏆 Кодекс Лиги</h2>
-			<ul class="rules-list">
-				<li>
-					<b>Ранги:</b> <span class="tier-badge t-newbie">NEWBIE</span>
-					<b>1000+</b>, <span class="tier-badge t-mid">MID</span>
-					<b>1200+</b>, <span class="tier-badge t-high">HIGH</span>
-					<b>1400+</b>.
-				</li>
-				<li>
-					<b>Квалификация:</b> Для входа в
-					<span class="tier-badge t-mid">MID TIER</span>
-					нужно
-					<b>1200</b> ELO и <b>3</b> победы подряд. Для
-					<span class="tier-badge t-high">HIGH TIER</span>
-					достаточно достичь отметки <b>1400</b> ELO.
-				</li>
-				<li>
-					<b>Уровни (LVL):</b> Каждые <b>40</b> единиц ELO повышают ваш
-					уровень. Максимальный уровень —
-					<b>L10</b> (начинается с <b>1360</b> ELO).
-				</li>
-				<li>
-					<b>Турнирный бонус:</b> За победу на <b>любом</b> турнире игрок
-					получает фиксированную награду
-					<b>+40 ELO</b>.
-				</li>
-				<li>
-					<b>Финальный турнир:</b> На последней неделе сезона проводится
-					масштабный турнир для
-					<b>ТОП-16</b> игроков рейтинга.
-				</li>
-				<li>
-					<b>Сброс лиги:</b> По завершении таймера прогресс уходит в архив.
-					ELO сбрасывается до стартового значения текущего подтвержденного тира.
-				</li>
-				<li>
-					<b>Сезоны:</b> Новый сезон — это возможность занять топы с чистого
-					листа.
-				</li>
-				<li>
-					<b>Вылет:</b> При падении ELO на <b>50</b> пунктов ниже границы тира,
-					вы переходите в предыдущую лигу.
-				</li>
-				<li>
-					<b>ELO-очки:</b> Начисляются сразу, но фиксируются в основном балансе
-					игрока только после завершения турнирного дня.
-				</li>
-				<li>
-					<b>Техлузы:</b> Неявка — штраф ELO виновнику, сопернику <b>0</b>.
-					Выход во время матча — штраф виновнику, сопернику <b>+ELO</b>.
-				</li>
-			</ul>
-		</div>
+		{#if !isAdmin}
+			<div class="card">
+				<h2>🏆 Кодекс Лиги</h2>
+				<ul class="rules-list">
+					<li>
+						<b>Ранги:</b> <span class="tier-badge t-newbie">NEWBIE</span>
+						<b>1000+</b>, <span class="tier-badge t-mid">MID</span>
+						<b>1200+</b>, <span class="tier-badge t-high">HIGH</span>
+						<b>1400+</b>.
+					</li>
+					<li>
+						<b>Квалификация:</b> Для входа в
+						<span class="tier-badge t-mid">MID TIER</span>
+						нужно
+						<b>1200</b> ELO и <b>3</b> победы подряд. Для
+						<span class="tier-badge t-high">HIGH TIER</span>
+						достаточно достичь отметки <b>1400</b> ELO.
+					</li>
+					<li>
+						<b>Уровни (LVL):</b> Каждые <b>40</b> единиц ELO повышают ваш
+						уровень. Максимальный уровень —
+						<b>L10</b> (начинается с <b>1360</b> ELO).
+					</li>
+					<li>
+						<b>Турнирный бонус:</b> За победу на <b>любом</b> турнире
+						игрок получает фиксированную награду
+						<b>+40 ELO</b>.
+					</li>
+					<li>
+						<b>Финальный турнир:</b> На последней неделе сезона проводится
+						масштабный турнир для
+						<b>ТОП-16</b> игроков рейтинга.
+					</li>
+					<li>
+						<b>Сброс лиги:</b> По завершении таймера прогресс уходит в архив.
+						ELO сбрасывается до стартового значения текущего подтвержденного
+						тира.
+					</li>
+					<li>
+						<b>Сезоны:</b> Новый сезон — это возможность занять топы с чистого
+						листа.
+					</li>
+					<li>
+						<b>Вылет:</b> При падении ELO на <b>50</b> пунктов ниже границы
+						тира, вы переходите в предыдущую лигу.
+					</li>
+					<li>
+						<b>ELO-очки:</b> Начисляются сразу, но фиксируются в основном балансе
+						игрока только после завершения турнирного дня.
+					</li>
+					<li>
+						<b>Техлузы:</b> Неявка — штраф ELO виновнику, сопернику
+						<b>0</b>. Выход во время матча — штраф виновнику, сопернику
+						<b>+ELO</b>.
+					</li>
+				</ul>
+			</div>
+		{/if}
 
 		{#if isAdmin}
 			<AdminPanel {players} />
@@ -199,7 +221,7 @@
 			</h2>
 			<div style="display:flex; align-items:center; gap:10px;">
 				{#if isViewingArchive}
-					<button class="btn-back" onclick={loadLive}
+					<button class="btn-common btn-back" onclick={loadLive}
 						>← ТЕКУЩАЯ ЛИГА</button
 					>
 				{/if}
@@ -220,32 +242,50 @@
 			/>
 		</div>
 
-		<div class="archive-section">
-			<div class="section-label">АРХИВ СЕЗОНОВ:</div>
-			<div class="archive-buttons">
-				{#each Object.keys(archives).reverse() as key}
-					<div class="archive-item">
-						<button class="archive-btn" onclick={() => loadArchive(key)}
-							>{key}</button
-						>
+		{#if archives}
+			<div class="archive-section">
+				<div class="section-label">АРХИВ СЕЗОНОВ:</div>
+				<div class="archive-buttons">
+					{#each Object.keys(archives).reverse() as key}
+						<div class="archive-item">
+							<button
+								class="btn-common archive-btn"
+								onclick={() => loadArchive(key)}>{key}</button
+							>
+							{#if isAdmin}
+								<button
+									class="btn-common archive-del"
+									onclick={() => handleDeleteArcive(key)}>✕</button
+								>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		{#if matchHistory.length > 0}
+			<div class="history-header">
+				<h3 class="section-label">ИСТОРИЯ МАТЧЕЙ</h3>
+				{#if isAdmin}
+					<button
+						class="btn-common btn-clear-history"
+						onclick={() => handleClearHistory()}
+						>ОЧИСТИТЬ</button
+					>
+				{/if}
+			</div>
+			<div class="log-items">
+				{#each matchHistory as m}
+					<div class="log-item">
+						<b>{m.p1}</b> vs <b>{m.p2}</b>:
+						<span class={m.change >= 0 ? "gain" : "loss"}>
+							{m.change >= 0 ? "+" : ""}{m.change} ELO
+						</span>
 					</div>
 				{/each}
 			</div>
-		</div>
-
-		<div class="history-header">
-			<h3 class="section-label">ИСТОРИЯ МАТЧЕЙ</h3>
-		</div>
-		<div class="log-items">
-			{#each matchHistory as m}
-				<div class="log-item">
-					<b>{m.p1}</b> vs <b>{m.p2}</b>:
-					<span class={m.change >= 0 ? "gain" : "loss"}>
-						{m.change >= 0 ? "+" : ""}{m.change} ELO
-					</span>
-				</div>
-			{/each}
-		</div>
+		{/if}
 	</div>
 </div>
 
