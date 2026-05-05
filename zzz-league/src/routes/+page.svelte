@@ -11,6 +11,8 @@
 	import PlayerProfile from "$lib/components/PlayerProfile.svelte";
 	import { profilePlayer } from "$lib/store";
 	import SettingsPopup from "$lib/components/SettingsPopup.svelte";
+	import { handleDiscordCallback } from "$lib/discord";
+	import { goto } from "$app/navigation";
 
 	let currentUser = $state<Player | null>(null);
 	let isAdmin = $state(false);

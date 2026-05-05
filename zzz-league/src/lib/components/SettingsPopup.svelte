@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { openDiscordOAuth } from "$lib/discord";
 	import { auth, linkDiscord, updateProfile } from "$lib/firebase";
 	import type { Player } from "$lib/types";
 	import {
@@ -35,7 +36,11 @@
 	}
 
 	async function handleLinkDiscord() {
-		
+		try {
+			openDiscordOAuth();
+		} catch (error: any) {
+			status = error.message;
+		}
 	}
 
 	async function handleSaveSettings() {
