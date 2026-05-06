@@ -1,0 +1,1 @@
+import{U as e,W as t,b as n,n as r,v as i}from"../chunks/C8HvTNf6.js";import{t as a}from"../chunks/CypIHGxG.js";import"../chunks/DXLwiZ0H.js";import{t as o}from"../chunks/Dv1labBZ.js";var s=n(`<p>Подключение Discord...</p>`);function c(n,c){t(c,!0),r(()=>{async function e(){await o(),a(`/zzz-league`)}e()}),i(n,s()),e()}export{c as component};
