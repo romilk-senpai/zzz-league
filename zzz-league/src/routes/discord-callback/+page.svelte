@@ -6,7 +6,7 @@
 	onMount(() => {
 		async function init() {
 			await handleDiscordCallback();
-			goto("/");
+			goto("/zzz-league");
 		}
 		init();
 	});
