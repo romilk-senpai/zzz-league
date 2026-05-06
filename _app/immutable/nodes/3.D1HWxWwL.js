@@ -1,1 +1,0 @@
-import{U as e,W as t,b as n,n as r,v as i}from"../chunks/C8HvTNf6.js";import{t as a}from"../chunks/BkhXCs9t.js";import"../chunks/DXLwiZ0H.js";import{t as o}from"../chunks/DFfce756.js";var s=n(`<p>Подключение Discord...</p>`);function c(n,c){t(c,!0),r(()=>{async function e(){await o(),a(`/`)}e()}),i(n,s()),e()}export{c as component};
