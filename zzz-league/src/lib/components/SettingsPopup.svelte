@@ -117,10 +117,10 @@
 			<input type="text" bind:value={username} placeholder="Ник" />
 			<input
 				type="text"
-				class={user.discordId ? "input-disabled" : ""}
+				class="input-disabled"
 				bind:value={discord}
 				placeholder="Discord"
-				disabled={!!user.discordId}
+				disabled
 			/>
 			{#if user.discordId}
 				<button class="btn-common" onclick={() => handleUnlinkDiscord()}

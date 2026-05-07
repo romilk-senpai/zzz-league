@@ -16,7 +16,7 @@
 				errorText = e.message;
 				setTimeout(function () {
 					goto("/zzz-league");
-				}, 2000);
+				}, 3000);
 			}
 		}
 		init();
