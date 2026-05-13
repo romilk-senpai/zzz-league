@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { auth, updateProfile } from "$lib/firebase";
+	import { openDiscordOAuth } from "$lib/discord";
+	import {
+		auth,
+		linkDiscord,
+		unlinkDiscord,
+		updateProfile,
+	} from "$lib/firebase";
 	import type { Player } from "$lib/types";
 	import {
 		EmailAuthProvider,
@@ -22,6 +28,7 @@
 
 		username = user.name;
 		email = auth.currentUser?.email ?? "";
+
 		discord = user.discord ?? "";
 	});
 
@@ -31,6 +38,22 @@
 		confirmPass = "";
 		status = "";
 		open = false;
+	}
+
+	async function handleLinkDiscord() {
+		try {
+			openDiscordOAuth();
+		} catch (error: any) {
+			status = error.message;
+		}
+	}
+
+	async function handleUnlinkDiscord() {
+		try {
+			await unlinkDiscord();
+		} catch (error: any) {
+			status = error.message;
+		}
 	}
 
 	async function handleSaveSettings() {
@@ -92,7 +115,22 @@
 				disabled
 			/>
 			<input type="text" bind:value={username} placeholder="Ник" />
-			<input type="text" bind:value={discord} placeholder="Discord" />
+			<input
+				type="text"
+				class="input-disabled"
+				bind:value={discord}
+				placeholder="Discord"
+				disabled
+			/>
+			{#if user.discordId}
+				<button class="btn-common" onclick={() => handleUnlinkDiscord()}
+					>Отвязать Discord</button
+				>
+			{:else}
+				<button class="btn-common" onclick={() => handleLinkDiscord()}
+					>Привязать Discord</button
+				>
+			{/if}
 			<br />
 			<input
 				type="password"

@@ -70,5 +70,13 @@ export async function deleteArchive(key: string): Promise<void> {
 }
 
 export async function updateProfile(username: string | null, discord: string | null): Promise<void> {
-	await httpsCallable(functions, 'updateProfile')({ username, discord })
+	await httpsCallable(functions, 'updateProfile')({ username, discord });
+}
+
+export async function linkDiscord(code: string, redirectUri: string): Promise<void> {
+	await httpsCallable(functions, 'linkDiscord')({ code, redirectUri });
+}
+
+export async function unlinkDiscord(): Promise<void> {
+	await httpsCallable(functions, 'unlinkDiscord')();
 }
