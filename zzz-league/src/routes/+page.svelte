@@ -54,7 +54,6 @@
 							discordId: player.discordId,
 							elo: player.elo,
 							tournamentPoints: player.tournamentPoints,
-							promoStreak: player.promoStreak,
 							isMidConfirmed: player.isMidConfirmed,
 							isHighConfirmed: player.isHighConfirmed,
 						};
@@ -205,7 +204,7 @@
 						<b>Квалификация:</b> Для входа в
 						<span class="tier-badge t-mid">MID TIER</span>
 						нужно
-						<b>1200</b> ELO и <b>3</b> победы подряд. Для
+						<b>1200</b> ELO. Для
 						<span class="tier-badge t-high">HIGH TIER</span>
 						достаточно достичь отметки <b>1400</b> ELO.
 					</li>
@@ -242,9 +241,11 @@
 						игрока только после завершения турнирного дня.
 					</li>
 					<li>
-						<b>Техлузы:</b> Неявка — штраф ELO виновнику, сопернику
-						<b>0</b>. Выход во время матча — штраф виновнику, сопернику
-						<b>+ELO</b>.
+						<b>Техлузы:</b> Если игрок получает техлуз по
+						<b>уважительной причине</b>, <b>ELO</b> с него не снимается, а
+						его оппонент не получает <b>ELO за победу.</b>
+						Если техлуз происходит <b>во время игры</b>, игрок, получивший
+						техлуз, получает <b>двойную потерю ELO</b>
 					</li>
 				</ul>
 			</div>

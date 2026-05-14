@@ -65,7 +65,6 @@ exports.register = onCall({cors: true}, async (request) => {
         name: username,
         elo: prevUserData.elo ?? 1000,
         tournamentPoints: prevUserData.tournamentPoints ?? 0,
-        promoStreak: prevUserData.promoStreak ?? 0,
         isMidConfirmed: prevUserData.isMidConfirmed ?? false,
         isHighConfirmed: prevUserData.isHighConfirmed ?? false,
         discord,
@@ -76,7 +75,6 @@ exports.register = onCall({cors: true}, async (request) => {
         name: username,
         elo: 1000,
         tournamentPoints: 0,
-        promoStreak: 0,
         isMidConfirmed: false,
         isHighConfirmed: false,
         discord,
@@ -235,21 +233,15 @@ exports.updateMatchData = onCall({cors: true}, async (request) => {
 
   const player = snapshot.val();
 
-  let streak = player.promoStreak || 0;
   let confirmed = player.isMidConfirmed || false;
 
   if ((player.elo || 1000) >= 1200 && !confirmed) {
     if (isWin) {
-      streak++;
-      if (streak >= 3) {
-        confirmed = true;
-        streak = 0;
-      }
-    } else streak = 0;
+      confirmed = true;
+    }
   }
   await db.ref("players/" + player.uid).update({
     tournamentPoints: (player.tournamentPoints || 0) + change,
-    promoStreak: streak,
     isMidConfirmed: confirmed,
   });
 });
@@ -292,7 +284,6 @@ exports.resetSeason = onCall({cors: true}, async (request) => {
       1400 : player.isMidConfirmed ? 1200 : 1000;
     updates["players/" + player.uid + "/elo"] = start;
     updates["players/" + player.uid + "/tournamentPoints"] = 0;
-    updates["players/" + player.uid + "/promoStreak"] = 0;
   });
 
   updates["history"] = null;
@@ -372,7 +363,6 @@ exports.addPlayer = onCall({cors: true}, async (request) => {
     name: trimmedName,
     elo: 1000,
     tournamentPoints: 0,
-    promoStreak: 0,
     isMidConfirmed: false,
     isHighConfirmed: false,
     discord: "",

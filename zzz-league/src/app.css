@@ -9,7 +9,6 @@
 	--tier-mid-text: #e0ca5e;
 	--tier-high-bg: #351e1e;
 	--tier-high-text: #e05e5e;
-	--promo-dot: #2eb82e;
 	--gain: #2eb82e;
 	--loss: #ff4444;
 	--scrollbar-bg: #0f0f0f;
@@ -366,25 +365,6 @@ select {
 
 .danger {
 	color: #ff4444;
-}
-
-.promo-wrap {
-	display: inline-flex;
-	gap: 4px;
-	margin-left: 10px;
-}
-
-.dot {
-	width: 7px;
-	height: 7px;
-	border-radius: 50%;
-	background: #333;
-	border: 1px solid #444;
-}
-
-.dot.active {
-	background: var(--promo-dot);
-	box-shadow: 0 0 5px var(--promo-dot);
 }
 
 .select-filter {
