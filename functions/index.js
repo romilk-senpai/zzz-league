@@ -213,6 +213,15 @@ exports.addHistoryEntry = onCall({cors: true}, async (request) => {
   return {success: true};
 });
 
+exports.deleteHistoryEntry = onCall({cors: true}, async (request) => {
+  await validateAdminRequest(request);
+  
+  const { key } = request.data;
+  await db.ref("history/" + key).remove();
+
+  return {success: true};
+});
+
 exports.clearHistory = onCall({cors: true}, async (request) => {
   await validateAdminRequest(request);
   await db.ref("history").remove();

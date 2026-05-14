@@ -7,6 +7,7 @@ import { httpsCallable } from 'firebase/functions'
 const firebaseConfig = {
 	apiKey: "AIzaSyAlcnUiLJ1cq7ekCQFi_NOPAQ6UiG92ZqM",
 	databaseURL: "https://zzz-league-default-rtdb.firebaseio.com",
+	// databaseURL: "https://zzz-league-test.europe-west1.firebasedatabase.app/",
 	projectId: "zzz-league"
 }
 
@@ -79,4 +80,8 @@ export async function linkDiscord(code: string, redirectUri: string): Promise<vo
 
 export async function unlinkDiscord(): Promise<void> {
 	await httpsCallable(functions, 'unlinkDiscord')();
+}
+
+export async function deleteHistoryEntry(key: string): Promise<void> {
+	await httpsCallable(functions, 'deleteHistoryEntry')({ key });
 }

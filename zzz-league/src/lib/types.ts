@@ -10,8 +10,9 @@ export interface Player {
 }
 
 export interface MatchRecord {
-	p1: string
-	p2: string
+	key: string,
+	p1: string,
+	p2: string,
 	change: number
 }
 
