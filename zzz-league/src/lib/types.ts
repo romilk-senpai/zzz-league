@@ -16,3 +16,13 @@ export interface MatchRecord {
 }
 
 export type Archives = Record<string, Player[]>
+
+export interface Tournament {
+	id: string;
+	name: string;
+	description: string;
+	registrationStartDate: number;
+	registrationEndDate: number;
+	tournamentStartDate: number;
+	tournamentEndDate: number;
+}
