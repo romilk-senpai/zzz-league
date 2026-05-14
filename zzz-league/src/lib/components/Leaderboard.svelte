@@ -87,9 +87,6 @@
 		{#each filteredPlayers as player, index}
 			{@const elo = player.elo || 1000}
 			{@const tier = getTier(player)}
-			{@const streak = player.promoStreak || 0}
-			{@const showPromo =
-				elo >= 1200 && elo < 1400 && !player.isMidConfirmed}
 			{@const ladderPos = getLadderPos(player)}
 
 			<tr class={ladderPos < 3 ? `top-${ladderPos + 1}` : ""}>
@@ -98,13 +95,6 @@
 				<td class="player-name">
 					<button onclick={() => openProfile(player)}>{player.name}</button
 					>
-					{#if showPromo}
-						<div class="promo-wrap">
-							<div class="dot" class:active={streak >= 1}></div>
-							<div class="dot" class:active={streak >= 2}></div>
-							<div class="dot" class:active={streak >= 3}></div>
-						</div>
-					{/if}
 				</td>
 				<td>
 					<b>{elo}</b>

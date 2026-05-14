@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { auth, clearHistory, db, deleteArchive } from "$lib/firebase";
+	import { auth, clearHistory, db, deleteArchive, deleteHistoryEntry } from "$lib/firebase";
 	import { onAuthStateChanged, signOut } from "firebase/auth";
 	import { ref, onValue } from "firebase/database";
 	import type { Archives, MatchRecord, Player } from "$lib/types";
@@ -11,8 +11,6 @@
 	import PlayerProfile from "$lib/components/PlayerProfile.svelte";
 	import { profilePlayer } from "$lib/store";
 	import SettingsPopup from "$lib/components/SettingsPopup.svelte";
-	import { handleDiscordCallback } from "$lib/discord";
-	import { goto } from "$app/navigation";
 
 	let currentUser = $state<Player | null>(null);
 	let isAdmin = $state(false);
@@ -51,7 +49,6 @@
 							discordId: player.discordId,
 							elo: player.elo,
 							tournamentPoints: player.tournamentPoints,
-							promoStreak: player.promoStreak,
 							isMidConfirmed: player.isMidConfirmed,
 							isHighConfirmed: player.isHighConfirmed,
 						};
@@ -98,7 +95,13 @@
 
 		const unsubHistory = onValue(ref(db, "history"), (snap) => {
 			const val = snap.val();
-			matchHistory = val ? (Object.values(val).reverse() as any[]) : [];
+			if (!val) {
+				matchHistory = [];
+				return;
+			}
+			matchHistory = Object.entries(val)
+				.map(([key, m]: [string, any]) => ({ key, ...m }))
+				.reverse();
 		});
 
 		return () => {
@@ -125,6 +128,16 @@
 	async function handleDeleteArcive(key: string) {
 		try {
 			await deleteArchive(key);
+		} catch (error) {
+			alert(error);
+		}
+	}
+
+	async function handleDeleteHistoryEntry(key: string) {
+		if (!confirm("Удалить запись?")) return;
+		
+		try {
+			await deleteHistoryEntry(key);
 		} catch (error) {
 			alert(error);
 		}
@@ -191,7 +204,7 @@
 						<b>Квалификация:</b> Для входа в
 						<span class="tier-badge t-mid">MID TIER</span>
 						нужно
-						<b>1200</b> ELO и <b>3</b> победы подряд. Для
+						<b>1200</b> ELO. Для
 						<span class="tier-badge t-high">HIGH TIER</span>
 						достаточно достичь отметки <b>1400</b> ELO.
 					</li>
@@ -228,9 +241,11 @@
 						игрока только после завершения турнирного дня.
 					</li>
 					<li>
-						<b>Техлузы:</b> Неявка — штраф ELO виновнику, сопернику
-						<b>0</b>. Выход во время матча — штраф виновнику, сопернику
-						<b>+ELO</b>.
+						<b>Техлузы:</b> Если игрок получает техлуз по
+						<b>уважительной причине</b>, <b>ELO</b> с него не снимается, а
+						его оппонент не получает <b>ELO за победу.</b>
+						Если техлуз происходит <b>во время игры</b>, игрок, получивший
+						техлуз, получает <b>двойную потерю ELO</b>
 					</li>
 				</ul>
 			</div>
@@ -315,6 +330,13 @@
 						<span class={m.change >= 0 ? "gain" : "loss"}>
 							{m.change >= 0 ? "+" : ""}{m.change} ELO
 						</span>
+						{#if isAdmin}
+							<button
+								class="icon-btn danger"
+								onclick={() => handleDeleteHistoryEntry(m.key)}
+								>✕</button
+							>
+						{/if}
 					</div>
 				{/each}
 			</div>

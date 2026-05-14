@@ -5,14 +5,14 @@ export interface Player {
 	discord: string,
 	elo: number,
 	tournamentPoints: number,
-	promoStreak: number,
 	isMidConfirmed: boolean,
 	isHighConfirmed: boolean
 }
 
 export interface MatchRecord {
-	p1: string
-	p2: string
+	key: string,
+	p1: string,
+	p2: string,
 	change: number
 }
 

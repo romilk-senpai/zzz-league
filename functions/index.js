@@ -40,9 +40,9 @@ async function validateAdminRequest(request) {
 exports.register = onCall({cors: true}, async (request) => {
   let userRecord = null;
   try {
-    const {username, email, password, discord} = request.data;
+    const {username, email, password} = request.data;
 
-    if (!username || !email || !password || !discord) {
+    if (!username || !email || !password) {
       throw new HttpsError("invalid-argument", "Missing required fields");
     }
 
@@ -65,10 +65,8 @@ exports.register = onCall({cors: true}, async (request) => {
         name: username,
         elo: prevUserData.elo ?? 1000,
         tournamentPoints: prevUserData.tournamentPoints ?? 0,
-        promoStreak: prevUserData.promoStreak ?? 0,
         isMidConfirmed: prevUserData.isMidConfirmed ?? false,
         isHighConfirmed: prevUserData.isHighConfirmed ?? false,
-        discord,
       };
     } else {
       playerData = {
@@ -76,10 +74,8 @@ exports.register = onCall({cors: true}, async (request) => {
         name: username,
         elo: 1000,
         tournamentPoints: 0,
-        promoStreak: 0,
         isMidConfirmed: false,
         isHighConfirmed: false,
-        discord,
       };
     }
 
@@ -105,9 +101,9 @@ exports.updateProfile = onCall({cors: true}, async (request) => {
     throw new HttpsError("unauthenticated", "User must be logged in");
   }
 
-  const {username, discord} = request.data;
+  const {username} = request.data;
 
-  if (!username && !discord) {
+  if (!username) {
     throw new HttpsError("invalid-argument", "Nothing to update");
   }
 
@@ -133,10 +129,6 @@ exports.updateProfile = onCall({cors: true}, async (request) => {
     updates["usernames/" + oldUsername] = null;
     updates["usernames/" + username] = true;
     updates["players/" + callerUid + "/name"] = username;
-  }
-
-  if (discord) {
-    updates["players/" + callerUid + "/discord"] = discord;
   }
 
   await db.ref().update(updates);
@@ -210,7 +202,17 @@ exports.addHistoryEntry = onCall({cors: true}, async (request) => {
     p1: playerName1,
     p2: playerName2,
     change,
+    timestamp: Date.now(),
   });
+
+  return {success: true};
+});
+
+exports.deleteHistoryEntry = onCall({cors: true}, async (request) => {
+  await validateAdminRequest(request);
+
+  const {key} = request.data;
+  await db.ref("history/" + key).remove();
 
   return {success: true};
 });
@@ -235,21 +237,15 @@ exports.updateMatchData = onCall({cors: true}, async (request) => {
 
   const player = snapshot.val();
 
-  let streak = player.promoStreak || 0;
   let confirmed = player.isMidConfirmed || false;
 
   if ((player.elo || 1000) >= 1200 && !confirmed) {
     if (isWin) {
-      streak++;
-      if (streak >= 3) {
-        confirmed = true;
-        streak = 0;
-      }
-    } else streak = 0;
+      confirmed = true;
+    }
   }
   await db.ref("players/" + player.uid).update({
     tournamentPoints: (player.tournamentPoints || 0) + change,
-    promoStreak: streak,
     isMidConfirmed: confirmed,
   });
 });
@@ -292,7 +288,6 @@ exports.resetSeason = onCall({cors: true}, async (request) => {
       1400 : player.isMidConfirmed ? 1200 : 1000;
     updates["players/" + player.uid + "/elo"] = start;
     updates["players/" + player.uid + "/tournamentPoints"] = 0;
-    updates["players/" + player.uid + "/promoStreak"] = 0;
   });
 
   updates["history"] = null;
@@ -323,13 +318,15 @@ exports.finalizeTournament = onCall({
     let mid = p.isMidConfirmed;
     let high = p.isHighConfirmed;
     if (mid && next < 1150) mid = false;
+    if (!mid && next >= 1200) mid = true;
     if (high && next < 1350) high = false;
-    if (next >= 1400) high = true;
+    if (!high && next >= 1400) high = true;
 
     updates["players/" + p.uid + "/elo"] = next;
     updates["players/" + p.uid + "/tournamentPoints"] = 0;
     updates["players/" + p.uid + "/isMidConfirmed"] = mid;
     updates["players/" + p.uid + "/isHighConfirmed"] = high;
+    updates["players/" + p.uid + "/lastEloUpdateTimestamp"] = Date.now();
 
     if (p.discordId && mid != p.isMidConfirmed || high != p.isHighConfirmed) {
       uidsToUpdate.push(p.uid);
@@ -372,7 +369,6 @@ exports.addPlayer = onCall({cors: true}, async (request) => {
     name: trimmedName,
     elo: 1000,
     tournamentPoints: 0,
-    promoStreak: 0,
     isMidConfirmed: false,
     isHighConfirmed: false,
     discord: "",
