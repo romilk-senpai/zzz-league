@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { auth, clearHistory, db, deleteArchive } from "$lib/firebase";
+	import { auth, clearHistory, db, deleteArchive, deleteHistoryEntry } from "$lib/firebase";
 	import { onAuthStateChanged, signOut } from "firebase/auth";
 	import { ref, onValue } from "firebase/database";
 	import type { Archives, MatchRecord, Player, Tournament } from "$lib/types";
@@ -100,7 +100,13 @@
 
 		const unsubHistory = onValue(ref(db, "history"), (snap) => {
 			const val = snap.val();
-			matchHistory = val ? (Object.values(val).reverse() as any[]) : [];
+			if (!val) {
+				matchHistory = [];
+				return;
+			}
+			matchHistory = Object.entries(val)
+				.map(([key, m]: [string, any]) => ({ key, ...m }))
+				.reverse();
 		});
 
 		const unsubTournaments = onValue(ref(db, "tournaments"), (snap) => {
@@ -138,6 +144,16 @@
 	async function handleDeleteArcive(key: string) {
 		try {
 			await deleteArchive(key);
+		} catch (error) {
+			alert(error);
+		}
+	}
+
+	async function handleDeleteHistoryEntry(key: string) {
+		if (!confirm("Удалить запись?")) return;
+		
+		try {
+			await deleteHistoryEntry(key);
 		} catch (error) {
 			alert(error);
 		}
@@ -359,6 +375,13 @@
 						<span class={m.change >= 0 ? "gain" : "loss"}>
 							{m.change >= 0 ? "+" : ""}{m.change} ELO
 						</span>
+						{#if isAdmin}
+							<button
+								class="icon-btn danger"
+								onclick={() => handleDeleteHistoryEntry(m.key)}
+								>✕</button
+							>
+						{/if}
 					</div>
 				{/each}
 			</div>
