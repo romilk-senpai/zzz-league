@@ -5,7 +5,6 @@ export interface Player {
 	discord: string,
 	elo: number,
 	tournamentPoints: number,
-	promoStreak: number,
 	isMidConfirmed: boolean,
 	isHighConfirmed: boolean
 }

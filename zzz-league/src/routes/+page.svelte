@@ -51,7 +51,6 @@
 							discordId: player.discordId,
 							elo: player.elo,
 							tournamentPoints: player.tournamentPoints,
-							promoStreak: player.promoStreak,
 							isMidConfirmed: player.isMidConfirmed,
 							isHighConfirmed: player.isHighConfirmed,
 						};
