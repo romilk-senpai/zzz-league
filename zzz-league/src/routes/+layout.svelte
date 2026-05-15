@@ -9,10 +9,11 @@
 		currentUser,
 		isAdmin,
 		players,
+		viewingImage,
 	} from "$lib/store";
 
 	import LoginPopup from "$lib/components/LoginPopup.svelte";
-	import PlayerProfile from "$lib/components/PlayerProfile.svelte";
+	import PlayerProfilePopup from "$lib/components/PlayerProfilePopup.svelte";
 	import RegisterPopup from "$lib/components/RegisterPopup.svelte";
 	import SettingsPopup from "$lib/components/SettingsPopup.svelte";
 	import { onMount } from "svelte";
@@ -20,14 +21,21 @@
 	import { onValue, ref } from "firebase/database";
 	import { auth, db } from "$lib/firebase";
 	import type { Player } from "$lib/types";
+	import ImageViwerPopup from "$lib/components/ImageViwerPopup.svelte";
 
 	let { children } = $props();
 
 	let profileOpen = $state(false);
+	let imageViewerOpen = $state(false);
 
 	$effect(() => {
 		profileOpen = $profileUser !== null;
+		imageViewerOpen = !!$viewingImage;
 	});
+
+	viewingImage.set(
+		"https://static.wikia.nocookie.net/bakemonogatari1645/images/b/b9/Shinobu.png/revision/latest/scale-to-width-down/1200?cb=20161221045011",
+	);
 
 	onMount(() => {
 		let unsubUser: (() => void) | null = null;
@@ -74,6 +82,7 @@
 {#if $loginOpen}<LoginPopup />{/if}
 {#if $registerOpen}<RegisterPopup />{/if}
 {#if $settingsOpen}<SettingsPopup />{/if}
-{#if profileOpen}<PlayerProfile player={$profileUser} />{/if}
+{#if profileOpen}<PlayerProfilePopup player={$profileUser} />{/if}
+{#if imageViewerOpen}<ImageViwerPopup src={$viewingImage} />{/if}
 
 {@render children()}

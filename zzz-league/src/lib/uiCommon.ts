@@ -1,4 +1,4 @@
-import { loginOpen, profileUser, registerOpen, settingsOpen } from "./store";
+import { loginOpen, profileUser, registerOpen, settingsOpen, viewingImage } from "./store";
 import type { Player } from "./types";
 
 export function openProfilePopup(player: Player) {
@@ -31,4 +31,12 @@ export function openSettingsPopup() {
 
 export function closeSettingsPopup() {
 	settingsOpen.set(false);
+}
+
+export function openImagePopup(src: string) {
+	viewingImage.set(src);
+}
+
+export function closeImagePopup() {
+	viewingImage.set("");
 }
