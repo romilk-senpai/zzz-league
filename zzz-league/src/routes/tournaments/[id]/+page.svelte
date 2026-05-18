@@ -4,6 +4,7 @@
 	import TournamentPlayerTable from "$lib/components/TournamentPlayerTable.svelte";
 	import TournamentRegisterPopup from "$lib/components/TournamentRegisterPopup.svelte";
 	import { db } from "$lib/firebase";
+	import { currentUser } from "$lib/store";
 	import type {
 		Player,
 		RegisteredPlayer,
@@ -16,6 +17,7 @@
 	const id = $derived(page.params.id);
 
 	let tournament = $state<Tournament>();
+	let userRegistration = $state<TournamentRegistration>();
 	let registeredPlayers = $state<RegisteredPlayer[]>([]);
 	let searchQuery = $state("");
 	let registrationOpen = $state(false);
@@ -57,9 +59,23 @@
 			},
 		);
 
+		let unsubRegistration: (() => void) | null = null;
+
+		if ($currentUser) {
+			unsubRegistration = onValue(
+				ref(db, `tournamentRegistrations/${id}/${$currentUser.uid}`),
+				(snap) => {
+					const data = snap.val();
+					if (!data) return;
+					userRegistration = data as TournamentRegistration;
+				},
+			);
+		}
+
 		return () => {
 			unsubTournament();
 			unsubRegistrations();
+			if (unsubRegistration) unsubRegistration();
 		};
 	});
 </script>
@@ -73,8 +89,10 @@
 			<div class="description-container">
 				<p>{tournament.description}</p>
 
-				<button class="btn-common btn-play" onclick={() => (registrationOpen = true)}
-					>Зарегистрироваться</button
+				<button
+					class="btn-common btn-play"
+					onclick={() => (registrationOpen = true)}
+					>{#if userRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</button
 				>
 			</div>
 		{/if}

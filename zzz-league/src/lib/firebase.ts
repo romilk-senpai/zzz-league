@@ -91,14 +91,24 @@ export async function createTournament(data: Omit<Tournament, 'id'>): Promise<st
 	return result.data.id;
 }
 
-export async function applyForTournament(tournamentId: string, darteNickname: string,
+async function fileToBase64(file: File): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const reader = new FileReader()
+		reader.onload = () => resolve(reader.result as string)
+		reader.onerror = reject
+		reader.readAsDataURL(file)
+	})
+}
+
+export async function applyForTournament(tournamentId: string, zzzUid: string, darteNickname: string,
 	darteAccount: string, dartePreset: string, rosterScreenshot: File): Promise<void> {
 
 	await httpsCallable(functions, 'applyForTournament')({
 		tournamentId,
+		zzzUid,
 		darteNickname,
 		darteAccount,
 		dartePreset,
-		rosterScreenshot	
+		rosterScreenshot: await fileToBase64(rosterScreenshot),
 	});
 }

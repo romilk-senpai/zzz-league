@@ -33,10 +33,6 @@
 		imageViewerOpen = !!$viewingImage;
 	});
 
-	viewingImage.set(
-		"https://static.wikia.nocookie.net/bakemonogatari1645/images/b/b9/Shinobu.png/revision/latest/scale-to-width-down/1200?cb=20161221045011",
-	);
-
 	onMount(() => {
 		let unsubUser: (() => void) | null = null;
 

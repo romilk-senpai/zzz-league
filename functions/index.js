@@ -13,6 +13,7 @@ const DISCORD_CLIENT_SECRET = defineSecret("DISCORD_CLIENT_SECRET");
 const {setGlobalOptions} = require("firebase-functions");
 const {onCall, HttpsError} = require("firebase-functions/https");
 const logger = require("firebase-functions/logger");
+const {getStorage} = require("firebase-admin/storage");
 
 setGlobalOptions({
   maxInstances: 10,
@@ -23,6 +24,7 @@ admin.initializeApp();
 
 const db = admin.database();
 const auth = admin.auth();
+const storage = getStorage();
 
 async function validateAdminRequest(request) {
   const callerUid = request.auth?.uid;
@@ -530,21 +532,42 @@ exports.applyForTournament = onCall({cors: true}, async (request) => {
     darteAccount,
     dartePreset,
     rosterScreenshot,
+    zzzUid,
   } = request.data;
 
   if (!tournamentId || !darteNickname || !darteAccount ||
-    !dartePreset || !rosterScreenshot) {
+    !dartePreset || !rosterScreenshot || !zzzUid) {
     throw new HttpsError("invalid-argument", "Missing required fields");
   }
 
-  const rosterScreenshotLink = "";
+  const base64Data = rosterScreenshot.replace(/^data:image\/\w+;base64,/, "");
+  const buffer = Buffer.from(base64Data, "base64");
+
+  if (buffer.length > 1 * 1024 * 1024) {
+    throw new HttpsError("invalid-argument", "File too large, max 5MB");
+  }
+
+  const match = rosterScreenshot.match(/^data:(image\/\w+);base64,/);
+  const contentType = match ? match[1] : "image/jpeg";
+  const ext = contentType.split("/")[1];
+
+  const filePath = `tournaments/${tournamentId}/${callerUid}-roster.${ext}`;
+  const file = storage.bucket().file(filePath);
+
+  await file.save(buffer, {
+    metadata: {contentType},
+  });
+
+  await file.makePublic();
+  const rosterScreenshotUrl = `https://storage.googleapis.com/${storage.bucket().name}/${filePath}`;
 
   await db.ref(`tournamentRegistrations/${tournamentId}/${callerUid}`).set({
     uid: callerUid,
+    zzzUid,
     darteNickname,
     darteAccount,
     dartePreset,
-    rosterScreenshot: rosterScreenshotLink,
+    rosterScreenshot: rosterScreenshotUrl,
     registrationTimestamp: Date.now(),
     approved: false,
   });

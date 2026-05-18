@@ -5,6 +5,7 @@
 	let loaded = $state(false);
 
 	function close() {
+		loaded = false;
 		closeImagePopup();
 	}
 </script>

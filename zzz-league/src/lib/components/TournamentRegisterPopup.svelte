@@ -3,6 +3,7 @@
 
 	let { open = $bindable(false), tournament = $bindable() } = $props();
 
+	let zzzUid = $state("");
 	let darteNickname = $state("");
 	let darteAccount = $state("");
 	let dartePreset = $state("");
@@ -17,6 +18,7 @@
 		}
 
 		if (
+			!zzzUid ||
 			!darteNickname ||
 			!darteAccount ||
 			!dartePreset ||
@@ -32,6 +34,7 @@
 		try {
 			await applyForTournament(
 				tournament.id,
+				zzzUid,
 				darteNickname,
 				darteAccount,
 				dartePreset,
@@ -49,6 +52,7 @@
 	<div class="popup">
 		<div class="card">
 			<h2>Регистрация</h2>
+			<input type="text" bind:value={zzzUid} placeholder="Игровой UID" />
 			<input
 				type="text"
 				bind:value={darteNickname}

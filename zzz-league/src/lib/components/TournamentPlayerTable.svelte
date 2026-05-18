@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { isAdmin, profileUser } from "$lib/store";
 	import type { Player, RegisteredPlayer } from "$lib/types";
-    import { openProfilePopup } from "$lib/uiCommon";
+	import { openImagePopup, openProfilePopup } from "$lib/uiCommon";
 
 	interface Props {
 		registrations?: RegisteredPlayer[];
@@ -32,6 +32,10 @@
 	async function handleRemoveFromTournament(uid: string) {}
 
 	async function handleApprove(uid: string) {}
+
+	async function openRosterScreenshot(link: string) {
+		openImagePopup(link);
+	}
 
 	function getTier(p: Player) {
 		if (p.isHighConfirmed) return { cls: "t-high", name: "HIGH TIER" };
@@ -88,7 +92,14 @@
 				</td>
 				<td><span class="lvl-badge">L{getLvl(elo)}</span></td>
 				<td><span>{reg.registration.approved ? "+" : "-"}</span></td>
-				<td><span>TBD</span></td>
+				<td>
+					<button
+						class="icon-btn"
+						onclick={() =>
+							openRosterScreenshot(reg.registration.rosterScreenshot)}
+						>🖼️</button
+					>
+				</td>
 				{#if isAdmin && !hideOptions}
 					<td class="options-cell">
 						<button
