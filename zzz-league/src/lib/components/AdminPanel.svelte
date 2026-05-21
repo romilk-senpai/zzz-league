@@ -290,4 +290,10 @@
 	.btn-forecast:hover {
 		background: #ffdb4d !important;
 	}
+
+	.select-filter {
+		padding: 6px 10px;
+		font-size: 0.8em;
+		border-color: #444;
+	}
 </style>

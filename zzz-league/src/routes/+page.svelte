@@ -394,4 +394,18 @@
 	.archive-del:hover {
 		background: #662222;
 	}
+
+	.log-items {
+		display: flex;
+		flex-direction: column;
+		max-height: 250px;
+		overflow-y: auto;
+	}
+
+	.log-item {
+		font-size: 0.85em;
+		padding: 8px 24px;
+		border-bottom: 1px solid #222;
+		color: #999;
+	}
 </style>

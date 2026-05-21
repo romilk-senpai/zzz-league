@@ -101,6 +101,11 @@
 </div>
 
 <style>
+	.profile-card {
+		width: 500px;
+		text-align: center;
+	}
+
 	.stat-grid {
 		display: grid;
 		grid-template-columns: 1fr 1fr;

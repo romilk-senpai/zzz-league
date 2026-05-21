@@ -158,3 +158,26 @@
 		reg={userRegistration}
 	></TournamentRegisterPopup>
 {/if}
+
+<style>
+	.description-container {
+		display: flex;
+		flex-direction: column;
+		position: relative;
+		border-bottom: 1px solid #333;
+		padding-right: 210px;
+		padding-bottom: 16px;
+	}
+
+	.description-container button {
+		width: auto;
+		position: absolute;
+		bottom: 16px;
+		right: 0;
+	}
+
+	.description-container p {
+		margin: 0;
+		min-height: 46px;
+	}
+</style>
