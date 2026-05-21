@@ -2,7 +2,6 @@
 	import {
 		addHistoryEntry,
 		addPlayer,
-		createTournament,
 		finalizeTournament,
 		resetSeason,
 		setTimer,
@@ -10,6 +9,7 @@
 	} from "$lib/firebase";
 	import { players } from "$lib/store";
 	import type { Player } from "$lib/types";
+	import { openCreateTournamentPopup } from "$lib/uiCommon";
 
 	let searchQueryP1 = $state("");
 	let selectedPlayer1: Player | null = $state(null);
@@ -174,42 +174,17 @@
 		}
 	}
 
-	async function handleCreateTournament() {
-		try {
-			const now = new Date();
-
-			const registrationStartDate = new Date(now);
-
-			const registrationEndDate = new Date(now);
-			registrationEndDate.setDate(registrationEndDate.getDate() + 7);
-			registrationEndDate.setHours(10, 0, 0, 0);
-
-			const tournamentStartDate = new Date(registrationEndDate);
-			tournamentStartDate.setHours(17, 0, 0, 0);
-
-			const tournamentEndDate = new Date(tournamentStartDate);
-			tournamentEndDate.setDate(tournamentEndDate.getDate() + 4);
-
-			createTournament({
-				name: "Test tournament",
-				description: "TestTournament desc",
-				registrationStartDate: registrationStartDate.getTime(),
-				registrationEndDate: registrationEndDate.getTime(),
-				tournamentStartDate: tournamentStartDate.getTime(),
-				tournamentEndDate: tournamentEndDate.getTime(),
-			});
-		} catch (error) {
-			alert(error);
-		}
+	function createTournament() {
+		openCreateTournamentPopup();
 	}
 </script>
 
 <div class="card admin-card">
 	<h2>Control Panel</h2>
-	<button class="btn-common" onclick={() => handleSetTimer()}
+	<button class="btn-common" onclick={handleSetTimer}
 		>⏳ Установить таймер</button
 	>
-	<button class="btn-common" onclick={() => handleAddPlayer()}
+	<button class="btn-common" onclick={handleAddPlayer}
 		>Добавить игрока
 	</button>
 
@@ -239,7 +214,7 @@
 		{/each}
 	</select>
 
-	<button class="btn-common btn-forecast" onclick={() => showForecast()}
+	<button class="btn-common btn-forecast" onclick={showForecast}
 		>📈 Прогноз ELO</button
 	>
 	{#if showingForecast}
@@ -263,22 +238,18 @@
 		<option value="1">Победа Игрока 1</option>
 		<option value="0">Победа Игрока 2</option>
 	</select>
-	<button type="button" class="btn-common btn-play" onclick={() => playMatch()}
+	<button type="button" class="btn-common btn-play" onclick={playMatch}
 		>⚔️ Записать матч</button
 	>
-	<button
-		type="button"
-		class="btn-common"
-		onclick={() => handleFinalizeTournament()}>✅ Применить итоги</button
+	<button type="button" class="btn-common" onclick={handleFinalizeTournament}
+		>✅ Применить итоги</button
 	>
-	<button type="button" class="btn-common" onclick={() => handleResetSeason()}
+	<button type="button" class="btn-common" onclick={handleResetSeason}
 		>📦 Сброс сезона</button
 	>
 
 	<hr style="width: 100%;" />
-	<button
-		type="button"
-		class="btn-common"
-		onclick={() => handleCreateTournament()}>Создать турнир</button
+	<button type="button" class="btn-common" onclick={createTournament}
+		>Создать турнир</button
 	>
 </div>

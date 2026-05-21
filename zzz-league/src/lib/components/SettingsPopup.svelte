@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { openDiscordOAuth } from "$lib/discord";
 	import { auth, unlinkDiscord, updateProfile } from "$lib/firebase";
-	import type { Player } from "$lib/types";
+	import { currentUser } from "$lib/store";
 	import { closeSettingsPopup } from "$lib/uiCommon";
 	import {
 		EmailAuthProvider,
@@ -9,7 +9,7 @@
 		updatePassword,
 	} from "firebase/auth";
 
-	const { user = $bindable<Player>() } = $props();
+	const user = $currentUser!;
 
 	let username = $state("");
 	let email = $state("");

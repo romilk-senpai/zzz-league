@@ -85,7 +85,7 @@ export async function deleteHistoryEntry(key: string): Promise<void> {
 	await httpsCallable(functions, 'deleteHistoryEntry')({ key });
 }
 
-export async function createTournament(data: Omit<Tournament, 'id'>): Promise<string> {
+export async function createTournament(data: Tournament): Promise<string> {
 	const fn = httpsCallable(functions, 'createTournament');
 	const result = await fn(data) as any;
 	return result.data.id;

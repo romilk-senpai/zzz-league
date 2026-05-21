@@ -11,11 +11,13 @@
 		Tournament,
 		TournamentRegistration,
 	} from "$lib/types";
+	import { dateDisplayOptions } from "$lib/uiCommon";
 	import { get, onValue, ref } from "firebase/database";
 	import { onMount } from "svelte";
 
 	const id = $derived(page.params.id);
 
+	let now = $state(Date.now());
 	let tournament = $state<Tournament>();
 	let userRegistration = $state<TournamentRegistration | null>();
 	let registeredPlayers = $state<RegisteredPlayer[]>([]);
@@ -79,9 +81,14 @@
 			},
 		);
 
+		const interval = setInterval(() => {
+			now = Date.now();
+		}, 1000);
+
 		return () => {
 			unsubTournament();
 			unsubRegistrations();
+			clearInterval(interval);
 		};
 	});
 </script>
@@ -94,6 +101,31 @@
 			<h2>{tournament.name}</h2>
 			<div class="description-container">
 				<p>{tournament.description}</p>
+				<p>Кост {tournament.minCost}-{tournament.maxCost}</p>
+				<p>
+					Турнир проходит с
+					{new Date(tournament.tournamentStartDate).toLocaleString(
+						"ru",
+						dateDisplayOptions,
+					)}
+					по {new Date(tournament.tournamentEndDate).toLocaleString(
+						"ru",
+						dateDisplayOptions,
+					)}
+				</p>
+				{#if now > tournament.registrationStartDate && now < tournament.registrationEndDate}
+					<p>
+						Регистрация до {new Date(
+							tournament.registrationEndDate,
+						).toLocaleString("ru", dateDisplayOptions)}
+					</p>
+				{/if}
+				{#if now > tournament.tournamentStartDate && now < tournament.tournamentEndDate}
+					<p>Турнир идёт</p>
+				{/if}
+				{#if now > tournament.tournamentEndDate}
+					<p>Турнир окончен</p>
+				{/if}
 
 				<button
 					class="btn-common btn-play"

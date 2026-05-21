@@ -26,6 +26,11 @@ export interface Tournament {
 	registrationEndDate: number,
 	tournamentStartDate: number,
 	tournamentEndDate: number,
+	minCost: number,
+	maxCost: number,
+	minCharacters: number,
+	minTier: number,
+	maxTier: number,
 }
 
 export interface TournamentRegistration {
