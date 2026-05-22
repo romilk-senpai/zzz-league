@@ -101,7 +101,32 @@
 			<h2>{tournament.name}</h2>
 			<div class="description-container">
 				<p>{tournament.description}</p>
-				<p>Кост {tournament.minCost}-{tournament.maxCost}</p>
+				<p>Рамки коста {tournament.minCost}-{tournament.maxCost}</p>
+				{#snippet tierBadge(tier: number)}
+					{#if tier === 0}
+						<span class="tier-badge t-newbie">NEWBIE</span>
+					{:else if tier === 100}
+						<span class="tier-badge t-mid">MID TIER</span>
+					{:else if tier === 1000}
+						<span class="tier-badge t-high">HIGH TIER</span>
+					{/if}
+				{/snippet}
+				<p>
+					Ранги с {@render tierBadge(tournament.minTier)} по {@render tierBadge(
+						tournament.maxTier,
+					)}
+				</p>
+				<p>
+					Регистрация на турнир с
+					{new Date(tournament.registrationStartDate).toLocaleString(
+						"ru",
+						dateDisplayOptions,
+					)}
+					по {new Date(tournament.registrationEndDate).toLocaleString(
+						"ru",
+						dateDisplayOptions,
+					)}
+				</p>
 				<p>
 					Турнир проходит с
 					{new Date(tournament.tournamentStartDate).toLocaleString(
@@ -113,12 +138,12 @@
 						dateDisplayOptions,
 					)}
 				</p>
+
+				{#if now > tournament.registrationEndDate && now < tournament.tournamentStartDate}
+					<p>Регистрация закрыта</p>
+				{/if}
 				{#if now > tournament.registrationStartDate && now < tournament.registrationEndDate}
-					<p>
-						Регистрация до {new Date(
-							tournament.registrationEndDate,
-						).toLocaleString("ru", dateDisplayOptions)}
-					</p>
+					<p>Идёт регистрация</p>
 				{/if}
 				{#if now > tournament.tournamentStartDate && now < tournament.tournamentEndDate}
 					<p>Турнир идёт</p>
@@ -127,11 +152,13 @@
 					<p>Турнир окончен</p>
 				{/if}
 
-				<button
-					class="btn-common btn-play"
-					onclick={() => (registrationOpen = true)}
-					>{#if userRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</button
-				>
+				{#if now > tournament.registrationStartDate && now < tournament.registrationEndDate}
+					<button
+						class="btn-common btn-play"
+						onclick={() => (registrationOpen = true)}
+						>{#if userRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</button
+					>
+				{/if}
 			</div>
 		{/if}
 		<div class="search-container">
@@ -178,6 +205,5 @@
 
 	.description-container p {
 		margin: 0;
-		min-height: 46px;
 	}
 </style>

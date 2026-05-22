@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import {
-		auth,
 		clearHistory,
 		db,
 		deleteArchive,
@@ -15,7 +14,14 @@
 	import { isAdmin, players } from "$lib/store";
 	import { dateDisplayOptions } from "$lib/uiCommon";
 
-	let tournaments = $state<Tournament[]>([]);
+	let allTournaments = $state<Tournament[]>([]);
+	let filteredTournaments = $derived(
+		allTournaments.filter((t) => {
+			const expiration = 3 * 24 * 60 * 60 * 1000;
+			return Date.now() - t.tournamentEndDate < expiration;
+		}),
+	);
+
 	let archives = $state<Archives>({});
 	let matchHistory = $state<MatchRecord[]>([]);
 
@@ -71,7 +77,7 @@
 
 		const unsubTournaments = onValue(ref(db, "tournaments"), (snap) => {
 			const val = snap.val();
-			tournaments = val ? (Object.values(val) as Tournament[]) : [];
+			allTournaments = val ? (Object.values(val) as Tournament[]) : [];
 		});
 
 		const interval = setInterval(() => {
@@ -138,7 +144,7 @@
 		<div>
 			<h2>Турниры:</h2>
 			<div class="tournament-container">
-				{#each tournaments as tournament}
+				{#each filteredTournaments as tournament}
 					{@const status =
 						now > tournament.tournamentEndDate
 							? "ended"
@@ -164,17 +170,24 @@
 							)}
 						</p>
 						{#if now > tournament.registrationStartDate && now < tournament.registrationEndDate}
-							<p>
+							<p class="tournament-status">
 								Регистрация до {new Date(
 									tournament.registrationEndDate,
 								).toLocaleString("ru", dateDisplayOptions)}
 							</p>
 						{/if}
+						{#if now > tournament.registrationEndDate && now < tournament.tournamentStartDate}
+							<p class="tournament-status">
+								Начало {new Date(
+									tournament.tournamentStartDate,
+								).toLocaleString("ru", dateDisplayOptions)}
+							</p>
+						{/if}
 						{#if now > tournament.tournamentStartDate && now < tournament.tournamentEndDate}
-							<p>Турнир идёт</p>
+							<p class="tournament-status">Турнир идёт</p>
 						{/if}
 						{#if now > tournament.tournamentEndDate}
-							<p>Турнир окончен</p>
+							<p class="tournament-status">Турнир окончен</p>
 						{/if}
 					</a>
 				{/each}
@@ -274,26 +287,30 @@
 		font-size: 14px;
 		flex-direction: column;
 		width: fit-content;
+		padding: 8px;
+		align-content: center;
+		text-align: center;
 	}
 
-	.tournament p {
-		margin: 0;
+	.tournament-status {
+		font-weight: bold;
 	}
 
 	.tournament.status-upcoming {
-		background-color: #444;
+		background-color: var(--blue);
 	}
 
 	.tournament.status-registration {
-		background-color: #4a9eff;
+		background-color: var(--green);
 	}
 
 	.tournament.status-ongoing {
-		background-color: var(--gain);
+		background-color: var(--gold);
+		color: black;
 	}
 
 	.tournament.status-ended {
-		background-color: #555;
+		background-color: #444;
 		opacity: 0.6;
 	}
 
@@ -318,18 +335,15 @@
 	}
 
 	.timer-label {
-		font-size: 0.7em;
 		color: #888;
-		letter-spacing: 1px;
-		margin-bottom: 5px;
 	}
 
 	.timer-value {
 		color: var(--gold);
+		font-size: 18px;
 		font-weight: bold;
-		font-family: monospace;
-		font-size: 1.6em;
 		text-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+		margin-top: 4px;
 	}
 
 	.archive-section {
@@ -361,7 +375,6 @@
 	.section-label {
 		width: 100%;
 		color: #555;
-		font-size: 0.8em;
 	}
 
 	.archive-btn {
@@ -370,7 +383,6 @@
 		color: #fff;
 		width: 44px;
 		height: 44px;
-		font-size: 0.8em;
 		transition: 0.2s;
 		margin: 0;
 		border-radius: 6px;
@@ -386,7 +398,6 @@
 		border: 1px solid #333;
 		width: 44px;
 		height: 44px;
-		font-size: 0.8em;
 		margin: 0;
 		border-radius: 6px;
 	}
@@ -403,9 +414,8 @@
 	}
 
 	.log-item {
-		font-size: 0.85em;
 		padding: 8px 24px;
 		border-bottom: 1px solid #222;
-		color: #999;
+		color: #c0c0c0;
 	}
 </style>

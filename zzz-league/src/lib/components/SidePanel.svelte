@@ -30,7 +30,7 @@
 			<button
 				class="user-label"
 				onclick={() => openProfilePopup($currentUser)}
-				>{$currentUser.name}</button
+				><h2>{$currentUser.name}</h2></button
 			>
 			<button class="btn-common" onclick={openSettingsPopup}
 				>Настройки</button

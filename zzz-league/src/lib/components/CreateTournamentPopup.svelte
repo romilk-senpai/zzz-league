@@ -147,11 +147,7 @@
 
 <style>
 	p {
-		font-size: 0.75em;
 		color: #888;
-		letter-spacing: 1px;
-		text-transform: uppercase;
 		margin: 0 2px;
-		display: block;
 	}
 </style>

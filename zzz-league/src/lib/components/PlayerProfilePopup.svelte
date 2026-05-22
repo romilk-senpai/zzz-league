@@ -102,7 +102,6 @@
 
 <style>
 	.profile-card {
-		width: 500px;
 		text-align: center;
 	}
 

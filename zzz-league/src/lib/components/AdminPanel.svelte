@@ -271,8 +271,8 @@
 	}
 
 	.btn-forecast {
-		background: var(--gold) !important;
-		color: #000 !important;
+		background: var(--gold);
+		color: #000;
 		border: none;
 		padding: 14px;
 		border-radius: 8px;
@@ -288,7 +288,7 @@
 	}
 
 	.btn-forecast:hover {
-		background: #ffdb4d !important;
+		background: #ffdb4d;
 	}
 
 	.select-filter {
