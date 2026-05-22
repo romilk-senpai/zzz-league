@@ -120,3 +120,9 @@ export async function approveRegistration(tournamentId: string, uid: string, app
 		approved
 	});
 }
+
+export async function startChallongeTournament(tournamentId: string): Promise<void> {
+	await httpsCallable(functions, 'startChallongeTournament')({
+		tournamentId,
+	});
+}

@@ -82,6 +82,8 @@
 				minCharacters,
 				minTier: parseInt(minTier),
 				maxTier: parseInt(maxTier),
+				challongeTournamentId: "",
+				challongeTournamentUrl: "",
 			};
 			await createTournament(tournament);
 			close();

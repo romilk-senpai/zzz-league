@@ -31,6 +31,8 @@ export interface Tournament {
 	minCharacters: number,
 	minTier: number,
 	maxTier: number,
+	challongeTournamentId: string,
+	challongeTournamentUrl: string,
 }
 
 export interface TournamentRegistration {

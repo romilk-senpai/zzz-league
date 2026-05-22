@@ -3,8 +3,8 @@
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TournamentPlayerTable from "$lib/components/TournamentPlayerTable.svelte";
 	import TournamentRegisterPopup from "$lib/components/TournamentRegisterPopup.svelte";
-	import { db } from "$lib/firebase";
-	import { currentUser } from "$lib/store";
+	import { db, startChallongeTournament } from "$lib/firebase";
+	import { currentUser, isAdmin } from "$lib/store";
 	import type {
 		Player,
 		RegisteredPlayer,
@@ -43,6 +43,14 @@
 			userRegistration = null;
 		}
 	});
+
+	async function handleStartTournament() {
+		try {
+			await startChallongeTournament(tournament!.id);
+		} catch (error) {
+			alert(error);
+		}
+	}
 
 	onMount(() => {
 		const unsubTournament = onValue(ref(db, "tournaments/" + id), (snap) => {
@@ -159,6 +167,20 @@
 						>{#if userRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</button
 					>
 				{/if}
+				{#if $isAdmin && !tournament.challongeTournamentId}
+					<button
+						class="btn-common btn-play"
+						onclick={handleStartTournament}>Начать турнир</button
+					>
+				{/if}
+				{#if tournament.challongeTournamentId}
+					<a
+						class="btn-common btn-play"
+						href={tournament.challongeTournamentUrl}
+					>
+						Сетка Challonge
+					</a>
+				{/if}
 			</div>
 		{/if}
 		<div class="search-container">
@@ -198,7 +220,8 @@
 		padding-bottom: 16px;
 	}
 
-	.description-container button {
+	.description-container a,
+	button {
 		width: auto;
 		position: absolute;
 		bottom: 16px;

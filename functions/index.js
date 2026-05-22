@@ -9,6 +9,7 @@ const DISCORD_MID_ROLE = defineSecret("DISCORD_MID_ROLE");
 const DISCORD_HIGH_ROLE = defineSecret("DISCORD_HIGH_ROLE");
 const DISCORD_CLIENT_ID = defineSecret("DISCORD_CLIENT_ID");
 const DISCORD_CLIENT_SECRET = defineSecret("DISCORD_CLIENT_SECRET");
+const CHALLONGE_API_KEY = defineSecret("CHALLONGE_API_KEY");
 
 const {setGlobalOptions} = require("firebase-functions");
 const {onCall, HttpsError} = require("firebase-functions/https");
@@ -599,4 +600,105 @@ exports.approveRegistration = onCall({cors: true}, async (request) => {
   await db.ref(`tournamentRegistrations/${tournamentId}/${uid}`).update({
     approved: approved,
   });
+});
+
+exports.startChallongeTournament = onCall({
+  cors: true,
+  secrets: [CHALLONGE_API_KEY],
+}, async (request) => {
+  await validateAdminRequest(request);
+
+  const {tournamentId} = request.data;
+  if (!tournamentId) {
+    throw new HttpsError("invalid-argument", "tournamentId is required");
+  }
+
+  const tournamentSnap =
+    await db.ref("tournaments/" + tournamentId).once("value");
+  const tournament = tournamentSnap.val();
+  if (!tournament) {
+    throw new HttpsError("not-found", "Tournament not found");
+  }
+
+  const regSnap =
+    await db.ref("tournamentRegistrations/" + tournamentId).once("value");
+  const registrations = regSnap.val();
+  if (!registrations) {
+    throw new HttpsError("not-found", "No registrations found");
+  }
+
+  const approved = Object.values(registrations).filter((r) => r.approved);
+  if (approved.length < 2) {
+    throw new HttpsError("failed-precondition",
+        "Need at least 2 approved players");
+  }
+
+  const headers = {
+    "Content-Type": "application/vnd.api+json",
+    "Accept": "application/json",
+    "Authorization-Type": "v1",
+    "Authorization": CHALLONGE_API_KEY.value(),
+  };
+
+  const createRes = await fetch("https://api.challonge.com/v2.1/tournaments.json", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      data: {
+        type: "tournament",
+        attributes: {
+          name: tournament.name,
+          tournament_type: tournament.torunamentType ?? "single elimination",
+          description: tournament.description ?? "",
+          private: false,
+          starts_at: new Date(tournament.tournamentStartDate).toISOString(),
+        },
+      },
+    }),
+  });
+
+  const createData = await createRes.json();
+  if (!createRes.ok) {
+    throw new HttpsError("internal",
+        `Challonge error: ${JSON.stringify(createData)}`);
+  }
+
+  const challongeTournamentId = createData.data.id;
+
+  const participants = await Promise.all(
+      approved.map(async (r) => {
+        const snap = await db.ref("players/" + r.uid).once("value");
+        const player = snap.val();
+        return {
+          name: player.name,
+          misc: player.uid,
+        };
+      }),
+  );
+
+  const addRes = await fetch(`https://api.challonge.com/v2.1/tournaments/${challongeTournamentId}/participants/bulk_add.json`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      data: {
+        type: "Participant",
+        attributes: {participants},
+      },
+    }),
+  });
+
+  const addData = await addRes.json();
+  if (!addRes.ok) {
+    throw new HttpsError("internal",
+        `Challonge participants error: ${JSON.stringify(addData)}`);
+  }
+
+  const challongeTournamentUrl = createData.data.attributes.full_challonge_url;
+
+  await db.ref("tournaments/" + tournamentId).update({
+    challongeTournamentId,
+    challongeTournamentUrl,
+  });
+
+  return {success: true, challongeTournamentId};
 });
