@@ -20,6 +20,7 @@
 	let now = $state(Date.now());
 	let tournament = $state<Tournament>();
 	let userRegistration = $state<TournamentRegistration | null>();
+	let myRegistration = $state<TournamentRegistration | null>();
 	let registeredPlayers = $state<RegisteredPlayer[]>([]);
 	let searchQuery = $state("");
 	let registrationOpen = $state(false);
@@ -34,13 +35,13 @@
 				(snap) => {
 					const data = snap.val();
 					if (!data) return;
-					userRegistration = data as TournamentRegistration;
+					myRegistration = data as TournamentRegistration;
 				},
 			);
 		} else {
 			unsubRegistration?.();
 			unsubRegistration = null;
-			userRegistration = null;
+			myRegistration = null;
 		}
 	});
 
@@ -52,9 +53,41 @@
 		}
 	}
 
+	function getPlayerName(uid: string) {
+		return registeredPlayers.find((p) => p.player.uid === uid)?.player.name;
+	}
+
+	function openRegistration(uid: string) {
+		userRegistration = registeredPlayers.find(
+			(p) => p.player.uid === uid,
+		)?.registration;
+		if (userRegistration) registrationOpen = true;
+	}
+
+	function openMyRegistration() {
+		userRegistration = myRegistration;
+		registrationOpen = true;
+	}
+
 	onMount(() => {
 		const unsubTournament = onValue(ref(db, "tournaments/" + id), (snap) => {
-			tournament = snap.val() ?? {};
+			const data = snap.val();
+			if (!data) return;
+
+			const matches = data.matches ?? {};
+			tournament = {
+				...data,
+				matches: Object.entries(matches).map(
+					([matchId, match]: [string, any]) => ({
+						id: matchId,
+						p1: match.p1,
+						p2: match.p2,
+						state: match.state,
+						winnerId: match.winnerId ?? null,
+						round: match.round ?? null,
+					}),
+				),
+			};
 		});
 
 		const unsubRegistrations = onValue(
@@ -62,9 +95,7 @@
 			async (snap) => {
 				const data = snap.val();
 
-				if (!data) {
-					return;
-				}
+				if (!data) return;
 
 				const registrations = Object.values(
 					data,
@@ -161,9 +192,7 @@
 				{/if}
 
 				{#if now > tournament.registrationStartDate && now < tournament.registrationEndDate}
-					<button
-						class="btn-common btn-play"
-						onclick={() => (registrationOpen = true)}
+					<button class="btn-common btn-play" onclick={openMyRegistration}
 						>{#if userRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</button
 					>
 				{/if}
@@ -173,18 +202,48 @@
 						onclick={handleStartTournament}>Начать турнир</button
 					>
 				{/if}
-				{#if tournament.challongeTournamentId}
-					<a
-						class="btn-common btn-play"
-						href={tournament.challongeTournamentUrl}
-					>
-						Сетка Challonge
-					</a>
-				{/if}
 			</div>
+
+			{#if tournament.challongeTournamentUrl}
+				<iframe
+					title="challonge iframe"
+					src="{tournament.challongeTournamentUrl}/module"
+					width="100%"
+					height="500"
+					frameborder="0"
+					scrolling="auto"
+					allowtransparency={true}
+				></iframe>
+			{/if}
+
+			{#if tournament.matches}
+				<h2>Игры</h2>
+				<div class="match-list">
+					{#each tournament.matches as match, index}
+						<div class="match-item">
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<span
+								class="match-player-name"
+								onclick={() => openRegistration(match.p1)}
+								>{getPlayerName(match.p1)}</span
+							>
+							vs
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<span
+								class="match-player-name"
+								onclick={() => openRegistration(match.p1)}
+								>{getPlayerName(match.p2)}</span
+							>
+						</div>
+					{/each}
+				</div>
+			{/if}
 		{/if}
+
 		<div class="search-container">
-			<div></div>
+			<h2>Участники</h2>
 			<input
 				class="search-input"
 				placeholder="Поиск..."
@@ -207,10 +266,31 @@
 		bind:open={registrationOpen}
 		{tournament}
 		reg={userRegistration}
+		editable={userRegistration?.uid === myRegistration?.uid &&
+			now < tournament!.registrationEndDate}
 	></TournamentRegisterPopup>
 {/if}
 
 <style>
+	.match-list {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.match-item {
+		font-size: 16px;
+		color: #666;
+	}
+
+	.match-player-name {
+		cursor: pointer;
+		font-weight: bold;
+		color: white;
+		font-size: 22px;
+	}
+
 	.description-container {
 		display: flex;
 		flex-direction: column;

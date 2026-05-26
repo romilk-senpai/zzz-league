@@ -10,6 +10,7 @@
 		open = $bindable(false),
 		tournament = $bindable(),
 		reg = $bindable(),
+		editable = $bindable(false),
 	} = $props();
 
 	let zzzUid = $state(reg?.zzzUid ?? "");
@@ -67,16 +68,19 @@
 				type="text"
 				bind:value={darteNickname}
 				placeholder="Ник на Darte"
+				disabled={!editable}
 			/>
 			<input
 				type="text"
 				bind:value={darteAccount}
 				placeholder="Название аккаунта на Darte"
+				disabled={!editable}
 			/>
 			<input
 				type="text"
 				bind:value={dartePreset}
 				placeholder="Название пресета"
+				disabled={!editable}
 			/>
 			<hr style="width: 100%" />
 			<span>Скриншот ростера</span>
@@ -88,33 +92,39 @@
 					<img src={bustCache(regScreenshot)} alt="" />
 				</button>
 			{/if}
-			<input type="file" accept="image/*" bind:files={rosterScreenshot} />
-			<hr style="width: 100%" />
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div class="awareness" onclick={() => (awareness = !awareness)}>
-				<input
-					type="checkbox"
-					bind:checked={awareness}
-					onclick={(e) => e.stopPropagation()}
-				/>
-				<span
-					>{`Я осознаю, что турнир проходит с ${new Date(
-						tournament.tournamentStartDate,
-					).toLocaleString("ru", dateDisplayOptions)} по ${new Date(
-						tournament.tournamentEndDate,
-					).toLocaleString(
-						"ru",
-						dateDisplayOptions,
-					)} по моему локальному времени.`}</span
-				>
-			</div>
+			{#if editable}
+				<input type="file" accept="image/*" bind:files={rosterScreenshot} />
+				<hr style="width: 100%" />
+			{/if}
+			{#if editable}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div class="awareness" onclick={() => (awareness = !awareness)}>
+					<input
+						type="checkbox"
+						bind:checked={awareness}
+						onclick={(e) => e.stopPropagation()}
+					/>
+					<span
+						>{`Я осознаю, что турнир проходит с ${new Date(
+							tournament.tournamentStartDate,
+						).toLocaleString("ru", dateDisplayOptions)} по ${new Date(
+							tournament.tournamentEndDate,
+						).toLocaleString(
+							"ru",
+							dateDisplayOptions,
+						)} по моему локальному времени.`}</span
+					>
+				</div>
+			{/if}
 
 			{#if status}<p class="status error">{status}</p>{/if}
 			<div class="btn-row">
-				<button class="btn-common btn-play" onclick={handleRegister}
-					>Зарегистрироваться</button
-				>
+				{#if editable}
+					<button class="btn-common btn-play" onclick={handleRegister}
+						>Зарегистрироваться</button
+					>
+				{/if}
 				<button class="btn-common" onclick={() => (open = false)}
 					>Закрыть</button
 				>
