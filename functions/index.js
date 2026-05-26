@@ -627,11 +627,11 @@ exports.startChallongeTournament = onCall({
     throw new HttpsError("not-found", "No registrations found");
   }
 
-  const approved = Object.values(registrations).filter((r) => r.approved);
+  /* const approved = Object.values(registrations).filter((r) => r.approved);
   if (approved.length < 2) {
     throw new HttpsError("failed-precondition",
-        "Need at least 2 approved players");
-  }
+      "Need at least 2 approved players");
+  } */
 
   const headers = {
     "Content-Type": "application/vnd.api+json",
@@ -665,6 +665,14 @@ exports.startChallongeTournament = onCall({
 
   const challongeTournamentId = createData.data.id;
 
+  const approved = [
+    {uid: "mbev2I0iWhfJ1DDOIWlGDoYtyd33"},
+    {uid: "Ui7oyEUwuZS5ydAXJnF21wz2nzc2"},
+    {uid: "AirAN2QtX6SCRlVZ54aSXzI2za62"},
+    {uid: "W8zGIX9SfZcE1NVJMNPTmfoepii2"},
+    {uid: "4bVGeJSfk5Vey9NRzvr4Qv8lsPy1"},
+  ];
+
   const participants = await Promise.all(
       approved.map(async (r) => {
         const snap = await db.ref("players/" + r.uid).once("value");
@@ -693,12 +701,111 @@ exports.startChallongeTournament = onCall({
         `Challonge participants error: ${JSON.stringify(addData)}`);
   }
 
+  const randomizeRes = await fetch(`https://api.challonge.com/v2.1/tournaments/${challongeTournamentId}/participants/randomize.json`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({
+      data: {
+        type: "Participant",
+        attributes: {participants},
+      },
+    }),
+  });
+
+  const randomizeData = await randomizeRes.json();
+  if (!randomizeRes.ok) {
+    throw new HttpsError("internal",
+        `Challonge randomize error: ${JSON.stringify(addData)}`);
+  }
+
+  const res = await fetch(
+      `https://api.challonge.com/v2.1/tournaments/${challongeTournamentId}/change_state.json`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({
+          data: {
+            type: "TournamentState",
+            attributes: {
+              state: "start",
+            },
+          },
+        }),
+      },
+  );
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new HttpsError("internal",
+        `Failed to start tournament: ${JSON.stringify(data)}`);
+  }
+
+  const challongeParticipants = Object.fromEntries(
+      randomizeData.data.map((m) => [m.id, m.attributes.misc]),
+  );
+
   const challongeTournamentUrl = createData.data.attributes.full_challonge_url;
 
   await db.ref("tournaments/" + tournamentId).update({
+    challongeParticipants,
+  });
+
+  await updateTournamentGames(tournamentId, challongeTournamentId);
+  
+  await db.ref("tournaments/" + tournamentId).update({
     challongeTournamentId,
-    challongeTournamentUrl,
+    challongeTournamentUrl
   });
 
   return {success: true, challongeTournamentId};
 });
+
+async function updateTournamentGames(tournamentId, challongeTournamentId) {
+  const headers = {
+    "Content-Type": "application/vnd.api+json",
+    "Accept": "application/json",
+    "Authorization-Type": "v1",
+    "Authorization": CHALLONGE_API_KEY.value(),
+  };
+
+  const snap = await
+  db.ref(`tournaments/${tournamentId}/challongeParticipants`)
+      .once("value");
+  const challongeParticipants = snap.val();
+  if (!challongeParticipants) {
+    throw new HttpsError("not-found", "No participants data found");
+  }
+
+  const matchesRes = await
+  fetch(`https://api.challonge.com/v2.1/tournaments/${challongeTournamentId}/matches.json`, {
+    method: "GET",
+    headers,
+  });
+
+  const matchesData = await matchesRes.json();
+  if (!matchesRes.ok) {
+    throw new HttpsError("internal",
+        `Challonge matches fetch error: ${JSON.stringify(matchesData)}`);
+  }
+
+  const matches = Object.fromEntries(
+      matchesData.data.map((m) => {
+        const pp = m.attributes.points_by_participant ?? [];
+        const p1Id = pp[0]?.participant_id;
+        const p2Id = pp[1]?.participant_id;
+        return [
+          m.id,
+          {
+            id: m.id,
+            state: m.attributes.state,
+            winnerId: m.attributes.winner_id,
+            p1: challongeParticipants[p1Id] ?? "TBD",
+            p2: challongeParticipants[p2Id] ?? "TBD",
+          },
+        ];
+      }),
+  );
+
+  await db.ref(`tournaments/${tournamentId}/matches`).set(matches);
+}
