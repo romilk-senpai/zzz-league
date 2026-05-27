@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { match } from "$app/paths";
 	import { page } from "$app/state";
 	import SidePanel from "$lib/components/SidePanel.svelte";
+	import TournamentGamePopup from "$lib/components/TournamentGamePopup.svelte";
 	import TournamentPlayerTable from "$lib/components/TournamentPlayerTable.svelte";
 	import TournamentRegisterPopup from "$lib/components/TournamentRegisterPopup.svelte";
 	import { db, startChallongeTournament } from "$lib/firebase";
@@ -26,6 +26,8 @@
 	let registeredPlayers = $state<RegisteredPlayer[]>([]);
 	let searchQuery = $state("");
 	let registrationOpen = $state(false);
+	let matchOpen = $state(false);
+	let currentMatch = $state<TournamentMatch>();
 
 	let filteredMatches = $derived(
 		tournament?.matches.filter(
@@ -65,6 +67,12 @@
 		return registeredPlayers.find((p) => p.player.uid === uid)?.player.name;
 	}
 
+	function getPlayerClass(player: string, winnerId: string) {
+		if (!winnerId) return "";
+
+		return player === winnerId ? "match-winner" : "match-loser";
+	}
+
 	function openRegistration(uid: string) {
 		userRegistration = registeredPlayers.find(
 			(p) => p.player.uid === uid,
@@ -72,15 +80,14 @@
 		if (userRegistration) registrationOpen = true;
 	}
 
+	function openMatch(match: TournamentMatch) {
+		currentMatch = match;
+		matchOpen = true;
+	}
+
 	function openMyRegistration() {
 		userRegistration = myRegistration;
 		registrationOpen = true;
-	}
-
-	function getPlayerClass(player: string, winnerId: string) {
-		if (!winnerId) return "";
-
-		return player === winnerId ? "match-winner" : "match-loser";
 	}
 
 	onMount(() => {
@@ -259,10 +266,16 @@
 								>
 							</div>
 							{#if match.state === "open"}
-								<button class="btn-common btn-match">Игра</button>
+								<button
+									onclick={() => openMatch(match)}
+									class="btn-common btn-match">Игра</button
+								>
 							{/if}
 							{#if match.state === "closed"}
-								<button class="btn-common btn-match">Результаты</button>
+								<button
+									onclick={() => openMatch(match)}
+									class="btn-common btn-match">Результаты</button
+								>
 							{/if}
 						</div>
 					{/each}
@@ -297,6 +310,14 @@
 		editable={userRegistration?.uid === myRegistration?.uid &&
 			now < tournament!.registrationEndDate}
 	></TournamentRegisterPopup>
+{/if}
+{#if matchOpen}
+	<TournamentGamePopup
+		bind:open={matchOpen}
+		{tournament}
+		match={currentMatch}
+		{registeredPlayers}
+	></TournamentGamePopup>
 {/if}
 
 <style>
@@ -351,9 +372,6 @@
 	}
 
 	.btn-match {
-		background: var(--gold);
-		color: #000;
-		border: none;
 		width: 72px;
 		height: 28px;
 		padding: 0;
