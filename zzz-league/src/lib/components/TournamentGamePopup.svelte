@@ -13,6 +13,9 @@
 		$currentUser?.uid == match.p1 || $currentUser?.uid == match.p2,
 	);
 
+	let inputScreenshot = $state<FileList | null>(null);
+	let resultScreenshot = $state(match.resultScreenshot ?? "");
+
 	function getPlayerName(uid: string) {
 		return registeredPlayers.find((p) => p.player.uid === uid)?.player.name;
 	}
@@ -40,19 +43,37 @@
 					match.winnerId,
 				)}">{getPlayerName(match.p2)}</span
 			>
-			{#if match.resultP1 && match.resultP2}
-				<span class="match-player-left">match.resultP1</span>
+			{#if myGame}
+				<span class="match-player-left">Введите время игрока 1</span>
 				<span> </span>
-				<span class="match-player-right">match.resultP2</span>
+				<span class="match-player-right">Введите время игрока 2</span>
+				<input
+					class="time-input match-player-left"
+					type="text"
+					placeholder="00:00"
+					maxlength="5"
+				/>
+				<span> </span>
+				<input
+					class="time-input match-player-right"
+					type="text"
+					placeholder="00:00"
+					maxlength="5"
+				/>
+			{/if}
+			{#if match.resultP1 && match.resultP2}
+				<span class="match-player-left">{match.resultP1}</span>
+				<span> </span>
+				<span class="match-player-right">{match.resultP2}</span>
 			{/if}
 		</div>
 
-		{#if match.resultScreenshot}
+		{#if inputScreenshot}
 			<button
 				class="img-btn"
-				onclick={() => openImagePopup(match.resultScreenshot)}
+				onclick={() => openImagePopup(resultScreenshot)}
 			>
-				<img src={bustCache(match.resultScreenshot)} alt="" />
+				<img src={bustCache(resultScreenshot)} alt="" />
 			</button>
 		{/if}
 
@@ -67,8 +88,16 @@
 				</button>
 			{/if}
 		{:else if myGame}
-			<button class="btn-common back-btn" onclick={() => (open = false)}
-				>Подтвердить результат</button
+			<span>Загрузить скриншот результатов</span>
+			<input
+				class="input-screenshot"
+				type="file"
+				accept="image/*"
+				bind:files={inputScreenshot}
+			/>
+			<button class="btn-common" onclick={() => (open = false)}
+				>Подтвердить результат {match.p1ApprovedResult ? "✅" : "❌"}
+				{match.p2ApprovedResult ? "✅" : "❌"}</button
 			>
 		{/if}
 
@@ -79,6 +108,17 @@
 </div>
 
 <style>
+	.card {
+		width: 420px;
+		justify-content: center;
+		align-items: center;
+		gap: 16px;
+	}
+
+	.input-screenshot {
+		width: 240px;
+	}
+
 	.match-players {
 		display: grid;
 		grid-template-columns: 1fr auto 1fr;
@@ -94,6 +134,7 @@
 
 	.match-player-left {
 		text-align: right;
+		align-items: flex-end;
 	}
 
 	.match-player-right {
@@ -115,7 +156,7 @@
 	}
 
 	.back-btn {
-		margin-top: 10px;
+		margin-top: 0px;
 	}
 
 	.img-btn {

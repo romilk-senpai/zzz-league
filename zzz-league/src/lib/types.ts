@@ -26,7 +26,9 @@ export interface TournamentMatch {
 	winnerId: string,
 	resultScreenshot: string,
 	resultP1: number,
-	resultP2: number
+	resultP2: number,
+	p1ApprovedResult: boolean,
+	p2ApprovedResult: boolean
 }
 
 export interface Tournament {
