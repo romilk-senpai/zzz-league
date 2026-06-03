@@ -99,13 +99,8 @@
 			tournament = {
 				...data,
 				matches: Object.entries(matches).map(
-					([matchId, match]: [string, any]) => ({
-						id: matchId,
-						p1: match.p1,
-						p2: match.p2,
-						state: match.state,
-						winnerId: match.winnerId ?? null,
-						round: match.round ?? null,
+					([, match]: [string, any]) => ({
+						...match,
 					}),
 				),
 			};

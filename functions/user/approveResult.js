@@ -9,7 +9,7 @@ export const approveResult = onCall({
   secrets: [CHALLONGE_API_KEY]}, async (request) => {
   const {tournamentId, matchId, uid, resultP1, resultP2} = request.data;
 
-  if (!tournamentId || !matchId || !uid) {
+  if (!tournamentId || !matchId || !uid || resultP1 == null || resultP2 == null) {
     throw new HttpsError("invalid-argument",
         "tournamentId, matchId, uid are required");
   }
@@ -22,9 +22,11 @@ export const approveResult = onCall({
   }
 
   const updates = {};
+  
+  let resetResult = String(resultP1).trim() !== String(match.resultP1) ||
+    String(resultP2).trim() !== String(match.resultP2);
 
-  if (String(resultP1).trim() !== String(match.resultP1) ||
-    String(resultP2).trim() !== String(match.resultP2)) {
+  if (resetResult) {
     updates.p1ApprovedResult = false;
     updates.p2ApprovedResult = false;
     updates.resultP1 = String(resultP1).trim();
@@ -33,10 +35,10 @@ export const approveResult = onCall({
 
   switch (uid) {
     case match.p1:
-      updates.p1ApprovedResult = !match.p1ApprovedResult;
+      updates.p1ApprovedResult = resetResult ? true : !match.p1ApprovedResult;
       break;
     case match.p2:
-      updates.p2ApprovedResult = !match.p2ApprovedResult;
+      updates.p2ApprovedResult = resetResult ? true : !match.p2ApprovedResult;
       break;
     default:
       throw new HttpsError("permission-denied",

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { approveResult } from "$lib/firebase";
 	import { currentUser } from "$lib/store";
 	import { bustCache, openImagePopup } from "$lib/uiCommon";
 
@@ -15,6 +16,8 @@
 
 	let inputScreenshot = $state<FileList | null>(null);
 	let resultScreenshot = $state(match.resultScreenshot ?? "");
+	let matchResultP1 = $state(match.resultP1 ?? 0);
+	let matchResultP2 = $state(match.resultP2 ?? 0);
 
 	function getPlayerName(uid: string) {
 		return registeredPlayers.find((p) => p.player.uid === uid)?.player.name;
@@ -24,6 +27,20 @@
 		if (!winnerId) return "";
 
 		return player === winnerId ? "match-winner" : "match-loser";
+	}
+
+	async function handleApproveResult() {
+		try {
+			approveResult(
+				$currentUser!.uid,
+				tournament.id,
+				match.id,
+				matchResultP1,
+				matchResultP2,
+			);
+		} catch (error) {
+			alert(error);
+		}
 	}
 </script>
 
@@ -43,6 +60,11 @@
 					match.winnerId,
 				)}">{getPlayerName(match.p2)}</span
 			>
+			{#if match.resultP1 && match.resultP2}
+				<span class="match-player-left">{match.resultP1}</span>
+				<span> </span>
+				<span class="match-player-right">{match.resultP2}</span>
+			{/if}
 			{#if myGame}
 				<span class="match-player-left">Введите время игрока 1</span>
 				<span> </span>
@@ -52,6 +74,7 @@
 					type="text"
 					placeholder="00:00"
 					maxlength="5"
+					bind:value={matchResultP1}
 				/>
 				<span> </span>
 				<input
@@ -59,12 +82,8 @@
 					type="text"
 					placeholder="00:00"
 					maxlength="5"
+					bind:value={matchResultP2}
 				/>
-			{/if}
-			{#if match.resultP1 && match.resultP2}
-				<span class="match-player-left">{match.resultP1}</span>
-				<span> </span>
-				<span class="match-player-right">{match.resultP2}</span>
 			{/if}
 		</div>
 
@@ -95,7 +114,7 @@
 				accept="image/*"
 				bind:files={inputScreenshot}
 			/>
-			<button class="btn-common" onclick={() => (open = false)}
+			<button class="btn-common" onclick={handleApproveResult}
 				>Подтвердить результат {match.p1ApprovedResult ? "✅" : "❌"}
 				{match.p2ApprovedResult ? "✅" : "❌"}</button
 			>
