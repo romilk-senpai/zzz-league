@@ -65,7 +65,10 @@
 				<span> </span>
 				<span class="match-player-right">{match.resultP2}</span>
 			{/if}
-			{#if myGame}
+		</div>
+		{#if /* (!match.p1ApprovedResult || !match.p2ApprovedResult) && */ myGame}
+			<hr style="width: 100%" />
+			<div class="match-players">
 				<span class="match-player-left">Введите время игрока 1</span>
 				<span> </span>
 				<span class="match-player-right">Введите время игрока 2</span>
@@ -84,29 +87,28 @@
 					maxlength="5"
 					bind:value={matchResultP2}
 				/>
-			{/if}
-		</div>
+			</div>
 
-		{#if inputScreenshot}
-			<button
-				class="img-btn"
-				onclick={() => openImagePopup(resultScreenshot)}
-			>
-				<img src={bustCache(resultScreenshot)} alt="" />
-			</button>
-		{/if}
-
-		{#if match.winnerId}
-			<span>Результат</span>
-			{#if match.resultScreenshot}
+			{#if inputScreenshot}
 				<button
 					class="img-btn"
-					onclick={() => openImagePopup(match.resultScreenshot)}
+					onclick={() => openImagePopup(resultScreenshot)}
 				>
-					<img src={bustCache(match.resultScreenshot)} alt="" />
+					<img src={bustCache(resultScreenshot)} alt="" />
 				</button>
 			{/if}
-		{:else if myGame}
+		{/if}
+
+		{#if match.resultScreenshot}
+			<span>Результат</span>
+			<button
+				class="img-btn"
+				onclick={() => openImagePopup(match.resultScreenshot)}
+			>
+				<img src={bustCache(match.resultScreenshot)} alt="" />
+			</button>
+		{/if}
+		{#if /* (!match.p1ApprovedResult || !match.p2ApprovedResult) && */ myGame}
 			<span>Загрузить скриншот результатов</span>
 			<input
 				class="input-screenshot"

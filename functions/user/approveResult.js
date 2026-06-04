@@ -6,10 +6,12 @@ import {defaultOptions} from "../config/options.js";
 
 export const approveResult = onCall({
   ...defaultOptions,
-  secrets: [CHALLONGE_API_KEY]}, async (request) => {
+  secrets: [CHALLONGE_API_KEY],
+}, async (request) => {
   const {tournamentId, matchId, uid, resultP1, resultP2} = request.data;
 
-  if (!tournamentId || !matchId || !uid || resultP1 == null || resultP2 == null) {
+  if (!tournamentId || !matchId || !uid ||
+    resultP1 == null || resultP2 == null) {
     throw new HttpsError("invalid-argument",
         "tournamentId, matchId, uid are required");
   }
@@ -22,8 +24,8 @@ export const approveResult = onCall({
   }
 
   const updates = {};
-  
-  let resetResult = String(resultP1).trim() !== String(match.resultP1) ||
+
+  const resetResult = String(resultP1).trim() !== String(match.resultP1) ||
     String(resultP2).trim() !== String(match.resultP2);
 
   if (resetResult) {
@@ -53,13 +55,12 @@ export const approveResult = onCall({
   if (updatedMatch.p1ApprovedResult &&
     updatedMatch.p2ApprovedResult) {
     const tournamentSnap =
-    await db.ref(`tournaments/${tournamentId}`).once("value");
+      await db.ref(`tournaments/${tournamentId}`).once("value");
     const tournament = tournamentSnap.val();
 
     const score1 = parseInt(updatedMatch.resultP1);
     const score2 = parseInt(updatedMatch.resultP2);
-    const winnerId =
-    score1 > score2 ? match.p1ChallongeId : match.p2ChallongeId;
+    const winnerId = score1 > score2 ? match.p1 : match.p2;
 
     const headers = {
       "Content-Type": "application/vnd.api+json",
@@ -67,6 +68,18 @@ export const approveResult = onCall({
       "Authorization-Type": "v1",
       "Authorization": CHALLONGE_API_KEY.value(),
     };
+
+    const snap =
+      await db.ref(`tournaments/${tournamentId}/challongeParticipants`)
+          .once("value");
+    const challongeParticipants = snap.val();
+
+    const p1ChallongeId = Object.keys(challongeParticipants).find(
+        (key) => challongeParticipants[key] === match.p1,
+    );
+    const p2ChallongeId = Object.keys(challongeParticipants).find(
+        (key) => challongeParticipants[key] === match.p2,
+    );
 
     const res = await fetch(
         `https://api.challonge.com/v2.1/tournaments/${tournament.challongeTournamentId}/matches/${matchId}.json`,
@@ -79,19 +92,18 @@ export const approveResult = onCall({
               attributes: {
                 match: [
                   {
-                    participant_id: match.p1ChallongeId,
-                    score_set: String(score1),
+                    participant_id: p1ChallongeId,
+                    score_set: score1 > score2 ? "1" : "0",
                     rank: score1 > score2 ? 1 : 2,
                     advancing: score1 > score2,
                   },
                   {
-                    participant_id: match.p2ChallongeId,
-                    score_set: String(score2),
+                    participant_id: p2ChallongeId,
+                    score_set: score2 > score1 ? "1" : "0",
                     rank: score2 > score1 ? 1 : 2,
                     advancing: score2 > score1,
                   },
                 ],
-                tie: score1 === score2,
               },
             },
           }),
