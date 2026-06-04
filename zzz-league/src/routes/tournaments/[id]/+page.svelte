@@ -260,18 +260,11 @@
 									>{getPlayerName(match.p2)}</span
 								>
 							</div>
-							{#if match.state === "open"}
-								<button
-									onclick={() => openMatch(match)}
-									class="btn-common btn-match">Игра</button
-								>
-							{/if}
-							{#if match.state === "closed"}
-								<button
-									onclick={() => openMatch(match)}
-									class="btn-common btn-match">Результаты</button
-								>
-							{/if}
+
+							<button
+								onclick={() => openMatch(match)}
+								class="btn-common btn-match">Игра</button
+							>
 						</div>
 					{/each}
 				</div>

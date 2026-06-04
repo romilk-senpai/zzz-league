@@ -6,7 +6,13 @@
 		deleteArchive,
 		deleteHistoryEntry,
 	} from "$lib/firebase";
-	import { ref, onValue } from "firebase/database";
+	import {
+		ref,
+		onValue,
+		query,
+		orderByChild,
+		startAt,
+	} from "firebase/database";
 	import type { Archives, MatchRecord, Player, Tournament } from "$lib/types";
 	import Leaderboard from "$lib/components/Leaderboard.svelte";
 	import { resolve } from "$app/paths";
@@ -64,16 +70,25 @@
 			archives = snap.val() ?? {};
 		});
 
-		const unsubHistory = onValue(ref(db, "history"), (snap) => {
-			const val = snap.val();
-			if (!val) {
-				matchHistory = [];
-				return;
-			}
-			matchHistory = Object.entries(val)
-				.map(([key, m]: [string, any]) => ({ key, ...m }))
-				.reverse();
-		});
+		const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+
+		const unsubHistory = onValue(
+			query(
+				ref(db, "history"),
+				orderByChild("timestamp"),
+				startAt(threeDaysAgo),
+			),
+			(snap) => {
+				const val = snap.val();
+				if (!val) {
+					matchHistory = [];
+					return;
+				}
+				matchHistory = Object.entries(val)
+					.map(([key, m]: [string, any]) => ({ key, ...m }))
+					.reverse();
+			},
+		);
 
 		const unsubTournaments = onValue(ref(db, "tournaments"), (snap) => {
 			const val = snap.val();
@@ -131,8 +146,6 @@
 			alert(error);
 		}
 	}
-
-	
 </script>
 
 <div class="layout">
@@ -248,7 +261,7 @@
 
 		{#if matchHistory.length > 0}
 			<div class="history-header">
-				<h3 class="section-label">ИСТОРИЯ МАТЧЕЙ</h3>
+				<h3 class="section-label">Недавние матчи</h3>
 				{#if isAdmin}
 					<button
 						class="btn-common btn-clear-history"
