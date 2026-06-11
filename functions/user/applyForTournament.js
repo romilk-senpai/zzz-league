@@ -36,7 +36,8 @@ export const applyForTournament = onCall(defaultOptions, async (request) => {
   const tournament = tournamentSnap.val();
 
   if (tournament.state) {
-    throw new HttpsError("permission-denied", "Tournament has already been started");
+    throw new HttpsError("permission-denied",
+        "Tournament has already been started");
   }
 
   let playerTier = 0;
