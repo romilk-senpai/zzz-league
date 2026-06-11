@@ -149,3 +149,10 @@ export async function updateTournamentGames(tournamentId: string, challongeTourn
 		challongeTournamentId
 	});
 }
+
+export async function finishTournament(tournamentId: string, challongeTournamentId: string): Promise<void> {
+	await httpsCallable(functions, 'finishTournament')({
+		tournamentId,
+		challongeTournamentId
+	});
+}

@@ -47,7 +47,8 @@ export interface Tournament {
 	challongeTournamentId: string,
 	challongeTournamentUrl: string,
 	matches: TournamentMatch[],
-	state: string
+	state: string,
+	winnerId: any,
 }
 
 export interface TournamentRegistration {

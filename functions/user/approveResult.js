@@ -1,8 +1,8 @@
-import { onCall, HttpsError } from "firebase-functions/https";
-import { db, storage } from "../config/firebase.js";
-import { CHALLONGE_API_KEY } from "../config/secrets.js";
-import { updateTournamentGames } from "../utils/updateTournamentGames.js";
-import { defaultOptions } from "../config/options.js";
+import {onCall, HttpsError} from "firebase-functions/https";
+import {db, storage} from "../config/firebase.js";
+import {CHALLONGE_API_KEY} from "../config/secrets.js";
+import {updateTournamentGames} from "../utils/updateTournamentGames.js";
+import {defaultOptions} from "../config/options.js";
 
 export const approveResult = onCall({
   ...defaultOptions,
@@ -22,12 +22,12 @@ export const approveResult = onCall({
   if (!tournamentId || !matchId || !uid ||
     resultP1 == null || resultP2 == null) {
     throw new HttpsError("invalid-argument",
-      "tournamentId, matchId, resultP1, resultP2, are required");
+        "tournamentId, matchId, resultP1, resultP2, are required");
   }
 
   const matchRef = db.ref(`tournaments/${tournamentId}/matches/${matchId}`);
   const matchSnap = await matchRef.once("value");
-  let match = matchSnap.val();
+  const match = matchSnap.val();
   if (!match) {
     throw new HttpsError("not-found", "Match not found");
   }
@@ -47,6 +47,9 @@ export const approveResult = onCall({
     match.resultP2 = String(resultP2).trim();
   }
 
+  if (!match.p1ApprovedResult) match.p1ApprovedResult = false;
+  if (!match.p2ApprovedResult) match.p2ApprovedResult = false;
+
   if (resultScreenshot) {
     const base64Data =
       resultScreenshot.replace(/^data:image\/\w+;base64,/, "");
@@ -64,7 +67,7 @@ export const approveResult = onCall({
     const file = storage.bucket().file(filePath);
 
     await file.save(buffer, {
-      metadata: { contentType },
+      metadata: {contentType},
     });
 
     await file.makePublic();
@@ -74,14 +77,14 @@ export const approveResult = onCall({
 
   switch (uid) {
     case match.p1:
-      match.p1ApprovedResult = resetResult ? true : !match.p1ApprovedResult;
+      match.p1ApprovedResult = !match.p1ApprovedResult;
       break;
     case match.p2:
-      match.p2ApprovedResult = resetResult ? true : !match.p2ApprovedResult;
+      match.p2ApprovedResult = !match.p2ApprovedResult;
       break;
     default:
       throw new HttpsError("permission-denied",
-        "User is not a participant of this match");
+          "User is not a participant of this match");
   }
 
   if (match.p1ApprovedResult &&
@@ -108,58 +111,58 @@ export const approveResult = onCall({
 
     const snap =
       await db.ref(`tournaments/${tournamentId}/challongeParticipants`)
-        .once("value");
+          .once("value");
     const challongeParticipants = snap.val();
 
     const p1ChallongeId = Object.keys(challongeParticipants).find(
-      (key) => challongeParticipants[key] === match.p1,
+        (key) => challongeParticipants[key] === match.p1,
     );
     const p2ChallongeId = Object.keys(challongeParticipants).find(
-      (key) => challongeParticipants[key] === match.p2,
+        (key) => challongeParticipants[key] === match.p2,
     );
 
     const res = await fetch(
-      `https://api.challonge.com/v2.1/tournaments/${tournament.challongeTournamentId}/matches/${matchId}.json`,
-      {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({
-          data: {
-            type: "Match",
-            attributes: {
-              match: [
-                {
-                  participant_id: p1ChallongeId,
-                  score_set: time1 < time2 ? "1" : "0",
-                  rank: time1 < time2 ? 1 : 2,
-                  advancing: time1 < time2,
-                },
-                {
-                  participant_id: p2ChallongeId,
-                  score_set: time2 < time1 ? "1" : "0",
-                  rank: time2 < time1 ? 1 : 2,
-                  advancing: time2 < time1,
-                },
-              ],
+        `https://api.challonge.com/v2.1/tournaments/${tournament.challongeTournamentId}/matches/${matchId}.json`,
+        {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({
+            data: {
+              type: "Match",
+              attributes: {
+                match: [
+                  {
+                    participant_id: p1ChallongeId,
+                    score_set: time1 < time2 ? "1" : "0",
+                    rank: time1 < time2 ? 1 : 2,
+                    advancing: time1 < time2,
+                  },
+                  {
+                    participant_id: p2ChallongeId,
+                    score_set: time2 < time1 ? "1" : "0",
+                    rank: time2 < time1 ? 1 : 2,
+                    advancing: time2 < time1,
+                  },
+                ],
+              },
             },
-          },
-        }),
-      },
+          }),
+        },
     );
 
     const data = await res.json();
     if (!res.ok) {
       throw new HttpsError("internal",
-        `Challonge update match error: ${JSON.stringify(data)}`);
+          `Challonge update match error: ${JSON.stringify(data)}`);
     }
 
     await updateTournamentGames(tournamentId, tournament.challongeTournamentId);
 
     match.state = "complete";
     match.winnerId = winnerId;
-
-    await matchRef.update(match);
   }
 
-  return { success: true };
+  await matchRef.update(match);
+
+  return {success: true};
 });

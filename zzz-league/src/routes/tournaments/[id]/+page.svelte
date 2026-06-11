@@ -4,7 +4,12 @@
 	import TournamentGamePopup from "$lib/components/TournamentMatchPopup.svelte";
 	import TournamentPlayerTable from "$lib/components/TournamentPlayerTable.svelte";
 	import TournamentRegisterPopup from "$lib/components/TournamentRegisterPopup.svelte";
-	import { db, startChallongeTournament, updateTournamentGames } from "$lib/firebase";
+	import {
+		db,
+		finishTournament,
+		startChallongeTournament,
+		updateTournamentGames,
+	} from "$lib/firebase";
 	import { currentUser, isAdmin } from "$lib/store";
 	import type {
 		Player,
@@ -44,7 +49,7 @@
 		if ($currentUser) {
 			unsubRegistration?.();
 			unsubRegistration = onValue(
-				ref(db, `tournamentRegistrations/${id}/${$currentUser.uid}`),
+				ref(db, `tournament/${id}/registrations/${$currentUser.uid}`),
 				(snap) => {
 					const data = snap.val();
 					if (!data) return;
@@ -86,6 +91,25 @@
 			alert(error);
 		} finally {
 			updatingGames = false;
+		}
+	}
+
+	let finishingTournament = false;
+	async function handleFinishTournament() {
+		if (finishingTournament) return;
+		if (!confirm("Закончить турнир?")) return;
+		finishingTournament = true;
+		try {
+			if (tournament) {
+				await finishTournament(
+					tournament.id,
+					tournament.challongeTournamentUrl,
+				);
+			}
+		} catch (error) {
+			alert(error);
+		} finally {
+			finishingTournament = false;
 		}
 	}
 
@@ -133,7 +157,7 @@
 		});
 
 		const unsubRegistrations = onValue(
-			ref(db, "tournamentRegistrations/" + id),
+			ref(db, `tournaments/${id}/registrations/`),
 			async (snap) => {
 				const data = snap.val();
 
@@ -226,10 +250,10 @@
 				{#if !tournament.state && now > tournament.registrationStartDate && now < tournament.registrationEndDate}
 					<p>Идёт регистрация</p>
 				{/if}
-				{#if tournament.state === "started" || (now > tournament.tournamentStartDate && now < tournament.tournamentEndDate)}
+				{#if tournament.state === "started"}
 					<p>Турнир идёт</p>
 				{/if}
-				{#if tournament.state === "finished" || now > tournament.tournamentEndDate}
+				{#if tournament.state === "complete"}
 					<p>Турнир окончен</p>
 				{/if}
 
@@ -241,21 +265,36 @@
 							>{#if userRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</button
 						>
 					{/if}
-					{#if $isAdmin && !tournament.state && !tournament.challongeTournamentId}
-						<button
-							class="btn-common btn-play"
-							onclick={handleStartTournament}>Начать турнир</button
-						>
-					{/if}
 					{#if $isAdmin}
-						<button
-							class="btn-common btn-play"
-							onclick={handleUpdateTournamentGames}
-							>Принудительно обновить игры</button
-						>
+						{#if !tournament.state && !tournament.challongeTournamentId}
+							<button
+								class="btn-common btn-play"
+								onclick={handleStartTournament}>Начать турнир</button
+							>
+						{/if}
+						{#if tournament.state === "started"}
+							<button
+								class="btn-common btn-play"
+								onclick={handleUpdateTournamentGames}
+								>Принудительно обновить игры</button
+							>
+						{/if}
+						{#if tournament.state === "awaiting_review"}
+							<button
+								class="btn-common btn-play"
+								onclick={handleFinishTournament}
+								>Закончить турнир</button
+							>
+						{/if}
 					{/if}
 				</div>
 			</div>
+
+			{#if tournament.winnerId}
+				<h2 class="winner-label">
+					Победил {getPlayerName(tournament.winnerId)!}
+				</h2>
+			{/if}
 
 			{#if tournament.challongeTournamentUrl}
 				<iframe
@@ -427,5 +466,12 @@
 
 	.description-container p {
 		margin: 0;
+	}
+
+	.winner-label {
+		width: 100%;
+		font-size: 32px;
+		text-align: center;
+		display: block;
 	}
 </style>

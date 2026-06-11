@@ -161,9 +161,9 @@
 			<div class="tournament-container">
 				{#each filteredTournaments as tournament}
 					{@const status =
-						now > tournament.tournamentEndDate
+						tournament.state === "complete"
 							? "ended"
-							: now > tournament.tournamentStartDate
+							: (tournament.state === "complete" || tournament.state == "awaiting_review")
 								? "ongoing"
 								: now > tournament.registrationStartDate &&
 									  now < tournament.registrationEndDate
@@ -184,24 +184,24 @@
 								dateDisplayOptions,
 							)}
 						</p>
-						{#if now > tournament.registrationStartDate && now < tournament.registrationEndDate}
+						{#if !tournament.state && now > tournament.registrationStartDate && now < tournament.registrationEndDate}
 							<p class="tournament-status">
 								Регистрация до {new Date(
 									tournament.registrationEndDate,
 								).toLocaleString("ru", dateDisplayOptions)}
 							</p>
 						{/if}
-						{#if now > tournament.registrationEndDate && now < tournament.tournamentStartDate}
+						{#if !tournament.state && now > tournament.registrationEndDate && now < tournament.tournamentStartDate}
 							<p class="tournament-status">
 								Начало {new Date(
 									tournament.tournamentStartDate,
 								).toLocaleString("ru", dateDisplayOptions)}
 							</p>
 						{/if}
-						{#if now > tournament.tournamentStartDate && now < tournament.tournamentEndDate}
+						{#if tournament.state === "started" || tournament.state == "awaiting_review"}
 							<p class="tournament-status">Турнир идёт</p>
 						{/if}
-						{#if now > tournament.tournamentEndDate}
+						{#if tournament.state === "complete"}
 							<p class="tournament-status">Турнир окончен</p>
 						{/if}
 					</a>

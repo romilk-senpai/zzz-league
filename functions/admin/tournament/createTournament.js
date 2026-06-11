@@ -1,7 +1,7 @@
-import { onCall, HttpsError } from "firebase-functions/https";
-import { db } from "../../config/firebase.js";
-import { validateAdminRequest } from "../utils.js";
-import { defaultOptions } from "../../config/options.js";
+import {onCall, HttpsError} from "firebase-functions/https";
+import {db} from "../../config/firebase.js";
+import {validateAdminRequest} from "../utils.js";
+import {defaultOptions} from "../../config/options.js";
 
 export const createTournament = onCall(defaultOptions, async (request) => {
   await validateAdminRequest(request);
@@ -17,7 +17,7 @@ export const createTournament = onCall(defaultOptions, async (request) => {
     maxCost,
     minCharacters,
     minTier,
-    maxTier
+    maxTier,
   } = request.data;
 
   if (!name || !registrationStartDate || !registrationEndDate ||
@@ -45,5 +45,5 @@ export const createTournament = onCall(defaultOptions, async (request) => {
     maxTier,
   });
 
-  return { success: true, id };
+  return {success: true, id};
 });

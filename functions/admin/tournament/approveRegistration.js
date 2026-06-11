@@ -14,7 +14,7 @@ export const approveRegistration = onCall(defaultOptions, async (request) => {
     throw new HttpsError("invalid-argument", "Missing required fields");
   }
 
-  await db.ref(`tournamentRegistrations/${tournamentId}/${uid}`).update({
+  await db.ref(`tournaments/${tournamentId}/registrations/${uid}`).update({
     approved: approved,
   });
 });

@@ -1,6 +1,6 @@
-import { onCall, HttpsError } from "firebase-functions/https";
-import { db, storage } from "../config/firebase.js";
-import { defaultOptions } from "../config/options.js";
+import {onCall, HttpsError} from "firebase-functions/https";
+import {db, storage} from "../config/firebase.js";
+import {defaultOptions} from "../config/options.js";
 
 export const applyForTournament = onCall(defaultOptions, async (request) => {
   const callerUid = request.auth?.uid;
@@ -27,22 +27,27 @@ export const applyForTournament = onCall(defaultOptions, async (request) => {
     throw new HttpsError("invalid-argument", "Missing required fields");
   }
 
-  const tournamentSnap = await db.ref(`tournaments/${tournamentId}`).once("value");
+  const tournamentSnap =
+  await db.ref(`tournaments/${tournamentId}`).once("value");
   if (!tournamentSnap.exists()) {
     throw new HttpsError("not-found", "Tournament not found");
   }
 
   const tournament = tournamentSnap.val();
+
+  if (tournament.state) {
+    throw new HttpsError("permission-denied", "Tournament has already been started");
+  }
+
   let playerTier = 0;
-  if (player.isHighConfirmed)
+  if (player.isHighConfirmed) {
     playerTier = 1000;
-  else if (player.isMidConfirmed)
+  } else if (player.isMidConfirmed) {
     playerTier = 100;
+  }
 
   if (playerTier < tournament.minTier || playerTier > tournament.maxTier) {
-    if (!tournamentSnap.exists()) {
-      throw new HttpsError("permission-denied", "Player is out of tier group");
-    }
+    throw new HttpsError("permission-denied", "Player is out of tier group");
   }
 
   const base64Data = rosterScreenshot.replace(/^data:image\/\w+;base64,/, "");
@@ -60,13 +65,13 @@ export const applyForTournament = onCall(defaultOptions, async (request) => {
   const file = storage.bucket().file(filePath);
 
   await file.save(buffer, {
-    metadata: { contentType },
+    metadata: {contentType},
   });
 
   await file.makePublic();
   const rosterScreenshotUrl = `https://storage.googleapis.com/${storage.bucket().name}/${filePath}`;
 
-  await db.ref(`tournamentRegistrations/${tournamentId}/${callerUid}`).set({
+  await db.ref(`tournaments/${tournamentId}/registrations/${callerUid}`).set({
     uid: callerUid,
     zzzUid,
     darteNickname,
@@ -77,5 +82,5 @@ export const applyForTournament = onCall(defaultOptions, async (request) => {
     approved: false,
   });
 
-  return { success: true };
+  return {success: true};
 });

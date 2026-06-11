@@ -29,21 +29,30 @@ export async function updateTournamentGames(tournamentId,
         `Challonge matches fetch error: ${JSON.stringify(matchesData)}`);
   }
 
+  let allMatchesPlayed = true;
   const updates = {};
   matchesData.data.forEach((m) => {
     const pp = m.attributes.points_by_participant ?? [];
     const p1Id = pp[0]?.participant_id;
     const p2Id = pp[1]?.participant_id;
+    const winnerId = challongeParticipants[m.attributes.winner_id];
 
-    updates[`${tournamentId}/matches/${m.id}/id`] = m.id;
-    updates[`${tournamentId}/matches/${m.id}/state`] = m.attributes.state;
-    updates[`${tournamentId}/matches/${m.id}/winnerId`] =
-      challongeParticipants[m.attributes.winner_id] ?? null;
-    updates[`${tournamentId}/matches/${m.id}/p1`] =
+    updates[`matches/${m.id}/id`] = m.id;
+    updates[`matches/${m.id}/state`] = m.attributes.state;
+    updates[`matches/${m.id}/winnerId`] = winnerId ?? null;
+    updates[`matches/${m.id}/p1`] =
       challongeParticipants[p1Id] ?? "TBD";
-    updates[`${tournamentId}/matches/${m.id}/p2`] =
+    updates[`matches/${m.id}/p2`] =
       challongeParticipants[p2Id] ?? "TBD";
+
+    if (!winnerId) {
+      allMatchesPlayed = false;
+    }
   });
 
-  await db.ref("tournaments").update(updates);
+  if (allMatchesPlayed) {
+    updates["state"] = "awaiting_review";
+  }
+
+  await db.ref(`tournaments/${tournamentId}`).update(updates);
 }

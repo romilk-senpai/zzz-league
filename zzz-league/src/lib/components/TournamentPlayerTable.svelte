@@ -88,7 +88,7 @@
 					{/if}
 				</td>
 				<td><span class="lvl-badge">L{getLvl(elo)}</span></td>
-				<td><span>{reg.registration.approved ? "+" : "-"}</span></td>
+				<td><span>{reg.registration.approved ?  "✅" : "❌"}</span></td>
 				<td>
 					<button
 						class="icon-btn"

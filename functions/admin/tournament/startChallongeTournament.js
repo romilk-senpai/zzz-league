@@ -24,7 +24,7 @@ export const startChallongeTournament = onCall({
   }
 
   const regSnap =
-    await db.ref("tournamentRegistrations/" + tournamentId).once("value");
+    await db.ref(`tournaments/${tournamentId}/registrations`).once("value");
   const registrations = regSnap.val();
   if (!registrations) {
     throw new HttpsError("not-found", "No registrations found");
@@ -142,14 +142,14 @@ export const startChallongeTournament = onCall({
 
   const challongeTournamentUrl = createData.data.attributes.full_challonge_url;
 
-  await updateTournamentGames(tournamentId, challongeTournamentId);
-
   await db.ref("tournaments/" + tournamentId).update({
     challongeParticipants,
     state: "started",
     challongeTournamentId,
     challongeTournamentUrl,
   });
+
+  await updateTournamentGames(tournamentId, challongeTournamentId);
 
   return {success: true, challongeTournamentId};
 });
