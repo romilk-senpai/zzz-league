@@ -18,6 +18,11 @@
 	let matchResultP1 = $state(match.resultP1 ?? "00:00");
 	let matchResultP2 = $state(match.resultP2 ?? "00:00");
 
+	$effect(() => {
+		matchResultP1 = match.resultP1 ?? "00:00";
+		matchResultP2 = match.resultP2 ?? "00:00";
+	});
+
 	function getPlayerName(uid: string) {
 		return registeredPlayers.find((p) => p.player.uid === uid)?.player.name;
 	}

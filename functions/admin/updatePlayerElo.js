@@ -8,7 +8,7 @@ import {
   DISCORD_HIGH_ROLE,
 } from "../config/secrets.js";
 import {assignDiscordRole} from "../utils/assignDiscordRole.js";
-import {validateAdminRequest} from "./utils.js";
+import {validateAdminRequest} from "../utils/validateAdminRequest.js";
 import {defaultOptions} from "../config/options.js";
 
 export const updatePlayerElo = onCall({
@@ -29,13 +29,12 @@ export const updatePlayerElo = onCall({
     throw new HttpsError("invalid-argument", "uid is required");
   }
 
-  const snapshot = await db.ref("players/" + uid).once("value");
-
-  if (!snapshot.exists()) {
+  const playerSnap = await db.ref("players/" + uid).once("value");
+  if (!playerSnap.exists()) {
     throw new HttpsError("not-found", "Player not found");
   }
 
-  const oldElo = snapshot.val().elo;
+  const oldElo = playerSnap.val().elo;
 
   await db.ref("players/" + uid).update({
     elo,

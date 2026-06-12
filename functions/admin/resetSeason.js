@@ -1,6 +1,6 @@
 import {onCall, HttpsError} from "firebase-functions/https";
 import {db} from "../config/firebase.js";
-import {validateAdminRequest} from "./utils.js";
+import {validateAdminRequest} from "../utils/validateAdminRequest.js";
 import {defaultOptions} from "../config/options.js";
 
 export const resetSeason = onCall(defaultOptions, async (request) => {
@@ -11,8 +11,8 @@ export const resetSeason = onCall(defaultOptions, async (request) => {
     throw new HttpsError("invalid-argument", "seasonName is required");
   }
 
-  const snap = await db.ref("players").once("value");
-  const playersObj = snap.val();
+  const playersSnap = await db.ref("players").once("value");
+  const playersObj = playersSnap.val();
   if (!playersObj) {
     throw new HttpsError("not-found", "No players found");
   }

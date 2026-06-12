@@ -2,7 +2,7 @@ import {onCall, HttpsError} from "firebase-functions/https";
 import {db} from "../../config/firebase.js";
 import {CHALLONGE_API_KEY} from "../../config/secrets.js";
 import {updateTournamentGames} from "../../utils/updateTournamentGames.js";
-import {validateAdminRequest} from "../utils.js";
+import {validateAdminRequest} from "../../utils/validateAdminRequest.js";
 import {defaultOptions} from "../../config/options.js";
 
 export const startChallongeTournament = onCall({
@@ -51,7 +51,7 @@ export const startChallongeTournament = onCall({
         type: "tournament",
         attributes: {
           name: tournament.name,
-          tournament_type: tournament.torunamentType ?? "single elimination",
+          tournament_type: tournament.type ?? "single elimination",
           description: tournament.description ?? "",
           private: false,
           starts_at: new Date(tournament.tournamentStartDate).toISOString(),
@@ -68,6 +68,7 @@ export const startChallongeTournament = onCall({
 
   const challongeTournamentId = createData.data.id;
 
+  // TODO: Fix
   const participants = await Promise.all(
       approved.map(async (r) => {
         const snap = await db.ref("players/" + r.uid).once("value");

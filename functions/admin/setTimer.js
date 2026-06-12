@@ -1,6 +1,6 @@
 import {onCall} from "firebase-functions/https";
 import {db} from "../config/firebase.js";
-import {validateAdminRequest} from "./utils.js";
+import {validateAdminRequest} from "../utils/validateAdminRequest.js";
 import {defaultOptions} from "../config/options.js";
 
 export const setTimer = onCall(defaultOptions, async (request) => {

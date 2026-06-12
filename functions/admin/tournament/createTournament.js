@@ -1,6 +1,6 @@
 import {onCall, HttpsError} from "firebase-functions/https";
 import {db} from "../../config/firebase.js";
-import {validateAdminRequest} from "../utils.js";
+import {validateAdminRequest} from "../../utils/validateAdminRequest.js";
 import {defaultOptions} from "../../config/options.js";
 
 export const createTournament = onCall(defaultOptions, async (request) => {
@@ -18,12 +18,14 @@ export const createTournament = onCall(defaultOptions, async (request) => {
     minCharacters,
     minTier,
     maxTier,
+    baseElo,
+    type,
   } = request.data;
 
   if (!name || !registrationStartDate || !registrationEndDate ||
     !tournamentStartDate || !tournamentEndDate || minCost == null ||
     !maxCost == null || !minCharacters == null || minTier == null ||
-    maxTier == null) {
+    maxTier == null || type == null || baseElo == null) {
     throw new HttpsError("invalid-argument", "Missing required fields");
   }
 
@@ -43,6 +45,8 @@ export const createTournament = onCall(defaultOptions, async (request) => {
     minCharacters,
     minTier,
     maxTier,
+    baseElo,
+    type,
   });
 
   return {success: true, id};

@@ -1,7 +1,7 @@
 import {onCall, HttpsError} from "firebase-functions/https";
 import {db} from "../config/firebase.js";
-import {validateAdminRequest} from "./utils.js";
 import {defaultOptions} from "../config/options.js";
+import {validateAdminRequest} from "../utils/validateAdminRequest.js";
 
 export const updateMatchData = onCall(defaultOptions, async (request) => {
   await validateAdminRequest(request);

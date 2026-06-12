@@ -41,16 +41,12 @@ export async function registerUser(
 	await signInWithCustomToken(auth, result.data.token);
 }
 
-export async function addHistoryEntry(playerName1: string, playerName2: string, change: number): Promise<void> {
-	await httpsCallable(functions, 'addHistoryEntry')({ playerName1, playerName2, change });
-}
-
 export async function clearHistory(): Promise<void> {
 	await httpsCallable(functions, 'clearHistory')();
 }
 
-export async function updateMatchData(uid: string, change: number, isWin: boolean): Promise<void> {
-	await httpsCallable(functions, "updateMatchData")({ uid, change, isWin });
+export async function registerMatch(p1: string, p2: string, p1Win: boolean, baseElo: number): Promise<void> {
+	await httpsCallable(functions, "registerMatch")({ p1, p2, p1Win, baseElo});
 }
 
 export async function setTimer(timer: number): Promise<void> {

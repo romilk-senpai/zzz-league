@@ -13,6 +13,8 @@
 	let registrationEndDate = $state(toDateTimeLocal(now));
 	let tournamentStartDate = $state(toDateTimeLocal(now));
 	let tournamentEndDate = $state(toDateTimeLocal(now));
+	let tournamentType = $state("double elimination");
+	let baseElo = $state(-1);
 	let minCost = $state(2100);
 	let maxCost = $state(2200);
 	let minCharacters = $state(14);
@@ -44,7 +46,8 @@
 			!registrationStartDate ||
 			!registrationEndDate ||
 			!tournamentStartDate ||
-			!tournamentEndDate
+			!tournamentEndDate ||
+			!tournamentType
 		) {
 			status = "Заполните все поля";
 			return;
@@ -88,7 +91,10 @@
 				challongeTournamentId: "",
 				challongeTournamentUrl: "",
 				matches: [],
-				state: ""
+				state: "",
+				winnerId: undefined,
+				baseElo: baseElo,
+				type: tournamentType,
 			};
 			await createTournament(tournament);
 			close();
@@ -106,6 +112,13 @@
 
 		<input type="text" bind:value={name} placeholder="Название" />
 		<input type="text" bind:value={description} placeholder="Описание" />
+		<p>Тип турнира</p>
+		<select bind:value={tournamentType}>
+			<option value="single elimination">Single elimination</option>
+			<option value="double elimination">Double elimination</option>
+		</select>
+		<p>Базовое эло (-1 для дефолт 20/50 от ранга)</p>
+		<input type="number" bind:value={baseElo} placeholder="Базовое эло (-1 для дефолт 20/50 от ранга)" />
 		<p>Мин. тир игроков</p>
 		<select bind:value={minTier}>
 			<option value="0">NEWBIE</option>

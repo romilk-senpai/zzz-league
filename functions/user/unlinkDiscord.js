@@ -20,8 +20,8 @@ export const unlinkDiscord = onCall({
   const callerUid = request.auth?.uid;
   if (!callerUid) throw new HttpsError("unauthenticated", "Not logged in");
 
-  const snap = await db.ref("players/" + callerUid).once("value");
-  const player = snap.val();
+  const playerSnap = await db.ref("players/" + callerUid).once("value");
+  const player = playerSnap.val();
   if (!player) throw new HttpsError("not-found", "Player not found");
 
   if (player.discordId) {

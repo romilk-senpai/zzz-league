@@ -1,5 +1,5 @@
 import {onCall} from "firebase-functions/https";
-import {validateAdminRequest} from "../utils.js";
+import {validateAdminRequest} from "../../utils/validateAdminRequest.js";
 import {db} from "../../config/firebase.js";
 import {defaultOptions} from "../../config/options.js";
 

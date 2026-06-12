@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { approveRegistration } from "$lib/firebase";
-	import { isAdmin, profileUser } from "$lib/store";
+	import { isAdmin } from "$lib/store";
 	import type { Player, RegisteredPlayer, Tournament } from "$lib/types";
 	import { openImagePopup, openProfilePopup } from "$lib/uiCommon";
 

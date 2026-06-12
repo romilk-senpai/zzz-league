@@ -9,8 +9,8 @@ import {
 
 
 export async function assignDiscordRole(uid) {
-  const snap = await db.ref("players/" + uid).once("value");
-  const player = snap.val();
+  const playerSnap = await db.ref("players/" + uid).once("value");
+  const player = playerSnap.val();
   if (!player?.discordId) return;
 
   const elo = player.elo || 1000;

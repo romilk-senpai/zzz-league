@@ -1,7 +1,7 @@
 import {onCall, HttpsError} from "firebase-functions/https";
 import {CHALLONGE_API_KEY} from "../../config/secrets.js";
 import {updateTournamentGames} from "../../utils/updateTournamentGames.js";
-import {validateAdminRequest} from "../utils.js";
+import {validateAdminRequest} from "../../utils/validateAdminRequest.js";
 import {defaultOptions} from "../../config/options.js";
 
 export const refreshTournamentGames = onCall({

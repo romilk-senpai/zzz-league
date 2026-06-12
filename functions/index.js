@@ -15,6 +15,7 @@ export {deletePlayer} from "./admin/deletePlayer.js";
 export {finalizeTournament} from "./admin/finalizeTournament.js";
 export {resetSeason} from "./admin/resetSeason.js";
 export {setTimer} from "./admin/setTimer.js";
+export {registerMatch} from "./admin/registerMatch.js";
 export {updateMatchData} from "./admin/updateMatchData.js";
 export {updatePlayerElo} from "./admin/updatePlayerElo.js";
 

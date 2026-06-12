@@ -8,7 +8,7 @@ import {
   DISCORD_HIGH_ROLE,
 } from "../config/secrets.js";
 import {assignDiscordRole} from "../utils/assignDiscordRole.js";
-import {validateAdminRequest} from "./utils.js";
+import {validateAdminRequest} from "../utils/validateAdminRequest.js";
 import {defaultOptions} from "../config/options.js";
 
 export const finalizeTournament = onCall({
@@ -18,8 +18,8 @@ export const finalizeTournament = onCall({
 }, async (request) => {
   await validateAdminRequest(request);
 
-  const snap = await db.ref("players").once("value");
-  const playersObj = snap.val();
+  const playersSnap = await db.ref("players").once("value");
+  const playersObj = playersSnap.val();
   if (!playersObj) {
     throw new HttpsError("not-found", "No players found");
   }

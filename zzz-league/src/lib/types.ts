@@ -49,6 +49,8 @@ export interface Tournament {
 	matches: TournamentMatch[],
 	state: string,
 	winnerId: any,
+	type: string,
+	baseElo: number,
 }
 
 export interface TournamentRegistration {

@@ -49,7 +49,7 @@
 		if ($currentUser) {
 			unsubRegistration?.();
 			unsubRegistration = onValue(
-				ref(db, `tournament/${id}/registrations/${$currentUser.uid}`),
+				ref(db, `tournaments/${id}/registrations/${$currentUser.uid}`),
 				(snap) => {
 					const data = snap.val();
 					if (!data) return;
@@ -262,7 +262,7 @@
 						<button
 							class="btn-common btn-play"
 							onclick={openMyRegistration}
-							>{#if userRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</button
+							>{#if myRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</button
 						>
 					{/if}
 					{#if $isAdmin}

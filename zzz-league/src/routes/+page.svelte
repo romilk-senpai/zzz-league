@@ -13,7 +13,7 @@
 		orderByChild,
 		startAt,
 	} from "firebase/database";
-	import type { Archives, MatchRecord, Player, Tournament } from "$lib/types";
+	import type { Archives, MatchRecord, Tournament } from "$lib/types";
 	import Leaderboard from "$lib/components/Leaderboard.svelte";
 	import { resolve } from "$app/paths";
 	import SidePanel from "$lib/components/SidePanel.svelte";

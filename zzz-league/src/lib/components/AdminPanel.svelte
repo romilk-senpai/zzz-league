@@ -1,11 +1,10 @@
 <script lang="ts">
 	import {
-		addHistoryEntry,
 		addPlayer,
 		finalizeTournament,
+		registerMatch,
 		resetSeason,
 		setTimer,
-		updateMatchData,
 	} from "$lib/firebase";
 	import { players } from "$lib/store";
 	import type { Player } from "$lib/types";
@@ -68,10 +67,10 @@
 		}
 	}
 
-	function calculateEloChange(pA: Player, pB: Player, outcome: number) {
-		const k = pA.isMidConfirmed || false ? 20 : 50;
+	function calculateEloChange(p1: Player, p2: Player, outcome: number) {
+		const k = p1.isMidConfirmed || false ? 20 : 50;
 		const expected =
-			1 / (1 + Math.pow(10, ((pB.elo || 1000) - (pA.elo || 1000)) / 400));
+			1 / (1 + Math.pow(10, ((p2.elo || 1000) - (p1.elo || 1000)) / 400));
 		let change = Math.round(k * (outcome - expected));
 		if (outcome === 1 && change <= 0) change = 1;
 		if (outcome === 0 && change >= 0) change = -1;
@@ -103,7 +102,9 @@
 		showingForecast = true;
 	}
 
-	async function playMatch() {
+	let registeringMatch = false;
+	async function handleRegisterMatch() {
+		if (registeringMatch) return;
 		if (
 			!selectedPlayer1 ||
 			!selectedPlayer2 ||
@@ -113,33 +114,23 @@
 			return;
 		}
 
-		const winner = parseInt(winningPlayer);
-
-		const change1 = calculateEloChange(
-			selectedPlayer1,
-			selectedPlayer2,
-			winner,
-		);
-		const change2 = calculateEloChange(
-			selectedPlayer2,
-			selectedPlayer1,
-			winner === 1 ? 0 : 1,
-		);
-
-		handleUpdateMatchData(selectedPlayer1, change1, winner === 1);
-		handleUpdateMatchData(selectedPlayer2, change2, winner === 0);
-
+		registeringMatch = true;
 		try {
-			await addHistoryEntry(
-				selectedPlayer1.name,
-				selectedPlayer2.name,
-				change1,
+			const winner = parseInt(winningPlayer);
+
+			await registerMatch(
+				selectedPlayer1.uid,
+				selectedPlayer2.uid,
+				winner === 1,
+				-1,
 			);
+
+			showingForecast = false;
 		} catch (error) {
 			alert(error);
+		} finally {
+			registeringMatch = false;
 		}
-
-		showingForecast = false;
 	}
 
 	async function handleResetSeason() {
@@ -147,18 +138,6 @@
 		if (!name) return;
 		try {
 			await resetSeason(name);
-		} catch (error) {
-			alert(error);
-		}
-	}
-
-	function handleUpdateMatchData(
-		player: Player,
-		change: number,
-		isWin: boolean,
-	) {
-		try {
-			updateMatchData(player.uid, change, isWin);
 		} catch (error) {
 			alert(error);
 		}
@@ -238,8 +217,10 @@
 		<option value="1">Победа Игрока 1</option>
 		<option value="0">Победа Игрока 2</option>
 	</select>
-	<button type="button" class="btn-common btn-play" onclick={playMatch}
-		>⚔️ Записать матч</button
+	<button
+		type="button"
+		class="btn-common btn-play"
+		onclick={handleRegisterMatch}>⚔️ Записать матч</button
 	>
 	<button type="button" class="btn-common" onclick={handleFinalizeTournament}
 		>✅ Применить итоги</button

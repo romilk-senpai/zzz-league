@@ -3,6 +3,7 @@ import {db, storage} from "../config/firebase.js";
 import {CHALLONGE_API_KEY} from "../config/secrets.js";
 import {updateTournamentGames} from "../utils/updateTournamentGames.js";
 import {defaultOptions} from "../config/options.js";
+import {registerMatchResult} from "../utils/registerMatchResult.js";
 
 export const approveResult = onCall({
   ...defaultOptions,
@@ -34,6 +35,16 @@ export const approveResult = onCall({
 
   if (match.p1 !== uid && match.p2 !== uid) {
     throw new HttpsError("permission-denied", "Not a participant");
+  }
+
+  const p1Snap = await db.ref("players/" + match.p1).once("value");
+  if (!p1Snap.exists()) {
+    throw new HttpsError("not-found", `Player ${match.p1} not found`);
+  }
+
+  const p2Snap = await db.ref("players/" + match.p2).once("value");
+  if (!p2Snap.exists()) {
+    throw new HttpsError("not-found", `Player ${match.p2} not found`);
   }
 
   const resetResult = String(resultP1).trim() !== String(match.resultP1) ||
@@ -109,10 +120,7 @@ export const approveResult = onCall({
       "Authorization": CHALLONGE_API_KEY.value(),
     };
 
-    const snap =
-      await db.ref(`tournaments/${tournamentId}/challongeParticipants`)
-          .once("value");
-    const challongeParticipants = snap.val();
+    const challongeParticipants = tournament.challongeParticipants;
 
     const p1ChallongeId = Object.keys(challongeParticipants).find(
         (key) => challongeParticipants[key] === match.p1,
@@ -158,6 +166,10 @@ export const approveResult = onCall({
 
     await updateTournamentGames(tournamentId, tournament.challongeTournamentId);
 
+    const historyKey = await registerMatchResult(p1Snap.val(), p2Snap.val(),
+        time1 < time2, tournament.baseElo, tournament.id);
+
+    match.historyKey = historyKey;
     match.state = "complete";
     match.winnerId = winnerId;
   }
