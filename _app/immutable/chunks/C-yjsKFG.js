@@ -1,0 +1,1 @@
+import{G as e,L as t,M as n,W as r}from"./BmB_jlWr.js";function i(i){let a=e(null);return t(()=>{let e=i();if(!e){r(a,null);return}let t=URL.createObjectURL(e);return r(a,t,!0),()=>URL.revokeObjectURL(t)}),{get url(){return n(a)}}}export{i as t};
