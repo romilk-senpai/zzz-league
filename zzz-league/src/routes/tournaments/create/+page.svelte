@@ -138,7 +138,9 @@
 				</select>
 			</div>
 			<div class="form-row-wide">
-				<label for="f-break-ties"> Break ties with placement matches </label>
+				<label for="f-break-ties">
+					Break ties with placement matches
+				</label>
 				<input
 					id="f-break-ties"
 					type="checkbox"
@@ -147,7 +149,9 @@
 			</div>
 			{#if breakTiesEnabled}
 				<div class="form-row-wide">
-					<label for="f-break-ties-place">Break ties through this place</label>
+					<label for="f-break-ties-place"
+						>Break ties through this place</label
+					>
 					<input
 						id="f-break-ties-place"
 						type="number"
@@ -261,8 +265,7 @@
 				<button
 					class="btn-common btn-play"
 					class:btn-loading={creatingTournament}
-					onclick={handleCreateTournament}
-					>Создать</button
+					onclick={handleCreateTournament}>Создать</button
 				>
 			</div>
 		{:else}

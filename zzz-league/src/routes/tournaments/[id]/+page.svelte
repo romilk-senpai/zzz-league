@@ -407,7 +407,8 @@
 							<button
 								class="btn-common btn-play"
 								class:btn-loading={creatingBracket}
-								onclick={handleCreateBracket}>Создать сетку Challonge</button
+								onclick={handleCreateBracket}
+								>Создать сетку Challonge</button
 							>
 						{/if}
 						{#if isBracketCreated(tournament.state)}

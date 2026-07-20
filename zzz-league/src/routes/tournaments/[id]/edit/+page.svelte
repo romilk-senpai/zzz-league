@@ -188,7 +188,9 @@
 				{#if description.trim()}
 					<div class="form-row-wide preview-row">
 						<span>Превью</span>
-						<div class="description-preview">{@html descriptionPreview}</div>
+						<div class="description-preview">
+							{@html descriptionPreview}
+						</div>
 					</div>
 				{/if}
 				<div class="form-row-wide">
@@ -199,7 +201,9 @@
 					</select>
 				</div>
 				<div class="form-row-wide">
-					<label for="f-break-ties"> Break ties with placement matches </label>
+					<label for="f-break-ties">
+						Break ties with placement matches
+					</label>
 					<input
 						id="f-break-ties"
 						type="checkbox"
@@ -208,7 +212,9 @@
 				</div>
 				{#if breakTiesEnabled}
 					<div class="form-row-wide">
-						<label for="f-break-ties-place">Break ties through this place</label>
+						<label for="f-break-ties-place"
+							>Break ties through this place</label
+						>
 						<input
 							id="f-break-ties-place"
 							type="number"
