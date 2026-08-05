@@ -710,7 +710,7 @@
 	}
 
 	.match-player-name.match-player-self {
-		color: lightblue;
+		color: #5cbddd;
 	}
 
 	.match-filters {
