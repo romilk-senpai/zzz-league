@@ -81,6 +81,11 @@ export async function deleteHistoryEntry(key: string): Promise<void> {
 	await httpsCallable(functions, 'deleteHistoryEntry')({ key });
 }
 
+export async function backfillHistoryByPlayer(): Promise<{ success: boolean; count: number }> {
+	const result = await httpsCallable(functions, 'backfillHistoryByPlayer')() as any;
+	return result.data;
+}
+
 export async function createTournament(data: Tournament): Promise<string> {
 	const fn = httpsCallable(functions, 'createTournament');
 	const result = await fn(data) as any;

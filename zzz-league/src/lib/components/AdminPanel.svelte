@@ -68,7 +68,7 @@
 	}
 
 	function calculateEloChange(p1: Player, p2: Player, outcome: number) {
-		const k = p1.isMidConfirmed || false ? 20 : 50;
+		const k = p1.isMidConfirmed || false ? 25 : 50;
 		const expected =
 			1 / (1 + Math.pow(10, ((p2.elo || 1000) - (p1.elo || 1000)) / 400));
 		let change = Math.round(k * (outcome - expected));

@@ -20,9 +20,11 @@ export const deleteHistoryEntry = onCall(defaultOptions, async (request) => {
 
   const updates = {
     [`historyV3/${key}`]: null,
+    [`historyByPlayer/${entry.p1}/${key}`]: null,
   };
 
   if (entry.p2) {
+    updates[`historyByPlayer/${entry.p2}/${key}`] = null;
     updates[`players/${entry.p1}/tournamentPoints`] =
       admin.database.ServerValue.increment(-entry.p1Change);
     updates[`players/${entry.p2}/tournamentPoints`] =

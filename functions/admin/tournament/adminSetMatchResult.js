@@ -85,6 +85,8 @@ export const adminSetMatchResult = onCall({
 
       await db.ref().update({
         [`historyV3/${match.historyKey}`]: null,
+        [`historyByPlayer/${oldEntry.p1}/${match.historyKey}`]: null,
+        [`historyByPlayer/${oldEntry.p2}/${match.historyKey}`]: null,
         [`players/${oldEntry.p1}/tournamentPoints`]:
           admin.database.ServerValue.increment(-oldEntry.p1Change),
         [`players/${oldEntry.p2}/tournamentPoints`]:

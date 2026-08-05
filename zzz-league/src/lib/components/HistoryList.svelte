@@ -8,7 +8,16 @@
 		openImagePopup,
 		openProfilePopup,
 	} from "$lib/uiCommon";
-	import { onValue, orderByChild, query, ref } from "firebase/database";
+	import {
+		endBefore,
+		get,
+		limitToLast,
+		onValue,
+		orderByKey,
+		query,
+		ref,
+		type DataSnapshot,
+	} from "firebase/database";
 
 	let { viewerId = undefined }: { viewerId?: string } = $props();
 
@@ -26,7 +35,20 @@
 		timestamp: number;
 	};
 
-	let entries = $state<HistoryEntry[]>([]);
+	const PAGE_SIZE = 50;
+
+	let liveEntries = $state<HistoryEntry[]>([]);
+	let olderEntries = $state<HistoryEntry[]>([]);
+	let oldestKey = $state<string | null>(null);
+	let hasMore = $state(true);
+	let loadingMore = $state(false);
+
+	const entries = $derived.by(() => {
+		const byId = new Map<string, HistoryEntry>();
+		for (const e of olderEntries) byId.set(e.id, e);
+		for (const e of liveEntries) byId.set(e.id, e);
+		return [...byId.values()].sort((a, b) => b.timestamp - a.timestamp);
+	});
 
 	const LEGACY_CUTOFF_TIMESTAMP = 1783017803637;
 
@@ -65,23 +87,62 @@
 		}
 	}
 
+	function basePath(currentViewerId: string | undefined) {
+		return currentViewerId
+			? `historyByPlayer/${currentViewerId}`
+			: "historyV3";
+	}
+
+	function snapshotToEntries(snapshot: DataSnapshot) {
+		const result: HistoryEntry[] = [];
+		snapshot.forEach((child) => {
+			result.push(child.val() as HistoryEntry);
+		});
+		return result;
+	}
+
+	async function loadMore() {
+		if (!oldestKey || loadingMore) return;
+		loadingMore = true;
+		try {
+			const moreRef = query(
+				ref(db, basePath(viewerId)),
+				orderByKey(),
+				endBefore(oldestKey),
+				limitToLast(PAGE_SIZE),
+			);
+			const snap = await get(moreRef);
+			const older = snapshotToEntries(snap);
+			hasMore = older.length === PAGE_SIZE;
+			if (older.length) {
+				oldestKey = older[0].id;
+				olderEntries = [...olderEntries, ...older];
+			}
+		} finally {
+			loadingMore = false;
+		}
+	}
+
 	$effect(() => {
 		const currentViewerId = viewerId;
-		const historyRef = query(ref(db, "historyV3"), orderByChild("timestamp"));
+		liveEntries = [];
+		olderEntries = [];
+		oldestKey = null;
+		hasMore = true;
+
+		const historyRef = query(
+			ref(db, basePath(currentViewerId)),
+			orderByKey(),
+			limitToLast(PAGE_SIZE),
+		);
 
 		const unsubscribe = onValue(historyRef, (snapshot) => {
-			const result: HistoryEntry[] = [];
-			snapshot.forEach((child) => {
-				const entry = child.val() as HistoryEntry;
-				if (
-					!currentViewerId ||
-					entry.p1 === currentViewerId ||
-					entry.p2 === currentViewerId
-				) {
-					result.push(entry);
-				}
-			});
-			entries = result.reverse();
+			const page = snapshotToEntries(snapshot);
+			liveEntries = page;
+			if (oldestKey === null) {
+				hasMore = page.length === PAGE_SIZE;
+				if (page.length) oldestKey = page[0].id;
+			}
 		});
 
 		return () => unsubscribe();
@@ -185,6 +246,12 @@
 		<span>Игр пока нет</span>
 	{/each}
 </div>
+
+{#if hasMore}
+	<button class="load-more-btn" onclick={loadMore} disabled={loadingMore}>
+		{loadingMore ? "Загрузка..." : "Показать ещё"}
+	</button>
+{/if}
 
 <style>
 	.match-item {
@@ -298,5 +365,21 @@
 		object-fit: cover;
 		border-radius: 6px;
 		cursor: pointer;
+	}
+
+	.load-more-btn {
+		display: block;
+		margin: 12px auto 0;
+		padding: 8px 20px;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 8px;
+		color: inherit;
+		cursor: pointer;
+	}
+
+	.load-more-btn:disabled {
+		opacity: 0.6;
+		cursor: default;
 	}
 </style>
