@@ -68,6 +68,33 @@
 	let bracketExpanded = $state(true);
 	let matchSearchQuery = $state("");
 
+	$effect(() => {
+		const currentId = id;
+		if (!currentId) return;
+		try {
+			const raw = localStorage.getItem(`tournament-filters-${currentId}`);
+			const parsed = raw ? JSON.parse(raw) : null;
+			showCompleted = parsed?.showCompleted ?? true;
+			showOnlyMine = parsed?.showOnlyMine ?? false;
+			matchSearchQuery = parsed?.matchSearchQuery ?? "";
+		} catch {
+			// localStorage unavailable — ignore
+		}
+	});
+
+	$effect(() => {
+		const currentId = id;
+		if (!currentId) return;
+		try {
+			localStorage.setItem(
+				`tournament-filters-${currentId}`,
+				JSON.stringify({ showCompleted, showOnlyMine, matchSearchQuery }),
+			);
+		} catch {
+			// localStorage unavailable — ignore
+		}
+	});
+
 	let currentUserParticipates = $derived(
 		!!$currentUser &&
 			registeredPlayers.some((p) => p.player.uid === $currentUser!.uid),
@@ -514,7 +541,14 @@
 					</span>
 				</div>
 				{#if bracketExpanded}
-					<div class="bracket-resizable">
+					<div
+						class="bracket-resizable"
+						use:capDefaultHeight={{
+							defaultHeight: 600,
+							maxHeight: 2000,
+							storageKey: `tournament-bracket-height-${id}`,
+						}}
+					>
 						<iframe
 							title="challonge iframe"
 							src="{tournament.challongeTournamentUrl}/module"
@@ -631,7 +665,10 @@
 			</div>
 			<div
 				class="table-wrapper"
-				use:capDefaultHeight={{ trigger: registeredPlayers.length }}
+				use:capDefaultHeight={{
+					trigger: registeredPlayers.length,
+					storageKey: `tournament-table-height-${id}`,
+				}}
 			>
 				<TournamentPlayerTable
 					{tournament}
