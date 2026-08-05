@@ -72,7 +72,9 @@ function effectiveRating(player) {
 }
 
 function calculateEloChange(p1, p2, p1Win) {
-  const k = p1.isMidConfirmed || false ? 20 : 50;
+  const k = p1Win ?
+    (p1.isMidConfirmed || false ? 25 : 50) :
+    (p1.isMidConfirmed || false ? 20 : 45);
   const expected =
     1 / (1 + Math.pow(10, (effectiveRating(p2) - effectiveRating(p1)) / 400));
   let change = Math.round(k * (p1Win - expected));
