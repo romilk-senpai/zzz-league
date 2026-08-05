@@ -12,6 +12,9 @@ import {
 import {validateAdminRequest} from "../../utils/validateAdminRequest.js";
 import {defaultOptions} from "../../config/options.js";
 import {TOURNAMENT_STATE} from "../../utils/tournamentState.js";
+import {setPlayerElo} from "../../utils/setPlayerElo.js";
+
+const PRIZE_ELO_BONUS = {1: 40, 2: 20, 3: 10};
 
 async function fetchAllParticipants(challongeTournamentId, headers) {
   const participants = [];
@@ -29,6 +32,24 @@ async function fetchAllParticipants(challongeTournamentId, headers) {
   }
 
   return participants;
+}
+
+async function awardPrizeElo(participants, challongeParticipants) {
+  const prizeParticipants = participants.filter(
+      (item) => PRIZE_ELO_BONUS[item.attributes.final_rank] !== undefined,
+  );
+
+  for (const participant of prizeParticipants) {
+    const uid = challongeParticipants[participant.id];
+    if (!uid) continue;
+
+    const bonus = PRIZE_ELO_BONUS[participant.attributes.final_rank];
+    const playerSnap = await db.ref("players/" + uid).once("value");
+    if (!playerSnap.exists()) continue;
+
+    const newElo = (playerSnap.val().elo || 1000) + bonus;
+    await setPlayerElo(uid, newElo);
+  }
 }
 
 export const finishTournament = onCall({
@@ -94,6 +115,8 @@ export const finishTournament = onCall({
     challongeWinnerId,
     winnerId,
   });
+
+  await awardPrizeElo(participants, tournament.challongeParticipants);
 
   await deleteTournamentDiscordChannel(tournamentId);
   await deleteTournamentDiscordRole(tournamentId);

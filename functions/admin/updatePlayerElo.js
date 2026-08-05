@@ -1,12 +1,11 @@
 import {onCall, HttpsError} from "firebase-functions/https";
-import {db} from "../config/firebase.js";
 import {
   DISCORD_BOT_TOKEN,
   DISCORD_GUILD_ID,
 } from "../config/secrets.js";
-import {assignDiscordRole} from "../discord/assignDiscordRole.js";
 import {validateAdminRequest} from "../utils/validateAdminRequest.js";
 import {defaultOptions} from "../config/options.js";
+import {setPlayerElo} from "../utils/setPlayerElo.js";
 
 export const updatePlayerElo = onCall({
   ...defaultOptions,
@@ -23,50 +22,7 @@ export const updatePlayerElo = onCall({
     throw new HttpsError("invalid-argument", "uid is required");
   }
 
-  const playerSnap = await db.ref("players/" + uid).once("value");
-  if (!playerSnap.exists()) {
-    throw new HttpsError("not-found", "Player not found");
-  }
-
-  const player = playerSnap.val();
-  const oldElo = player.elo;
-  const change = elo - oldElo;
-
-  let isMidConfirmed = player.isMidConfirmed || false;
-  let isHighConfirmed = player.isHighConfirmed || false;
-
-  if (isMidConfirmed && elo < 1150) isMidConfirmed = false;
-  if (!isMidConfirmed && elo >= 1200) isMidConfirmed = true;
-  if (isHighConfirmed && elo < 1350) isHighConfirmed = false;
-  if (!isHighConfirmed && elo >= 1400) isHighConfirmed = true;
-
-  const historyKey = db.ref("historyV3").push().key;
-
-  const historyEntry = {
-    id: historyKey,
-    p1: uid,
-    p1Change: change,
-    p2: null,
-    p2Change: null,
-    tournamentId: null,
-    tournamentMatch: "adjustment",
-    resultP1: null,
-    resultP2: null,
-    resultScreenshot: null,
-    timestamp: Date.now(),
-  };
-
-  const updates = {
-    [`players/${uid}/elo`]: elo,
-    [`players/${uid}/isMidConfirmed`]: isMidConfirmed,
-    [`players/${uid}/isHighConfirmed`]: isHighConfirmed,
-    [`historyV3/${historyKey}`]: historyEntry,
-    [`historyByPlayer/${uid}/${historyKey}`]: historyEntry,
-  };
-
-  await db.ref().update(updates);
-
-  assignDiscordRole(uid);
+  await setPlayerElo(uid, elo);
 
   return {success: true};
 });
