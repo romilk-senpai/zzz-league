@@ -33,6 +33,7 @@
 		isRegistrationOpen,
 	} from "$lib/tournamentState";
 	import { dateDisplayOptions, renderMarkdown } from "$lib/uiCommon";
+	import { capDefaultHeight } from "$lib/actions/capDefaultHeight";
 	import { onValue, ref } from "firebase/database";
 	import { onMount } from "svelte";
 
@@ -65,6 +66,7 @@
 	let showOnlyMine = $state(false);
 	let matchesExpanded = $state(true);
 	let bracketExpanded = $state(true);
+	let matchSearchQuery = $state("");
 
 	let currentUserParticipates = $derived(
 		!!$currentUser &&
@@ -82,6 +84,13 @@
 				m.p2 !== $currentUser!.uid
 			)
 				return false;
+			if (matchSearchQuery) {
+				const query = matchSearchQuery.toLowerCase();
+				const p1Name = getPlayerName(m.p1)?.toLowerCase() ?? "";
+				const p2Name = getPlayerName(m.p2)?.toLowerCase() ?? "";
+				if (!p1Name.includes(query) && !p2Name.includes(query))
+					return false;
+			}
 			return true;
 		}),
 	);
@@ -505,15 +514,17 @@
 					</span>
 				</div>
 				{#if bracketExpanded}
-					<iframe
-						title="challonge iframe"
-						src="{tournament.challongeTournamentUrl}/module"
-						width="100%"
-						height="600"
-						frameborder="0"
-						scrolling="auto"
-						allowtransparency={true}
-					></iframe>
+					<div class="bracket-resizable">
+						<iframe
+							title="challonge iframe"
+							src="{tournament.challongeTournamentUrl}/module"
+							width="100%"
+							height="100%"
+							frameborder="0"
+							scrolling="auto"
+							allowtransparency={true}
+						></iframe>
+					</div>
 				{/if}
 			{/if}
 
@@ -557,51 +568,58 @@
 								<p>Показать только мои матчи</p>
 							</label>
 						{/if}
+						<input
+							class="search-input"
+							placeholder="Поиск..."
+							bind:value={matchSearchQuery}
+						/>
 					</div>
 					<div class="match-list">
 						{#each filteredMatches as match}
-						<div class="match-item">
-							<div class="match-item-content">
-								<div class="match-players">
-									<!-- svelte-ignore a11y_click_events_have_key_events -->
-									<!-- svelte-ignore a11y_no_static_element_interactions -->
-									<span
-										class="match-player-name match-player-left hover-emphasis {getPlayerClass(
-											match.p1,
-											match.winnerId,
-											match.techLossUid,
-										)} {match.p1 === $currentUser?.uid
-											? 'match-player-self'
-											: ''}"
-										onclick={() => openRegistration(match.p1)}
-										>{getPlayerName(match.p1)}</span
-									>
-									<span class="match-vs">vs</span>
-									<!-- svelte-ignore a11y_click_events_have_key_events -->
-									<!-- svelte-ignore a11y_no_static_element_interactions -->
-									<span
-										class="match-player-name match-player-right hover-emphasis {getPlayerClass(
-											match.p2,
-											match.winnerId,
-											match.techLossUid,
-										)} {match.p2 === $currentUser?.uid
-											? 'match-player-self'
-											: ''}"
-										onclick={() => openRegistration(match.p2)}
-										>{getPlayerName(match.p2)}</span
-									>
+							<div class="match-item">
+								<div class="match-item-content">
+									<div class="match-players">
+										<!-- svelte-ignore a11y_click_events_have_key_events -->
+										<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<span
+											class="match-player-name match-player-left hover-emphasis {getPlayerClass(
+												match.p1,
+												match.winnerId,
+												match.techLossUid,
+											)} {match.p1 === $currentUser?.uid
+												? 'match-player-self'
+												: ''}"
+											onclick={() => openRegistration(match.p1)}
+											>{getPlayerName(match.p1)}</span
+										>
+										<span class="match-vs">vs</span>
+										<!-- svelte-ignore a11y_click_events_have_key_events -->
+										<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<span
+											class="match-player-name match-player-right hover-emphasis {getPlayerClass(
+												match.p2,
+												match.winnerId,
+												match.techLossUid,
+											)} {match.p2 === $currentUser?.uid
+												? 'match-player-self'
+												: ''}"
+											onclick={() => openRegistration(match.p2)}
+											>{getPlayerName(match.p2)}</span
+										>
+									</div>
 								</div>
-							</div>
 
-							<button
-								onclick={() => openMatch(match)}
-								class="btn-common btn-match">Игра</button
-							>
-						</div>
-					{/each}
-				</div>
+								<button
+									onclick={() => openMatch(match)}
+									class="btn-common btn-match">Игра</button
+								>
+							</div>
+						{:else}
+							<span class="no-matches">Матчи не найдены</span>
+						{/each}
+					</div>
+				{/if}
 			{/if}
-		{/if}
 
 			<div class="search-container">
 				<h2>Участники</h2>
@@ -611,7 +629,10 @@
 					bind:value={searchQuery}
 				/>
 			</div>
-			<div class="table-wrapper">
+			<div
+				class="table-wrapper"
+				use:capDefaultHeight={{ trigger: registeredPlayers.length }}
+			>
 				<TournamentPlayerTable
 					{tournament}
 					{searchQuery}
@@ -649,11 +670,35 @@
 {/if}
 
 <style>
+	.bracket-resizable {
+		resize: vertical;
+		overflow: auto;
+		width: 100%;
+		height: 600px;
+		min-height: 200px;
+		max-height: 2000px;
+	}
+
+	.bracket-resizable iframe {
+		display: block;
+		width: 100%;
+		height: 100%;
+		border: none;
+	}
+
 	.match-item {
 		display: flex;
 		align-items: center;
 		gap: 16px;
 		margin: 0 auto;
+	}
+
+	.no-matches {
+		display: block;
+		text-align: center;
+		font-size: 20px;
+		color: #888;
+		padding: 0;
 	}
 
 	.match-players {
@@ -676,6 +721,10 @@
 		border-bottom: 1px solid #333;
 		padding-bottom: 10px;
 		margin-bottom: 16px;
+	}
+
+	.match-filters .search-input {
+		width: 160px;
 	}
 
 	.collapsible-header {
@@ -720,7 +769,7 @@
 	}
 
 	.match-filter-toggle p {
-		font-size: 16px;
+		/* font-size: 16px; */
 		white-space: nowrap;
 	}
 
