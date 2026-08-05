@@ -1,4 +1,5 @@
 import {onCall, HttpsError} from "firebase-functions/https";
+import admin from "firebase-admin";
 import {db} from "../../config/firebase.js";
 import {
   CHALLONGE_API_KEY,
@@ -32,6 +33,26 @@ async function fetchAllParticipants(challongeTournamentId, headers) {
   }
 
   return participants;
+}
+
+async function incrementTournamentPlayedCounts(
+    participants, challongeParticipants, countSeasonal) {
+  const updates = {};
+
+  for (const participant of participants) {
+    const uid = challongeParticipants[participant.id];
+    if (!uid) continue;
+
+    updates[`players/${uid}/playedTournamentCount`] =
+      admin.database.ServerValue.increment(1);
+    if (countSeasonal) {
+      updates[`players/${uid}/seasonalPlayedTournamentCount`] =
+        admin.database.ServerValue.increment(1);
+    }
+  }
+
+  if (Object.keys(updates).length === 0) return;
+  await db.ref().update(updates);
 }
 
 async function awardPrizeElo(participants, challongeParticipants) {
@@ -115,6 +136,12 @@ export const finishTournament = onCall({
     challongeWinnerId,
     winnerId,
   });
+
+  await incrementTournamentPlayedCounts(
+      participants,
+      tournament.challongeParticipants,
+      tournament.overrideEloChange === -1,
+  );
 
   await awardPrizeElo(participants, tournament.challongeParticipants);
 

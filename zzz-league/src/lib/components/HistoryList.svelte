@@ -42,6 +42,7 @@
 	let oldestKey = $state<string | null>(null);
 	let hasMore = $state(true);
 	let loadingMore = $state(false);
+	let sentinel = $state<HTMLDivElement | undefined>();
 
 	const entries = $derived.by(() => {
 		const byId = new Map<string, HistoryEntry>();
@@ -147,6 +148,22 @@
 
 		return () => unsubscribe();
 	});
+
+	$effect(() => {
+		if (!sentinel) return;
+
+		const observer = new IntersectionObserver(
+			(observerEntries) => {
+				if (observerEntries[0].isIntersecting) {
+					loadMore();
+				}
+			},
+			{ rootMargin: "200px" },
+		);
+		observer.observe(sentinel);
+
+		return () => observer.disconnect();
+	});
 </script>
 
 <div class="match-list">
@@ -248,9 +265,11 @@
 </div>
 
 {#if hasMore}
-	<button class="load-more-btn" onclick={loadMore} disabled={loadingMore}>
-		{loadingMore ? "Загрузка..." : "Показать ещё"}
-	</button>
+	<div class="load-sentinel" bind:this={sentinel}>
+		{#if loadingMore}
+			<span class="load-more-status">Загрузка...</span>
+		{/if}
+	</div>
 {/if}
 
 <style>
@@ -367,19 +386,13 @@
 		cursor: pointer;
 	}
 
-	.load-more-btn {
-		display: block;
-		margin: 12px auto 0;
-		padding: 8px 20px;
-		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid rgba(255, 255, 255, 0.15);
-		border-radius: 8px;
-		color: inherit;
-		cursor: pointer;
+	.load-sentinel {
+		display: flex;
+		justify-content: center;
+		padding: 16px 0;
 	}
 
-	.load-more-btn:disabled {
-		opacity: 0.6;
-		cursor: default;
+	.load-more-status {
+		color: #888;
 	}
 </style>
