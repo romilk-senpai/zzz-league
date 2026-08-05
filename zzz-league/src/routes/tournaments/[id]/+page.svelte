@@ -61,10 +61,29 @@
 		tournament?.matches.find((m: TournamentMatch) => m.id === currentMatchId),
 	);
 
+	let showCompleted = $state(true);
+	let showOnlyMine = $state(false);
+	let matchesExpanded = $state(true);
+	let bracketExpanded = $state(true);
+
+	let currentUserParticipates = $derived(
+		!!$currentUser &&
+			registeredPlayers.some((p) => p.player.uid === $currentUser!.uid),
+	);
+
 	let filteredMatches = $derived(
-		tournament?.matches.filter(
-			(m: TournamentMatch) => !(m.p1 === "TBD" || m.p2 === "TBD"),
-		),
+		tournament?.matches.filter((m: TournamentMatch) => {
+			if (m.p1 === "TBD" || m.p2 === "TBD") return false;
+			if (!showCompleted && m.state === "complete") return false;
+			if (
+				showOnlyMine &&
+				currentUserParticipates &&
+				m.p1 !== $currentUser!.uid &&
+				m.p2 !== $currentUser!.uid
+			)
+				return false;
+			return true;
+		}),
 	);
 
 	let canView = $derived(tournament?.visible !== false || $isAdmin);
@@ -458,21 +477,89 @@
 			{/if}
 
 			{#if tournament.challongeTournamentUrl && hasTournamentStarted(tournament.state)}
-				<iframe
-					title="challonge iframe"
-					src="{tournament.challongeTournamentUrl}/module"
-					width="100%"
-					height="600"
-					frameborder="0"
-					scrolling="auto"
-					allowtransparency={true}
-				></iframe>
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="collapsible-header"
+					onclick={() => (bracketExpanded = !bracketExpanded)}
+				>
+					<h2>Сетка</h2>
+					<span class="collapse-arrow-wrapper">
+						<span class="collapse-label"
+							>{bracketExpanded ? "Свернуть" : "Развернуть"}</span
+						>
+						<svg
+							class="collapse-arrow"
+							class:collapsed={!bracketExpanded}
+							width="28"
+							height="28"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<polyline points="6 9 12 15 18 9"></polyline>
+						</svg>
+					</span>
+				</div>
+				{#if bracketExpanded}
+					<iframe
+						title="challonge iframe"
+						src="{tournament.challongeTournamentUrl}/module"
+						width="100%"
+						height="600"
+						frameborder="0"
+						scrolling="auto"
+						allowtransparency={true}
+					></iframe>
+				{/if}
 			{/if}
 
 			{#if tournament.matches && tournament.matches.length > 0}
-				<h2>Игры</h2>
-				<div class="match-list">
-					{#each filteredMatches as match}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="collapsible-header"
+					onclick={() => (matchesExpanded = !matchesExpanded)}
+				>
+					<h2>Игры</h2>
+					<span class="collapse-arrow-wrapper">
+						<span class="collapse-label"
+							>{matchesExpanded ? "Свернуть" : "Развернуть"}</span
+						>
+						<svg
+							class="collapse-arrow"
+							class:collapsed={!matchesExpanded}
+							width="28"
+							height="28"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<polyline points="6 9 12 15 18 9"></polyline>
+						</svg>
+					</span>
+				</div>
+				{#if matchesExpanded}
+					<div class="match-filters">
+						<label class="match-filter-toggle">
+							<input type="checkbox" bind:checked={showCompleted} />
+							<p>Показать завершённые матчи</p>
+						</label>
+						{#if currentUserParticipates}
+							<label class="match-filter-toggle">
+								<input type="checkbox" bind:checked={showOnlyMine} />
+								<p>Показать только мои матчи</p>
+							</label>
+						{/if}
+					</div>
+					<div class="match-list">
+						{#each filteredMatches as match}
 						<div class="match-item">
 							<div class="match-item-content">
 								<div class="match-players">
@@ -483,7 +570,9 @@
 											match.p1,
 											match.winnerId,
 											match.techLossUid,
-										)}"
+										)} {match.p1 === $currentUser?.uid
+											? 'match-player-self'
+											: ''}"
 										onclick={() => openRegistration(match.p1)}
 										>{getPlayerName(match.p1)}</span
 									>
@@ -495,7 +584,9 @@
 											match.p2,
 											match.winnerId,
 											match.techLossUid,
-										)}"
+										)} {match.p2 === $currentUser?.uid
+											? 'match-player-self'
+											: ''}"
 										onclick={() => openRegistration(match.p2)}
 										>{getPlayerName(match.p2)}</span
 									>
@@ -510,6 +601,7 @@
 					{/each}
 				</div>
 			{/if}
+		{/if}
 
 			<div class="search-container">
 				<h2>Участники</h2>
@@ -570,6 +662,66 @@
 
 	.match-player-name {
 		cursor: pointer;
+	}
+
+	.match-player-name.match-player-self {
+		color: lightblue;
+	}
+
+	.match-filters {
+		display: flex;
+		justify-content: flex-end;
+		gap: 20px;
+		width: 100%;
+		border-bottom: 1px solid #333;
+		padding-bottom: 10px;
+		margin-bottom: 16px;
+	}
+
+	.collapsible-header {
+		position: relative;
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.collapse-arrow-wrapper {
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 10px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.collapse-label {
+		color: #888;
+		font-size: 14px;
+	}
+
+	.collapse-arrow {
+		transition: transform 0.15s ease;
+	}
+
+	.collapse-arrow.collapsed {
+		transform: rotate(-90deg);
+	}
+
+	.match-filter-toggle {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		cursor: pointer;
+		color: #ccc;
+	}
+
+	.match-filter-toggle input {
+		padding: 0;
+	}
+
+	.match-filter-toggle p {
+		font-size: 16px;
+		white-space: nowrap;
 	}
 
 	.match-item-content {
