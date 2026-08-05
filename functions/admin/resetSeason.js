@@ -35,8 +35,6 @@ export const resetSeason = onCall(defaultOptions, async (request) => {
     updates["players/" + player.uid + "/tournamentPoints"] = 0;
   });
 
-  updates["history"] = null;
-
   await db.ref().update(updates);
 
   return {success: true};

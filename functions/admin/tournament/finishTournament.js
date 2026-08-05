@@ -13,6 +13,24 @@ import {validateAdminRequest} from "../../utils/validateAdminRequest.js";
 import {defaultOptions} from "../../config/options.js";
 import {TOURNAMENT_STATE} from "../../utils/tournamentState.js";
 
+async function fetchAllParticipants(challongeTournamentId, headers) {
+  const participants = [];
+  let url = `https://api.challonge.com/v2.1/tournaments/${challongeTournamentId}/participants.json`;
+
+  while (url) {
+    const res = await fetch(url, {method: "GET", headers});
+    const data = await res.json();
+    if (!res.ok) {
+      throw new HttpsError("internal",
+          `Challonge participants error: ${JSON.stringify(data)}`);
+    }
+    participants.push(...data.data);
+    url = data.links?.next ?? null;
+  }
+
+  return participants;
+}
+
 export const finishTournament = onCall({
   ...defaultOptions,
   secrets: [CHALLONGE_API_KEY, DISCORD_BOT_TOKEN, DISCORD_GUILD_ID],
@@ -57,17 +75,16 @@ export const finishTournament = onCall({
         `Challonge error: ${JSON.stringify(finalizeData)}`);
   }
 
-  const participantsRes = await fetch(
-      `https://api.challonge.com/v2.1/tournaments/${tournament.challongeTournamentId}/participants.json`, {
-        method: "GET",
-        headers,
-      },
-  );
-  const participantsData = await participantsRes.json();
+  const participants = await fetchAllParticipants(
+      tournament.challongeTournamentId, headers);
 
-  const winner = participantsData.data.find(
+  const winner = participants.find(
       (item) => item.attributes.final_rank === 1,
   );
+  if (!winner) {
+    throw new HttpsError("internal",
+        "Could not find a participant with final_rank 1");
+  }
 
   const challongeWinnerId = winner.id;
   const winnerId = tournament.challongeParticipants[challongeWinnerId];
