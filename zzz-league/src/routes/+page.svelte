@@ -156,18 +156,9 @@
 				<div class="section-label">АРХИВ СЕЗОНОВ:</div>
 				<div class="archive-buttons">
 					{#each Object.keys(archives).reverse() as key}
-						<div class="archive-item">
-							<button
-								class="btn-common archive-btn"
-								onclick={() => loadArchive(key)}>{key}</button
-							>
-							{#if $isAdmin}
-								<button
-									class="btn-common archive-del"
-									onclick={() => handleDeleteArchive(key)}>✕</button
-								>
-							{/if}
-						</div>
+						<button class="btn-common" onclick={() => loadArchive(key)}
+							>{key}</button
+						>
 					{/each}
 				</div>
 			</div>
@@ -190,6 +181,11 @@
 		color: #888;
 	}
 
+	.back-btn {
+		margin-top: 0;
+		padding: 8px 14px;
+	}
+
 	.timer-value {
 		color: var(--gold);
 		font-size: 18px;
@@ -210,51 +206,16 @@
 	.archive-buttons {
 		display: flex;
 		flex-direction: row;
+		flex-wrap: wrap;
 		gap: 8px;
 	}
 
-	.archive-item {
-		display: flex;
-		align-items: center;
-		background: #222;
-		box-sizing: border-box;
-		border-radius: 6px;
-		outline: 1px solid #333;
-		gap: 10px;
-		overflow: hidden;
+	.archive-buttons .btn-common {
+		padding: 8px 14px;
 	}
 
 	.section-label {
 		width: 100%;
 		color: #555;
-	}
-
-	.archive-btn {
-		background: transparent;
-		border: 1px solid #333;
-		color: #fff;
-		width: 44px;
-		height: 44px;
-		transition: 0.2s;
-		margin: 0;
-		border-radius: 6px;
-	}
-
-	.archive-btn:hover {
-		background: #333;
-	}
-
-	.archive-del {
-		background: #441111;
-		color: #ff4444;
-		border: 1px solid #333;
-		width: 44px;
-		height: 44px;
-		margin: 0;
-		border-radius: 6px;
-	}
-
-	.archive-del:hover {
-		background: #662222;
 	}
 </style>
