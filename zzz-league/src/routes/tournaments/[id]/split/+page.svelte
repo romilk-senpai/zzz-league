@@ -226,7 +226,9 @@
 			<h2>Разделить на сетки</h2>
 			<p class="notice">{loadError}</p>
 		{:else}
-			<h2>Разделить турнир "{tournament?.name}" на сетки? Отменить нельзя.)</h2>
+			<h2>
+				Разделить турнир "{tournament?.name}" на сетки? Отменить нельзя.)
+			</h2>
 
 			{#if !canSplit}
 				<p class="notice">
@@ -234,7 +236,8 @@
 					сейчас {approvedPlayers.length}).
 				</p>
 				<div class="btn-row">
-					<a class="btn-common" href={resolve(`/tournaments/${id}`)}>Назад</a
+					<a class="btn-common" href={resolve(`/tournaments/${id}`)}
+						>Назад</a
 					>
 				</div>
 			{:else}
@@ -292,7 +295,9 @@
 							}}
 							ondrop={() => moveToDivision(i)}
 						>
-							<h3 class:division-full={isDivisionFull(i)}>Сетка {i + 1}</h3>
+							<h3 class:division-full={isDivisionFull(i)}>
+								Сетка {i + 1}
+							</h3>
 							<div class="form-row">
 								<label for="division-size-{i}">Игроков</label>
 								<input
@@ -315,7 +320,8 @@
 										ondragstart={() => handleDragStart(uid)}
 										ondragend={handleDragEnd}
 									>
-										{approvedPlayers.find((p) => p.uid === uid)?.name ?? uid}
+										{approvedPlayers.find((p) => p.uid === uid)
+											?.name ?? uid}
 									</div>
 								{/each}
 							</div>
@@ -323,7 +329,9 @@
 					{/each}
 				</div>
 
-				<p class="hint">Перетащите игроков между колонками для распределения.</p>
+				<p class="hint">
+					Перетащите игроков между колонками для распределения.
+				</p>
 
 				{#if status}<p class="status error">{status}</p>{/if}
 				<div class="btn-row">
@@ -332,7 +340,8 @@
 						class:btn-loading={isSplitting}
 						onclick={handleSplit}>Разделить</button
 					>
-					<a class="btn-common" href={resolve(`/tournaments/${id}`)}>Отмена</a
+					<a class="btn-common" href={resolve(`/tournaments/${id}`)}
+						>Отмена</a
 					>
 				</div>
 			{/if}

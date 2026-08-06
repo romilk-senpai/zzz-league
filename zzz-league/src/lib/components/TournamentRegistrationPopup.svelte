@@ -57,7 +57,7 @@
 				/>
 			</div>
 			<div class="form-row">
-				<label for="reg-darte-account">Название аккаунта на Darte</label>
+				<label for="reg-darte-account">Название пресета на Darte</label>
 				<input
 					id="reg-darte-account"
 					class="input-disabled"
@@ -90,7 +90,7 @@
 			{/if}
 			{#if canViewHoyolab}
 				<hr style="width: 100%" />
-				<span>Скриншот персонажа Hoyolab</span>
+				<span>Скриншот персонажей в Hoyolab</span>
 				{#if reg?.hoyolabScreenshot}
 					<button
 						class="img-btn"

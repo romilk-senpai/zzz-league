@@ -67,10 +67,22 @@
 		}
 	}
 
+	function effectiveRating(player: Player) {
+		return (player.elo || 1000) + (player.tournamentPoints || 0);
+	}
+
 	function calculateEloChange(p1: Player, p2: Player, outcome: number) {
-		const k = p1.isMidConfirmed || false ? 20 : 50;
+		const k =
+			outcome === 1
+				? p1.isMidConfirmed || false
+					? 25
+					: 50
+				: p1.isMidConfirmed || false
+					? 20
+					: 45;
 		const expected =
-			1 / (1 + Math.pow(10, ((p2.elo || 1000) - (p1.elo || 1000)) / 400));
+			1 /
+			(1 + Math.pow(10, (effectiveRating(p2) - effectiveRating(p1)) / 400));
 		let change = Math.round(k * (outcome - expected));
 		if (outcome === 1 && change <= 0) change = 1;
 		if (outcome === 0 && change >= 0) change = -1;

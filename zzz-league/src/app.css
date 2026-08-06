@@ -93,8 +93,10 @@ h2 {
 .table-wrapper {
 	border-radius: 8px;
 	margin-bottom: 20px;
-	max-height: 598px;
+	max-height: 90vh;
+	min-height: 150px;
 	overflow-y: auto;
+	resize: vertical;
 	border: 1px solid #252525;
 	position: relative;
 }

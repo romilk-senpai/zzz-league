@@ -33,9 +33,8 @@ export const resetSeason = onCall(defaultOptions, async (request) => {
       1400 : player.isMidConfirmed ? 1200 : 1000;
     updates["players/" + player.uid + "/elo"] = start;
     updates["players/" + player.uid + "/tournamentPoints"] = 0;
+    updates["players/" + player.uid + "/seasonalPlayedTournamentCount"] = 0;
   });
-
-  updates["history"] = null;
 
   await db.ref().update(updates);
 

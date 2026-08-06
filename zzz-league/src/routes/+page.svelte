@@ -7,6 +7,7 @@
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TournamentCard from "$lib/components/TournamentCard.svelte";
 	import { isAdmin, players, tournaments } from "$lib/store";
+	import { capDefaultHeight } from "$lib/actions/capDefaultHeight";
 
 	let filteredTournaments = $derived(
 		$tournaments
@@ -139,7 +140,10 @@
 			</div>
 		</div>
 
-		<div class="table-wrapper">
+		<div
+			class="table-wrapper"
+			use:capDefaultHeight={{ trigger: displayPlayers.length }}
+		>
 			<Leaderboard
 				players={displayPlayers}
 				{searchQuery}

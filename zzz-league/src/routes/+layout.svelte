@@ -55,6 +55,9 @@
 							isHighConfirmed: player.isHighConfirmed,
 							wins: player.wins ?? 0,
 							losses: player.losses ?? 0,
+							playedTournamentCount: player.playedTournamentCount ?? 0,
+							seasonalPlayedTournamentCount:
+								player.seasonalPlayedTournamentCount ?? 0,
 						};
 						$isAdmin = !!player.isAdmin;
 					}

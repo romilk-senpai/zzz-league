@@ -1,4 +1,5 @@
 import {onCall, HttpsError} from "firebase-functions/https";
+import admin from "firebase-admin";
 import {db} from "../../config/firebase.js";
 import {
   CHALLONGE_API_KEY,
@@ -12,6 +13,65 @@ import {
 import {validateAdminRequest} from "../../utils/validateAdminRequest.js";
 import {defaultOptions} from "../../config/options.js";
 import {TOURNAMENT_STATE} from "../../utils/tournamentState.js";
+import {setPlayerElo} from "../../utils/setPlayerElo.js";
+
+const PRIZE_ELO_BONUS = {1: 40, 2: 20, 3: 10};
+
+async function fetchAllParticipants(challongeTournamentId, headers) {
+  const participants = [];
+  let url = `https://api.challonge.com/v2.1/tournaments/${challongeTournamentId}/participants.json`;
+
+  while (url) {
+    const res = await fetch(url, {method: "GET", headers});
+    const data = await res.json();
+    if (!res.ok) {
+      throw new HttpsError("internal",
+          `Challonge participants error: ${JSON.stringify(data)}`);
+    }
+    participants.push(...data.data);
+    url = data.links?.next ?? null;
+  }
+
+  return participants;
+}
+
+async function incrementTournamentPlayedCounts(
+    participants, challongeParticipants, countSeasonal) {
+  const updates = {};
+
+  for (const participant of participants) {
+    const uid = challongeParticipants[participant.id];
+    if (!uid) continue;
+
+    updates[`players/${uid}/playedTournamentCount`] =
+      admin.database.ServerValue.increment(1);
+    if (countSeasonal) {
+      updates[`players/${uid}/seasonalPlayedTournamentCount`] =
+        admin.database.ServerValue.increment(1);
+    }
+  }
+
+  if (Object.keys(updates).length === 0) return;
+  await db.ref().update(updates);
+}
+
+async function awardPrizeElo(participants, challongeParticipants) {
+  const prizeParticipants = participants.filter(
+      (item) => PRIZE_ELO_BONUS[item.attributes.final_rank] !== undefined,
+  );
+
+  for (const participant of prizeParticipants) {
+    const uid = challongeParticipants[participant.id];
+    if (!uid) continue;
+
+    const bonus = PRIZE_ELO_BONUS[participant.attributes.final_rank];
+    const playerSnap = await db.ref("players/" + uid).once("value");
+    if (!playerSnap.exists()) continue;
+
+    const newElo = (playerSnap.val().elo || 1000) + bonus;
+    await setPlayerElo(uid, newElo);
+  }
+}
 
 export const finishTournament = onCall({
   ...defaultOptions,
@@ -57,17 +117,16 @@ export const finishTournament = onCall({
         `Challonge error: ${JSON.stringify(finalizeData)}`);
   }
 
-  const participantsRes = await fetch(
-      `https://api.challonge.com/v2.1/tournaments/${tournament.challongeTournamentId}/participants.json`, {
-        method: "GET",
-        headers,
-      },
-  );
-  const participantsData = await participantsRes.json();
+  const participants = await fetchAllParticipants(
+      tournament.challongeTournamentId, headers);
 
-  const winner = participantsData.data.find(
+  const winner = participants.find(
       (item) => item.attributes.final_rank === 1,
   );
+  if (!winner) {
+    throw new HttpsError("internal",
+        "Could not find a participant with final_rank 1");
+  }
 
   const challongeWinnerId = winner.id;
   const winnerId = tournament.challongeParticipants[challongeWinnerId];
@@ -77,6 +136,14 @@ export const finishTournament = onCall({
     challongeWinnerId,
     winnerId,
   });
+
+  await incrementTournamentPlayedCounts(
+      participants,
+      tournament.challongeParticipants,
+      tournament.overrideEloChange === -1,
+  );
+
+  await awardPrizeElo(participants, tournament.challongeParticipants);
 
   await deleteTournamentDiscordChannel(tournamentId);
   await deleteTournamentDiscordRole(tournamentId);

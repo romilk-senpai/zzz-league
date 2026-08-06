@@ -49,7 +49,7 @@
 					</div>
 				</div>
 				<div class="stat-item">
-					<div class="stat-label">Всего игр</div>
+					<div class="stat-label">Сыграно игр</div>
 					<div id="totalGames" class="stat-value">{stats.total}</div>
 				</div>
 				<div class="stat-item">
@@ -65,6 +65,18 @@
 				<div class="stat-item">
 					<div class="stat-label">Поражения</div>
 					<div id="losses" class="stat-value loss">{stats.losses}</div>
+				</div>
+				<div class="stat-item">
+					<div class="stat-label">Сыграно турниров</div>
+					<div id="tournamentCount" class="stat-value">
+						{player.playedTournamentCount ?? 0}
+					</div>
+				</div>
+				<div class="stat-item">
+					<div class="stat-label">Турниров в сезоне</div>
+					<div id="seasonalTournamentCount" class="stat-value">
+						{player.seasonalPlayedTournamentCount ?? 0}
+					</div>
 				</div>
 			</div>
 

@@ -33,6 +33,7 @@
 		isRegistrationOpen,
 	} from "$lib/tournamentState";
 	import { dateDisplayOptions, renderMarkdown } from "$lib/uiCommon";
+	import { capDefaultHeight } from "$lib/actions/capDefaultHeight";
 	import { onValue, ref } from "firebase/database";
 	import { onMount } from "svelte";
 
@@ -61,10 +62,64 @@
 		tournament?.matches.find((m: TournamentMatch) => m.id === currentMatchId),
 	);
 
+	let showCompleted = $state(true);
+	let showOnlyMine = $state(false);
+	let matchesExpanded = $state(true);
+	let bracketExpanded = $state(true);
+	let matchSearchQuery = $state("");
+
+	$effect(() => {
+		const currentId = id;
+		if (!currentId) return;
+		try {
+			const raw = localStorage.getItem(`tournament-filters-${currentId}`);
+			const parsed = raw ? JSON.parse(raw) : null;
+			showCompleted = parsed?.showCompleted ?? true;
+			showOnlyMine = parsed?.showOnlyMine ?? false;
+			matchSearchQuery = parsed?.matchSearchQuery ?? "";
+		} catch {
+			// localStorage unavailable — ignore
+		}
+	});
+
+	$effect(() => {
+		const currentId = id;
+		if (!currentId) return;
+		try {
+			localStorage.setItem(
+				`tournament-filters-${currentId}`,
+				JSON.stringify({ showCompleted, showOnlyMine, matchSearchQuery }),
+			);
+		} catch {
+			// localStorage unavailable — ignore
+		}
+	});
+
+	let currentUserParticipates = $derived(
+		!!$currentUser &&
+			registeredPlayers.some((p) => p.player.uid === $currentUser!.uid),
+	);
+
 	let filteredMatches = $derived(
-		tournament?.matches.filter(
-			(m: TournamentMatch) => !(m.p1 === "TBD" || m.p2 === "TBD"),
-		),
+		tournament?.matches.filter((m: TournamentMatch) => {
+			if (m.p1 === "TBD" || m.p2 === "TBD") return false;
+			if (!showCompleted && m.state === "complete") return false;
+			if (
+				showOnlyMine &&
+				currentUserParticipates &&
+				m.p1 !== $currentUser!.uid &&
+				m.p2 !== $currentUser!.uid
+			)
+				return false;
+			if (matchSearchQuery) {
+				const query = matchSearchQuery.toLowerCase();
+				const p1Name = getPlayerName(m.p1)?.toLowerCase() ?? "";
+				const p2Name = getPlayerName(m.p2)?.toLowerCase() ?? "";
+				if (!p1Name.includes(query) && !p2Name.includes(query))
+					return false;
+			}
+			return true;
+		}),
 	);
 
 	let canView = $derived(tournament?.visible !== false || $isAdmin);
@@ -407,7 +462,8 @@
 							<button
 								class="btn-common btn-play"
 								class:btn-loading={creatingBracket}
-								onclick={handleCreateBracket}>Создать сетку Challonge</button
+								onclick={handleCreateBracket}
+								>Создать сетку Challonge</button
 							>
 						{/if}
 						{#if isBracketCreated(tournament.state)}
@@ -457,57 +513,146 @@
 			{/if}
 
 			{#if tournament.challongeTournamentUrl && hasTournamentStarted(tournament.state)}
-				<iframe
-					title="challonge iframe"
-					src="{tournament.challongeTournamentUrl}/module"
-					width="100%"
-					height="600"
-					frameborder="0"
-					scrolling="auto"
-					allowtransparency={true}
-				></iframe>
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="collapsible-header"
+					onclick={() => (bracketExpanded = !bracketExpanded)}
+				>
+					<h2>Сетка</h2>
+					<span class="collapse-arrow-wrapper">
+						<span class="collapse-label"
+							>{bracketExpanded ? "Свернуть" : "Развернуть"}</span
+						>
+						<svg
+							class="collapse-arrow"
+							class:collapsed={!bracketExpanded}
+							width="28"
+							height="28"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<polyline points="6 9 12 15 18 9"></polyline>
+						</svg>
+					</span>
+				</div>
+				{#if bracketExpanded}
+					<div
+						class="bracket-resizable"
+						use:capDefaultHeight={{
+							defaultHeight: 600,
+							maxHeight: 2000,
+							storageKey: `tournament-bracket-height-${id}`,
+						}}
+					>
+						<iframe
+							title="challonge iframe"
+							src="{tournament.challongeTournamentUrl}/module"
+							width="100%"
+							height="100%"
+							frameborder="0"
+							scrolling="auto"
+							allowtransparency={true}
+						></iframe>
+					</div>
+				{/if}
 			{/if}
 
 			{#if tournament.matches && tournament.matches.length > 0}
-				<h2>Игры</h2>
-				<div class="match-list">
-					{#each filteredMatches as match}
-						<div class="match-item">
-							<div class="match-item-content">
-								<div class="match-players">
-									<!-- svelte-ignore a11y_click_events_have_key_events -->
-									<!-- svelte-ignore a11y_no_static_element_interactions -->
-									<span
-										class="match-player-name match-player-left hover-emphasis {getPlayerClass(
-											match.p1,
-											match.winnerId,
-											match.techLossUid,
-										)}"
-										onclick={() => openRegistration(match.p1)}
-										>{getPlayerName(match.p1)}</span
-									>
-									<span class="match-vs">vs</span>
-									<!-- svelte-ignore a11y_click_events_have_key_events -->
-									<!-- svelte-ignore a11y_no_static_element_interactions -->
-									<span
-										class="match-player-name match-player-right hover-emphasis {getPlayerClass(
-											match.p2,
-											match.winnerId,
-											match.techLossUid,
-										)}"
-										onclick={() => openRegistration(match.p2)}
-										>{getPlayerName(match.p2)}</span
-									>
-								</div>
-							</div>
-
-							<button
-								onclick={() => openMatch(match)}
-								class="btn-common btn-match">Игра</button
-							>
-						</div>
-					{/each}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="collapsible-header"
+					onclick={() => (matchesExpanded = !matchesExpanded)}
+				>
+					<h2>Игры</h2>
+					<span class="collapse-arrow-wrapper">
+						<span class="collapse-label"
+							>{matchesExpanded ? "Свернуть" : "Развернуть"}</span
+						>
+						<svg
+							class="collapse-arrow"
+							class:collapsed={!matchesExpanded}
+							width="28"
+							height="28"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<polyline points="6 9 12 15 18 9"></polyline>
+						</svg>
+					</span>
 				</div>
+				{#if matchesExpanded}
+					<div class="match-filters">
+						<label class="match-filter-toggle">
+							<input type="checkbox" bind:checked={showCompleted} />
+							<p>Показать завершённые матчи</p>
+						</label>
+						{#if currentUserParticipates}
+							<label class="match-filter-toggle">
+								<input type="checkbox" bind:checked={showOnlyMine} />
+								<p>Показать только мои матчи</p>
+							</label>
+						{/if}
+						<input
+							class="search-input"
+							placeholder="Поиск..."
+							bind:value={matchSearchQuery}
+						/>
+					</div>
+					<div class="match-list">
+						{#each filteredMatches as match}
+							<div class="match-item">
+								<div class="match-item-content">
+									<div class="match-players">
+										<!-- svelte-ignore a11y_click_events_have_key_events -->
+										<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<span
+											class="match-player-name match-player-left hover-emphasis {getPlayerClass(
+												match.p1,
+												match.winnerId,
+												match.techLossUid,
+											)} {match.p1 === $currentUser?.uid
+												? 'match-player-self'
+												: ''}"
+											onclick={() => openRegistration(match.p1)}
+											>{getPlayerName(match.p1)}</span
+										>
+										<span class="match-vs">vs</span>
+										<!-- svelte-ignore a11y_click_events_have_key_events -->
+										<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<span
+											class="match-player-name match-player-right hover-emphasis {getPlayerClass(
+												match.p2,
+												match.winnerId,
+												match.techLossUid,
+											)} {match.p2 === $currentUser?.uid
+												? 'match-player-self'
+												: ''}"
+											onclick={() => openRegistration(match.p2)}
+											>{getPlayerName(match.p2)}</span
+										>
+									</div>
+								</div>
+
+								<button
+									onclick={() => openMatch(match)}
+									class="btn-common btn-match">Игра</button
+								>
+							</div>
+						{:else}
+							<span class="no-matches">Матчи не найдены</span>
+						{/each}
+					</div>
+				{/if}
 			{/if}
 
 			<div class="search-container">
@@ -518,7 +663,13 @@
 					bind:value={searchQuery}
 				/>
 			</div>
-			<div class="table-wrapper">
+			<div
+				class="table-wrapper"
+				use:capDefaultHeight={{
+					trigger: registeredPlayers.length,
+					storageKey: `tournament-table-height-${id}`,
+				}}
+			>
 				<TournamentPlayerTable
 					{tournament}
 					{searchQuery}
@@ -556,11 +707,35 @@
 {/if}
 
 <style>
+	.bracket-resizable {
+		resize: vertical;
+		overflow: auto;
+		width: 100%;
+		height: 600px;
+		min-height: 200px;
+		max-height: 2000px;
+	}
+
+	.bracket-resizable iframe {
+		display: block;
+		width: 100%;
+		height: 100%;
+		border: none;
+	}
+
 	.match-item {
 		display: flex;
 		align-items: center;
 		gap: 16px;
 		margin: 0 auto;
+	}
+
+	.no-matches {
+		display: block;
+		text-align: center;
+		font-size: 20px;
+		color: #888;
+		padding: 0;
 	}
 
 	.match-players {
@@ -569,6 +744,70 @@
 
 	.match-player-name {
 		cursor: pointer;
+	}
+
+	.match-player-name.match-player-self {
+		color: #5cbddd;
+	}
+
+	.match-filters {
+		display: flex;
+		justify-content: flex-end;
+		gap: 20px;
+		width: 100%;
+		border-bottom: 1px solid #333;
+		padding-bottom: 10px;
+		margin-bottom: 16px;
+	}
+
+	.match-filters .search-input {
+		width: 160px;
+	}
+
+	.collapsible-header {
+		position: relative;
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.collapse-arrow-wrapper {
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 10px;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.collapse-label {
+		color: #888;
+		font-size: 14px;
+	}
+
+	.collapse-arrow {
+		transition: transform 0.15s ease;
+	}
+
+	.collapse-arrow.collapsed {
+		transform: rotate(-90deg);
+	}
+
+	.match-filter-toggle {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		cursor: pointer;
+		color: #ccc;
+	}
+
+	.match-filter-toggle input {
+		padding: 0;
+	}
+
+	.match-filter-toggle p {
+		/* font-size: 16px; */
+		white-space: nowrap;
 	}
 
 	.match-item-content {

@@ -8,7 +8,9 @@ export interface Player {
 	isMidConfirmed: boolean,
 	isHighConfirmed: boolean,
 	wins: number,
-	losses: number
+	losses: number,
+	playedTournamentCount: number,
+	seasonalPlayedTournamentCount: number
 }
 
 export interface MatchRecord {

@@ -40,7 +40,9 @@
 	let awareness = $state(false);
 	let status = $state("");
 
-	let rosterScreenshotPreview = useObjectUrlPreview(() => rosterScreenshot?.[0]);
+	let rosterScreenshotPreview = useObjectUrlPreview(
+		() => rosterScreenshot?.[0],
+	);
 	let hoyolabScreenshotPreview = useObjectUrlPreview(
 		() => hoyolabScreenshot?.[0],
 	);
@@ -306,7 +308,7 @@
 
 				<div class="form-row-wide">
 					<label for="reg-hoyolab-screenshot"
-						>Скриншот персонажа Hoyolab</label
+						>Скриншот персонажей в Hoyolab</label
 					>
 					<input
 						id="reg-hoyolab-screenshot"
