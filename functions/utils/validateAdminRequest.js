@@ -1,7 +1,8 @@
 import {HttpsError} from "firebase-functions/https";
 import {db} from "../config/firebase.js";
+import {hasRole} from "./roles.js";
 
-export async function validateAdminRequest(request) {
+export async function requireRole(request, minRole) {
   const callerUid = request.auth?.uid;
 
   if (!callerUid) {
@@ -9,7 +10,12 @@ export async function validateAdminRequest(request) {
   }
 
   const callerSnapshot = await db.ref("players/" + callerUid).once("value");
-  if (!callerSnapshot.exists() || callerSnapshot.val().isAdmin !== true) {
+  const caller = callerSnapshot.val();
+  if (!caller || !hasRole(caller, minRole)) {
     throw new HttpsError("permission-denied", "Permission denied");
   }
+}
+
+export async function validateAdminRequest(request) {
+  await requireRole(request, "admin");
 }

@@ -2,7 +2,7 @@ import {onCall, HttpsError} from "firebase-functions/https";
 import admin from "firebase-admin";
 import {db} from "../../config/firebase.js";
 import {CHALLONGE_API_KEY} from "../../config/secrets.js";
-import {validateAdminRequest} from "../../utils/validateAdminRequest.js";
+import {requireRole} from "../../utils/validateAdminRequest.js";
 import {defaultOptions} from "../../config/options.js";
 import {updateTournamentGames} from "../../utils/updateTournamentGames.js";
 import {registerMatchResult} from "../../utils/registerMatchResult.js";
@@ -12,7 +12,7 @@ export const adminSetMatchResult = onCall({
   ...defaultOptions,
   secrets: [CHALLONGE_API_KEY],
 }, async (request) => {
-  await validateAdminRequest(request);
+  await requireRole(request, "moderator");
 
   const {
     tournamentId,

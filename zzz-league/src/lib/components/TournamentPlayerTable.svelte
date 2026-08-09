@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { approveRegistration } from "$lib/firebase";
-	import { isAdmin } from "$lib/store";
+	import { isAdmin, isModerator } from "$lib/store";
 	import type { RegisteredPlayer, Tournament } from "$lib/types";
 	import { hasTournamentStarted } from "$lib/tournamentState";
 	import { getLvl, getTier, openProfilePopup } from "$lib/uiCommon";
@@ -45,7 +45,7 @@
 	}
 
 	let canViewRegistrations = $derived(
-		$isAdmin || hasTournamentStarted(tournament?.state),
+		$isAdmin || $isModerator || hasTournamentStarted(tournament?.state),
 	);
 </script>
 

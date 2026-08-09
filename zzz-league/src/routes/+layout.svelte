@@ -7,7 +7,7 @@
 		loginOpen,
 		registerOpen,
 		currentUser,
-		isAdmin,
+		role,
 		players,
 		tournaments,
 		viewingImage,
@@ -59,12 +59,12 @@
 							seasonalPlayedTournamentCount:
 								player.seasonalPlayedTournamentCount ?? 0,
 						};
-						$isAdmin = !!player.isAdmin;
+						$role = player.role ?? "player";
 					}
 				});
 			} else {
 				$currentUser = null;
-				$isAdmin = false;
+				$role = "player";
 			}
 		});
 
