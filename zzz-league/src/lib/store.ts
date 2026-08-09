@@ -1,8 +1,11 @@
 import { derived, writable } from 'svelte/store'
 import type { Player, Tournament } from './types';
+import { hasRole } from './roles';
 
 export const currentUser = writable<Player | null>(null);
-export const isAdmin = writable(false);
+export const role = writable<string>("player");
+export const isAdmin = derived(role, ($role) => hasRole($role, "admin"));
+export const isModerator = derived(role, ($role) => hasRole($role, "moderator"));
 
 export const players = writable<Player[]>([]);
 export const tournaments = writable<Tournament[]>([]);

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { adminSetMatchResult, approveResult } from "$lib/firebase";
 	import { useObjectUrlPreview } from "$lib/imagePreview.svelte.js";
-	import { currentUser, isAdmin } from "$lib/store";
+	import { currentUser, isAdmin, isModerator } from "$lib/store";
 	import {
 		bustCache,
 		filesFromImageFile,
@@ -24,7 +24,7 @@
 	);
 	let canApproveOwnResult = $derived(match.state !== "complete" && myGame);
 	let canAdminSetResult = $derived(
-		$isAdmin && tournament.state !== "complete",
+		($isAdmin || $isModerator) && tournament.state !== "complete",
 	);
 
 	let inputScreenshot = $state<FileList | null>(null);
