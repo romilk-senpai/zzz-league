@@ -372,11 +372,15 @@
 						>
 					</p>
 				{/if}
-				<p>
-					Ранги с {@render tierBadge(tournament.minTier)} по {@render tierBadge(
-						tournament.maxTier,
-					)}
-				</p>
+				{#if tournament.minTier === tournament.maxTier}
+					<p>Ранг {@render tierBadge(tournament.minTier)}</p>
+				{:else}
+					<p>
+						Ранги с {@render tierBadge(
+							tournament.minTier,
+						)} по {@render tierBadge(tournament.maxTier)}
+					</p>
+				{/if}
 				<p>
 					Регистрация на турнир с
 					<span class="value-highlight"

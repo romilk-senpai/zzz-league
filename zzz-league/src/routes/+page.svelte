@@ -8,11 +8,13 @@
 	import TournamentCard from "$lib/components/TournamentCard.svelte";
 	import { isAdmin, players, tournaments } from "$lib/store";
 	import { capDefaultHeight } from "$lib/actions/capDefaultHeight";
+	import { TOURNAMENT_STATE } from "$lib/tournamentState";
 
 	let filteredTournaments = $derived(
 		$tournaments
 			.filter((t) => {
 				if (t.visible === false && !$isAdmin) return false;
+				if (t.state !== TOURNAMENT_STATE.COMPLETE) return true;
 				const expiration = 1 * 24 * 60 * 60 * 1000;
 				return Date.now() - t.tournamentEndDate < expiration;
 			})
