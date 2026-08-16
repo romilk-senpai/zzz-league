@@ -7,7 +7,7 @@
 	import { useObjectUrlPreview } from "$lib/imagePreview.svelte.js";
 	import { currentUser, isAdmin } from "$lib/store";
 	import type { Tournament, TournamentRegistration } from "$lib/types";
-	import { isLocked, isRegistrationOpen } from "$lib/tournamentState";
+	import { isLocked, isRegistrationWindowOpen } from "$lib/tournamentState";
 	import {
 		bustCache,
 		dateDisplayOptions,
@@ -75,8 +75,12 @@
 	);
 	let registrationWindowOpen = $derived(
 		!!tournament &&
-			isRegistrationOpen(tournament.state) &&
-			now > tournament.registrationStartDate,
+			isRegistrationWindowOpen(
+				tournament.state,
+				tournament.registrationStartDate,
+				tournament.registrationEndDate,
+				now,
+			),
 	);
 
 	$effect(() => {

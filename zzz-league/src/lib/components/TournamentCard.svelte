@@ -4,11 +4,20 @@
 	import {
 		TOURNAMENT_STATE,
 		isRegistrationClosed,
-		isRegistrationOpen,
+		isRegistrationWindowOpen,
 	} from "$lib/tournamentState";
 	import { dateDisplayOptions } from "$lib/uiCommon";
 
 	let { tournament, now }: { tournament: Tournament; now: number } = $props();
+
+	let registrationWindowOpen = $derived(
+		isRegistrationWindowOpen(
+			tournament.state,
+			tournament.registrationStartDate,
+			tournament.registrationEndDate,
+			now,
+		),
+	);
 
 	let status = $derived(
 		tournament.state === TOURNAMENT_STATE.COMPLETE
@@ -16,8 +25,7 @@
 			: tournament.state === TOURNAMENT_STATE.AWAITING_REVIEW ||
 				  tournament.state === TOURNAMENT_STATE.STARTED
 				? "ongoing"
-				: isRegistrationOpen(tournament.state) &&
-					  now > tournament.registrationStartDate
+				: registrationWindowOpen
 					? "registration"
 					: "upcoming",
 	);
@@ -38,7 +46,7 @@
 			dateDisplayOptions,
 		)}
 	</p>
-	{#if isRegistrationOpen(tournament.state) && now > tournament.registrationStartDate}
+	{#if registrationWindowOpen}
 		<p class="tournament-status">
 			Регистрация до {new Date(
 				tournament.registrationEndDate,

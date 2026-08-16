@@ -11,6 +11,19 @@ export function isRegistrationOpen(state: string | undefined): boolean {
 	return !state || state === TOURNAMENT_STATE.REGISTRATION;
 }
 
+export function isRegistrationWindowOpen(
+	state: string | undefined,
+	registrationStartDate: number,
+	registrationEndDate: number,
+	now: number,
+): boolean {
+	return (
+		isRegistrationOpen(state) &&
+		now > registrationStartDate &&
+		now < registrationEndDate
+	);
+}
+
 export function isRegistrationClosed(state: string | undefined): boolean {
 	return state === TOURNAMENT_STATE.REGISTRATION_CLOSED;
 }
@@ -27,9 +40,6 @@ export function hasTournamentStarted(state: string | undefined): boolean {
 	);
 }
 
-// True once the Challonge bracket exists (participants locked in), whether
-// or not the tournament itself has been started yet. Registration/roster
-// changes must be blocked from this point on.
 export function isLocked(state: string | undefined): boolean {
 	return isBracketCreated(state) || hasTournamentStarted(state);
 }
