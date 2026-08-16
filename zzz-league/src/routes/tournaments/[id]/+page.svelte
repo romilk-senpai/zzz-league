@@ -31,6 +31,7 @@
 		isLocked,
 		isRegistrationClosed,
 		isRegistrationOpen,
+		isRegistrationWindowOpen,
 	} from "$lib/tournamentState";
 	import { dateDisplayOptions, renderMarkdown } from "$lib/uiCommon";
 	import { capDefaultHeight } from "$lib/actions/capDefaultHeight";
@@ -135,6 +136,15 @@
 		!!tournament &&
 			currentUserTier >= tournament.minTier &&
 			currentUserTier <= tournament.maxTier,
+	);
+	let registrationWindowOpen = $derived(
+		!!tournament &&
+			isRegistrationWindowOpen(
+				tournament.state,
+				tournament.registrationStartDate,
+				tournament.registrationEndDate,
+				now,
+			),
 	);
 	let unsubRegistration: (() => void) | null = null;
 
@@ -417,7 +427,7 @@
 				{#if isRegistrationClosed(tournament.state)}
 					<p>Регистрация закрыта</p>
 				{/if}
-				{#if isRegistrationOpen(tournament.state) && now > tournament.registrationStartDate}
+				{#if registrationWindowOpen}
 					<p>Идёт регистрация</p>
 				{/if}
 				{#if isBracketCreated(tournament.state)}
@@ -500,7 +510,7 @@
 							>
 						{/if}
 					{/if}
-					{#if $currentUser && tierEligible && isRegistrationOpen(tournament.state) && now > tournament.registrationStartDate}
+					{#if $currentUser && tierEligible && registrationWindowOpen}
 						<a
 							class="btn-common btn-play"
 							href={resolve(`/tournaments/${tournament.id}/register`)}
