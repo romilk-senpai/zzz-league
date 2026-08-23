@@ -18,7 +18,7 @@ import {setPlayerElo} from "../../utils/setPlayerElo.js";
 const PRIZE_ELO_BONUS = {1: 40, 2: 20, 3: 10};
 
 async function fetchAllParticipants(challongeTournamentId, headers) {
-  const participants = [];
+  const participants = new Map();
   let url = `https://api.challonge.com/v2.1/tournaments/${challongeTournamentId}/participants.json`;
 
   while (url) {
@@ -28,11 +28,20 @@ async function fetchAllParticipants(challongeTournamentId, headers) {
       throw new HttpsError("internal",
           `Challonge participants error: ${JSON.stringify(data)}`);
     }
-    participants.push(...data.data);
+    if (data.data.length === 0) break;
+    for (const participant of data.data) {
+      participants.set(participant.id, participant);
+    }
+    // Challonge keeps returning a links.next URL past the last page of
+    // real data, so stop once we've seen every participant instead of
+    // trusting links.next alone (avoids an infinite pagination loop).
+    if (data.meta?.count != null && participants.size >= data.meta.count) {
+      break;
+    }
     url = data.links?.next ?? null;
   }
 
-  return participants;
+  return [...participants.values()];
 }
 
 async function incrementTournamentPlayedCounts(
@@ -112,9 +121,20 @@ export const finishTournament = onCall({
   });
 
   const finalizeData = await finalizeRes.json();
-  if (!finalizeRes.ok && finalizeRes.status !== 422) {
+  const alreadyFinalized = finalizeRes.status === 422 &&
+    finalizeData.errors?.some(
+        (err) => err.source?.pointer === "/data/attributes/state",
+    );
+  if (!finalizeRes.ok && !alreadyFinalized) {
     throw new HttpsError("internal",
         `Challonge error: ${JSON.stringify(finalizeData)}`);
+  }
+  if (alreadyFinalized) {
+    console.warn(
+        `finishTournament: tournament ${tournamentId} was already ` +
+      `finalized on Challonge, continuing`,
+        finalizeData,
+    );
   }
 
   const participants = await fetchAllParticipants(
