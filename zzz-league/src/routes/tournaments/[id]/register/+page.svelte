@@ -246,7 +246,7 @@
 				{#if $currentUser?.lastRegistration}
 					<button
 						type="button"
-						class="btn-common"
+						class="btn-common prefill-btn"
 						onclick={handlePrefillFromLastRegistration}
 						>Заполнить из прошлой регистрации</button
 					>
@@ -426,6 +426,11 @@
 </div>
 
 <style>
+	.prefill-btn {
+		align-self: flex-start;
+		padding: 10px 20px;
+	}
+
 	.awareness {
 		display: flex;
 		align-items: center;
