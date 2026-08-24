@@ -14,6 +14,7 @@
 		deleteTournament,
 		finishTournament,
 		incrementSeasonalTournamentCount,
+		incrementTournamentCount,
 		startChallongeTournament,
 		updateTournamentGames,
 	} from "$lib/firebase";
@@ -269,6 +270,25 @@
 		}
 	}
 
+	let incrementingCount = $state(false);
+	async function handleIncrementCount() {
+		if (incrementingCount || !tournament) return;
+		if (
+			!confirm(
+				"Начислить очко обычных турниров всем подтверждённым участникам?",
+			)
+		)
+			return;
+		incrementingCount = true;
+		try {
+			await incrementTournamentCount(tournament.id);
+		} catch (error) {
+			alert(error);
+		} finally {
+			incrementingCount = false;
+		}
+	}
+
 	let deletingTournament = $state(false);
 	async function handleDeleteTournament() {
 		if (deletingTournament || !tournament) return;
@@ -406,9 +426,9 @@
 					<p>Ранг {@render tierBadge(tournament.minTier)}</p>
 				{:else}
 					<p>
-						Ранги с {@render tierBadge(
-							tournament.minTier,
-						)} по {@render tierBadge(tournament.maxTier)}
+						Ранги с {@render tierBadge(tournament.minTier)} по {@render tierBadge(
+							tournament.maxTier,
+						)}
 					</p>
 				{/if}
 				<p>
@@ -467,12 +487,18 @@
 							class:btn-loading={deletingTournament}
 							onclick={handleDeleteTournament}>Удалить турнир</button
 						>
-						<button
+						<!-- <button
 							class="btn-common"
 							class:btn-loading={incrementingSeasonalCount}
 							onclick={handleIncrementSeasonalCount}
-							>Начислить сезонный турнир</button
+							>Зачислить сезонный турнир</button
 						>
+						<button
+							class="btn-common"
+							class:btn-loading={incrementingCount}
+							onclick={handleIncrementCount}
+							>Зачислить обычный турнир</button
+						> -->
 						{#if !isLocked(tournament.state)}
 							<a
 								class="btn-common"

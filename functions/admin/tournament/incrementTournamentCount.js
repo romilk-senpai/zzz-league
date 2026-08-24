@@ -4,7 +4,7 @@ import {db} from "../../config/firebase.js";
 import {validateAdminRequest} from "../../utils/validateAdminRequest.js";
 import {defaultOptions} from "../../config/options.js";
 
-export const incrementSeasonalTournamentCount = onCall(
+export const incrementTournamentCount = onCall(
     defaultOptions, async (request) => {
       await validateAdminRequest(request);
 
@@ -22,8 +22,6 @@ export const incrementSeasonalTournamentCount = onCall(
       for (const [uid, registration] of Object.entries(registrations)) {
         if (!registration.approved) continue;
         updates[`players/${uid}/playedTournamentCount`] =
-        admin.database.ServerValue.increment(1);
-        updates[`players/${uid}/seasonalPlayedTournamentCount`] =
         admin.database.ServerValue.increment(1);
       }
 

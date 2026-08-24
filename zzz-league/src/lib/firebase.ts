@@ -205,3 +205,7 @@ export async function adminSetMatchResult(tournamentId: string, matchId: string,
 export async function incrementSeasonalTournamentCount(tournamentId: string): Promise<void> {
 	await httpsCallable(functions, 'incrementSeasonalTournamentCount')({ tournamentId });
 }
+
+export async function incrementTournamentCount(tournamentId: string): Promise<void> {
+	await httpsCallable(functions, 'incrementTournamentCount')({ tournamentId });
+}

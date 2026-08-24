@@ -63,8 +63,8 @@ async function incrementTournamentPlayedCounts(
 }
 
 async function awardPrizeElo(
-    participants, challongeParticipants, isLongTournament) {
-  const prizeEloBonus = isLongTournament ?
+    participants, challongeParticipants, isSeasonal) {
+  const prizeEloBonus = isSeasonal ?
     SEASONAL_PRIZE_ELO_BONUS : FASTCUP_PRIZE_ELO_BONUS;
 
   const prizeParticipants = participants.filter(
@@ -159,16 +159,16 @@ export const finishTournament = onCall({
     winnerId,
   });
 
-  const isLongTournament = tournament.overrideEloChange === -1;
+  const isSeasonal = tournament.overrideEloChange === -1;
 
   await incrementTournamentPlayedCounts(
       participants,
       tournament.challongeParticipants,
-      isLongTournament,
+      isSeasonal,
   );
 
   await awardPrizeElo(
-      participants, tournament.challongeParticipants, isLongTournament);
+      participants, tournament.challongeParticipants, isSeasonal);
 
   await deleteTournamentDiscordChannel(tournamentId);
   await deleteTournamentDiscordRole(tournamentId);

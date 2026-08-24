@@ -25,6 +25,8 @@ export {adminSetMatchResult}
   from "./admin/tournament/adminSetMatchResult.js";
 export {incrementSeasonalTournamentCount}
   from "./admin/tournament/incrementSeasonalTournamentCount.js";
+export {incrementTournamentCount}
+  from "./admin/tournament/incrementTournamentCount.js";
 export {addPlayer} from "./admin/addPlayer.js";
 export {deletePlayer} from "./admin/deletePlayer.js";
 export {finalizeTournament} from "./admin/finalizeTournament.js";
