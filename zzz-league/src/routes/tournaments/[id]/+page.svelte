@@ -8,6 +8,7 @@
 	import TournamentRegisterPopup from "$lib/components/TournamentRegistrationPopup.svelte";
 	import TournamentAddPlayerPopup from "$lib/components/TournamentAddPlayerPopup.svelte";
 	import {
+		cancelTournamentRegistration,
 		closeTournamentRegistration,
 		createChallongeBracket,
 		db,
@@ -156,9 +157,7 @@
 			unsubRegistration = onValue(
 				ref(db, `tournaments/${id}/registrations/${$currentUser.uid}`),
 				(snap) => {
-					const data = snap.val();
-					if (!data) return;
-					myRegistration = data as TournamentRegistration;
+					myRegistration = snap.val() as TournamentRegistration | null;
 				},
 			);
 		} else {
@@ -167,6 +166,24 @@
 			myRegistration = null;
 		}
 	});
+
+	let canCancelRegistration = $derived(
+		!!tournament && !isLocked(tournament.state) && !tournament.challongeTournamentId,
+	);
+
+	let cancellingRegistration = $state(false);
+	async function handleCancelRegistration() {
+		if (cancellingRegistration || !tournament) return;
+		if (!confirm("Отменить регистрацию на турнир?")) return;
+		cancellingRegistration = true;
+		try {
+			await cancelTournamentRegistration(tournament.id);
+		} catch (error) {
+			alert(error);
+		} finally {
+			cancellingRegistration = false;
+		}
+	}
 
 	let closingRegistration = $state(false);
 	async function handleCloseRegistration() {
@@ -555,6 +572,14 @@
 							class="btn-common btn-play"
 							href={resolve(`/tournaments/${tournament.id}/register`)}
 							>{#if myRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</a
+						>
+					{/if}
+					{#if $currentUser && myRegistration && canCancelRegistration}
+						<button
+							class="btn-common danger"
+							class:btn-loading={cancellingRegistration}
+							onclick={handleCancelRegistration}
+							>Отменить регистрацию</button
 						>
 					{/if}
 				</div>
