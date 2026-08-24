@@ -71,6 +71,7 @@ export interface TournamentRegistration {
 	uid: string,
 	zzzUid: string,
 	prizeUid: string,
+	prizeAsMoney: boolean,
 	darteNickname: string,
 	darteAccount: string,
 	dartePreset: string,

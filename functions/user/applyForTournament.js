@@ -24,10 +24,11 @@ export const applyForTournament = onCall(defaultOptions, async (request) => {
     hoyolabScreenshot,
     zzzUid,
     prizeUid,
+    prizeAsMoney,
   } = request.data;
 
   if (!tournamentId || !darteNickname || !darteAccount ||
-    !dartePreset || !zzzUid || !prizeUid) {
+    !dartePreset || !zzzUid || (!prizeAsMoney && !prizeUid)) {
     throw new HttpsError("invalid-argument", "Missing required fields");
   }
 
@@ -83,7 +84,8 @@ export const applyForTournament = onCall(defaultOptions, async (request) => {
   await db.ref(`tournaments/${tournamentId}/registrations/${callerUid}`).set({
     uid: callerUid,
     zzzUid,
-    prizeUid,
+    prizeUid: prizeAsMoney ? "" : prizeUid,
+    prizeAsMoney: !!prizeAsMoney,
     darteNickname,
     darteAccount,
     dartePreset,

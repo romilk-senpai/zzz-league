@@ -30,6 +30,7 @@
 
 	let zzzUid = $state("");
 	let prizeUid = $state("");
+	let prizeAsMoney = $state(false);
 	let darteNickname = $state("");
 	let darteAccount = $state("");
 	let dartePreset = $state("");
@@ -54,6 +55,7 @@
 		fieldsInitialized = true;
 		zzzUid = reg.zzzUid ?? "";
 		prizeUid = reg.prizeUid ?? "";
+		prizeAsMoney = reg.prizeAsMoney ?? false;
 		darteNickname = reg.darteNickname ?? "";
 		darteAccount = reg.darteAccount ?? "";
 		dartePreset = reg.dartePreset ?? "";
@@ -134,7 +136,7 @@
 
 		if (
 			!zzzUid ||
-			!prizeUid ||
+			(!prizeAsMoney && !prizeUid) ||
 			!darteNickname ||
 			!darteAccount ||
 			!dartePreset ||
@@ -162,6 +164,7 @@
 				tournament.id,
 				zzzUid,
 				prizeUid,
+				prizeAsMoney,
 				darteNickname,
 				darteAccount,
 				dartePreset,
@@ -237,14 +240,24 @@
 					/>
 				</div>
 				<div class="form-row-wide">
-					<label for="reg-prize-uid">UID для призовых</label>
+					<label for="reg-prize-as-money">Взять призовые деньгами</label>
 					<input
-						id="reg-prize-uid"
-						type="text"
-						bind:value={prizeUid}
-						placeholder="UID для призовых"
+						id="reg-prize-as-money"
+						type="checkbox"
+						bind:checked={prizeAsMoney}
 					/>
 				</div>
+				{#if !prizeAsMoney}
+					<div class="form-row-wide">
+						<label for="reg-prize-uid">UID для призовых</label>
+						<input
+							id="reg-prize-uid"
+							type="text"
+							bind:value={prizeUid}
+							placeholder="UID для призовых"
+						/>
+					</div>
+				{/if}
 				<div class="form-row-wide">
 					<label for="reg-darte-nickname">Ник на Darte</label>
 					<input
