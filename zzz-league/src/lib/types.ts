@@ -11,7 +11,19 @@ export interface Player {
 	losses: number,
 	playedTournamentCount: number,
 	seasonalPlayedTournamentCount: number,
-	lastPlayedTournamentTimestamp?: number
+	lastPlayedTournamentTimestamp?: number,
+	lastRegistration?: LastRegistrationData
+}
+
+export interface LastRegistrationData {
+	zzzUid: string,
+	prizeUid: string,
+	prizeAsMoney: boolean,
+	darteNickname: string,
+	darteAccount: string,
+	dartePreset: string,
+	rosterScreenshot: string,
+	hoyolabScreenshot: string,
 }
 
 export interface MatchRecord {

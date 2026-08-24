@@ -104,6 +104,19 @@
 		return () => window.removeEventListener("paste", onPaste);
 	});
 
+	function handlePrefillFromLastRegistration() {
+		const last = $currentUser?.lastRegistration;
+		if (!last) return;
+		zzzUid = last.zzzUid ?? "";
+		prizeUid = last.prizeUid ?? "";
+		prizeAsMoney = last.prizeAsMoney ?? false;
+		darteNickname = last.darteNickname ?? "";
+		darteAccount = last.darteAccount ?? "";
+		dartePreset = last.dartePreset ?? "";
+		regScreenshot = last.rosterScreenshot ?? "";
+		regHoyolabScreenshot = last.hoyolabScreenshot ?? "";
+	}
+
 	async function handlePasteScreenshot(target: "roster" | "hoyolab") {
 		try {
 			const files = await pasteImageFromClipboard();
@@ -230,6 +243,14 @@
 			{:else if !registrationWindowOpen}
 				<p class="notice">Регистрация на турнир закрыта.</p>
 			{:else if regLoaded}
+				{#if $currentUser?.lastRegistration}
+					<button
+						type="button"
+						class="btn-common"
+						onclick={handlePrefillFromLastRegistration}
+						>Заполнить из прошлой регистрации</button
+					>
+				{/if}
 				<div class="form-row-wide">
 					<label for="reg-zzz-uid">Игровой UID</label>
 					<input
