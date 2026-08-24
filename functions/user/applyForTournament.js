@@ -24,10 +24,11 @@ export const applyForTournament = onCall(defaultOptions, async (request) => {
     hoyolabScreenshot,
     zzzUid,
     prizeUid,
+    prizeAsMoney,
   } = request.data;
 
   if (!tournamentId || !darteNickname || !darteAccount ||
-    !dartePreset || !zzzUid || !prizeUid) {
+    !dartePreset || !zzzUid || (!prizeAsMoney && !prizeUid)) {
     throw new HttpsError("invalid-argument", "Missing required fields");
   }
 
@@ -36,10 +37,14 @@ export const applyForTournament = onCall(defaultOptions, async (request) => {
       .once("value");
   const existingReg = existingRegSnap.val();
 
-  if (!rosterScreenshot && !existingReg?.rosterScreenshot) {
+  const lastReg = player.lastRegistration;
+
+  if (!rosterScreenshot && !existingReg?.rosterScreenshot &&
+    !lastReg?.rosterScreenshot) {
     throw new HttpsError("invalid-argument", "Missing required fields");
   }
-  if (!hoyolabScreenshot && !existingReg?.hoyolabScreenshot) {
+  if (!hoyolabScreenshot && !existingReg?.hoyolabScreenshot &&
+    !lastReg?.hoyolabScreenshot) {
     throw new HttpsError("invalid-argument", "Missing required fields");
   }
 
@@ -74,16 +79,17 @@ export const applyForTournament = onCall(defaultOptions, async (request) => {
 
   const rosterScreenshotUrl = rosterScreenshot ? await uploadImage(
       rosterScreenshot, `tournaments/${tournamentId}/${callerUid}-roster`,
-  ) : existingReg.rosterScreenshot;
+  ) : (existingReg?.rosterScreenshot ?? lastReg?.rosterScreenshot);
 
   const hoyolabScreenshotUrl = hoyolabScreenshot ? await uploadImage(
       hoyolabScreenshot, `tournaments/${tournamentId}/${callerUid}-hoyolab`,
-  ) : existingReg.hoyolabScreenshot;
+  ) : (existingReg?.hoyolabScreenshot ?? lastReg?.hoyolabScreenshot);
 
-  await db.ref(`tournaments/${tournamentId}/registrations/${callerUid}`).set({
+  const registration = {
     uid: callerUid,
     zzzUid,
-    prizeUid,
+    prizeUid: prizeAsMoney ? "" : prizeUid,
+    prizeAsMoney: !!prizeAsMoney,
     darteNickname,
     darteAccount,
     dartePreset,
@@ -91,6 +97,20 @@ export const applyForTournament = onCall(defaultOptions, async (request) => {
     hoyolabScreenshot: hoyolabScreenshotUrl,
     registrationTimestamp: existingReg?.registrationTimestamp ?? Date.now(),
     approved: false,
+  };
+
+  await db.ref().update({
+    [`tournaments/${tournamentId}/registrations/${callerUid}`]: registration,
+    [`players/${callerUid}/lastRegistration`]: {
+      zzzUid,
+      prizeUid: registration.prizeUid,
+      prizeAsMoney: registration.prizeAsMoney,
+      darteNickname,
+      darteAccount,
+      dartePreset,
+      rosterScreenshot: rosterScreenshotUrl,
+      hoyolabScreenshot: hoyolabScreenshotUrl,
+    },
   });
 
   return {success: true};

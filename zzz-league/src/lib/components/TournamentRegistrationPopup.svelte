@@ -35,14 +35,18 @@
 				</div>
 				<div class="form-row">
 					<label for="reg-prize-uid">UID для призовых</label>
-					<input
-						id="reg-prize-uid"
-						type="text"
-						class="input-disabled"
-						value={reg?.prizeUid ?? ""}
-						placeholder="UID для призовых"
-						disabled
-					/>
+					{#if reg?.prizeAsMoney}
+						<p id="reg-prize-uid">Выбран призовой деньгами</p>
+					{:else}
+						<input
+							id="reg-prize-uid"
+							type="text"
+							class="input-disabled"
+							value={reg?.prizeUid ?? ""}
+							placeholder="UID для призовых"
+							disabled
+						/>
+					{/if}
 				</div>
 			{/if}
 			<div class="form-row">

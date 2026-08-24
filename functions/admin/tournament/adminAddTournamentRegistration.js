@@ -45,6 +45,7 @@ export const adminAddTournamentRegistration = onCall(
         uid,
         zzzUid: "",
         prizeUid: "",
+        prizeAsMoney: false,
         darteNickname: player.name,
         darteAccount: "",
         dartePreset: "",

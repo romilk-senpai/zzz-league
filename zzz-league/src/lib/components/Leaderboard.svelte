@@ -5,21 +5,33 @@
 	import { getLvl, getTier, openProfilePopup } from "$lib/uiCommon";
 	import PointsDelta from "$lib/components/PointsDelta.svelte";
 
+	const INACTIVITY_THRESHOLD_MS = 90 * 24 * 60 * 60 * 1000;
+
 	interface Props {
 		players?: Player[];
 		hideOptions?: boolean;
 		searchQuery?: string;
+		showInactivePlayers?: boolean;
 	}
 
 	let {
 		players = [],
 		hideOptions = false,
 		searchQuery = "",
+		showInactivePlayers = false,
 	}: Props = $props();
+
+	function isActive(p: Player) {
+		return (
+			!!p.lastPlayedTournamentTimestamp &&
+			Date.now() - p.lastPlayedTournamentTimestamp < INACTIVITY_THRESHOLD_MS
+		);
+	}
 
 	let sortedPlayers = $derived(
 		[...players]
 			.filter((p) => p?.name)
+			.filter((p) => showInactivePlayers || isActive(p))
 			.sort((a, b) => (b.elo || 1000) - (a.elo || 1000)),
 	);
 
@@ -74,7 +86,14 @@
 			{@const tier = getTier(player)}
 			{@const ladderPos = getLadderPos(player)}
 
-			<tr class={ladderPos < 3 ? `top-${ladderPos + 1}` : ""}>
+			<tr
+				class={[
+					ladderPos < 3 ? `top-${ladderPos + 1}` : "",
+					!isActive(player) ? "inactive" : "",
+				]
+					.filter(Boolean)
+					.join(" ")}
+			>
 				<td>{index + 1}</td>
 				<td><span class="tier-badge {tier.cls}">{tier.name}</span></td>
 				<td class="player-name">

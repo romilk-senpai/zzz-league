@@ -30,6 +30,7 @@
 
 	let zzzUid = $state("");
 	let prizeUid = $state("");
+	let prizeAsMoney = $state(false);
 	let darteNickname = $state("");
 	let darteAccount = $state("");
 	let dartePreset = $state("");
@@ -54,6 +55,7 @@
 		fieldsInitialized = true;
 		zzzUid = reg.zzzUid ?? "";
 		prizeUid = reg.prizeUid ?? "";
+		prizeAsMoney = reg.prizeAsMoney ?? false;
 		darteNickname = reg.darteNickname ?? "";
 		darteAccount = reg.darteAccount ?? "";
 		dartePreset = reg.dartePreset ?? "";
@@ -102,6 +104,19 @@
 		return () => window.removeEventListener("paste", onPaste);
 	});
 
+	function handlePrefillFromLastRegistration() {
+		const last = $currentUser?.lastRegistration;
+		if (!last) return;
+		zzzUid = last.zzzUid ?? "";
+		prizeUid = last.prizeUid ?? "";
+		prizeAsMoney = last.prizeAsMoney ?? false;
+		darteNickname = last.darteNickname ?? "";
+		darteAccount = last.darteAccount ?? "";
+		dartePreset = last.dartePreset ?? "";
+		regScreenshot = last.rosterScreenshot ?? "";
+		regHoyolabScreenshot = last.hoyolabScreenshot ?? "";
+	}
+
 	async function handlePasteScreenshot(target: "roster" | "hoyolab") {
 		try {
 			const files = await pasteImageFromClipboard();
@@ -134,7 +149,7 @@
 
 		if (
 			!zzzUid ||
-			!prizeUid ||
+			(!prizeAsMoney && !prizeUid) ||
 			!darteNickname ||
 			!darteAccount ||
 			!dartePreset ||
@@ -162,6 +177,7 @@
 				tournament.id,
 				zzzUid,
 				prizeUid,
+				prizeAsMoney,
 				darteNickname,
 				darteAccount,
 				dartePreset,
@@ -227,6 +243,14 @@
 			{:else if !registrationWindowOpen}
 				<p class="notice">Регистрация на турнир закрыта.</p>
 			{:else if regLoaded}
+				{#if $currentUser?.lastRegistration}
+					<button
+						type="button"
+						class="btn-common prefill-btn"
+						onclick={handlePrefillFromLastRegistration}
+						>Заполнить из прошлой регистрации</button
+					>
+				{/if}
 				<div class="form-row-wide">
 					<label for="reg-zzz-uid">Игровой UID</label>
 					<input
@@ -237,14 +261,24 @@
 					/>
 				</div>
 				<div class="form-row-wide">
-					<label for="reg-prize-uid">UID для призовых</label>
+					<label for="reg-prize-as-money">Взять призовые деньгами</label>
 					<input
-						id="reg-prize-uid"
-						type="text"
-						bind:value={prizeUid}
-						placeholder="UID для призовых"
+						id="reg-prize-as-money"
+						type="checkbox"
+						bind:checked={prizeAsMoney}
 					/>
 				</div>
+				{#if !prizeAsMoney}
+					<div class="form-row-wide">
+						<label for="reg-prize-uid">UID для призовых</label>
+						<input
+							id="reg-prize-uid"
+							type="text"
+							bind:value={prizeUid}
+							placeholder="UID для призовых"
+						/>
+					</div>
+				{/if}
 				<div class="form-row-wide">
 					<label for="reg-darte-nickname">Ник на Darte</label>
 					<input
@@ -392,6 +426,11 @@
 </div>
 
 <style>
+	.prefill-btn {
+		align-self: flex-start;
+		padding: 10px 20px;
+	}
+
 	.awareness {
 		display: flex;
 		align-items: center;

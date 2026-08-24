@@ -202,6 +202,15 @@ td {
 	font-weight: bold;
 }
 
+.inactive {
+	color: #777;
+	filter: grayscale(60%);
+}
+
+.inactive .player-name button {
+	color: #777;
+}
+
 .tier-badge {
 	padding: 4px 10px;
 	border-radius: 4px;

@@ -58,6 +58,7 @@
 							playedTournamentCount: player.playedTournamentCount ?? 0,
 							seasonalPlayedTournamentCount:
 								player.seasonalPlayedTournamentCount ?? 0,
+							lastRegistration: player.lastRegistration,
 						};
 						$role = player.role ?? "player";
 					}

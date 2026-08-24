@@ -13,6 +13,8 @@
 		db,
 		deleteTournament,
 		finishTournament,
+		incrementSeasonalTournamentCount,
+		incrementTournamentCount,
 		startChallongeTournament,
 		updateTournamentGames,
 	} from "$lib/firebase";
@@ -249,6 +251,44 @@
 		}
 	}
 
+	let incrementingSeasonalCount = $state(false);
+	async function handleIncrementSeasonalCount() {
+		if (incrementingSeasonalCount || !tournament) return;
+		if (
+			!confirm(
+				"Начислить очко сезонных турниров всем подтверждённым участникам?",
+			)
+		)
+			return;
+		incrementingSeasonalCount = true;
+		try {
+			await incrementSeasonalTournamentCount(tournament.id);
+		} catch (error) {
+			alert(error);
+		} finally {
+			incrementingSeasonalCount = false;
+		}
+	}
+
+	let incrementingCount = $state(false);
+	async function handleIncrementCount() {
+		if (incrementingCount || !tournament) return;
+		if (
+			!confirm(
+				"Начислить очко обычных турниров всем подтверждённым участникам?",
+			)
+		)
+			return;
+		incrementingCount = true;
+		try {
+			await incrementTournamentCount(tournament.id);
+		} catch (error) {
+			alert(error);
+		} finally {
+			incrementingCount = false;
+		}
+	}
+
 	let deletingTournament = $state(false);
 	async function handleDeleteTournament() {
 		if (deletingTournament || !tournament) return;
@@ -386,9 +426,9 @@
 					<p>Ранг {@render tierBadge(tournament.minTier)}</p>
 				{:else}
 					<p>
-						Ранги с {@render tierBadge(
-							tournament.minTier,
-						)} по {@render tierBadge(tournament.maxTier)}
+						Ранги с {@render tierBadge(tournament.minTier)} по {@render tierBadge(
+							tournament.maxTier,
+						)}
 					</p>
 				{/if}
 				<p>

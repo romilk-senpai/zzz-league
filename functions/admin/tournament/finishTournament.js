@@ -15,10 +15,11 @@ import {defaultOptions} from "../../config/options.js";
 import {TOURNAMENT_STATE} from "../../utils/tournamentState.js";
 import {setPlayerElo} from "../../utils/setPlayerElo.js";
 
-const PRIZE_ELO_BONUS = {1: 40, 2: 20, 3: 10};
+const SEASONAL_PRIZE_ELO_BONUS = {1: 40, 2: 20, 3: 10};
+const FASTCUP_PRIZE_ELO_BONUS = {1: 15, 2: 10};
 
 async function fetchAllParticipants(challongeTournamentId, headers) {
-  const participants = [];
+  const participants = new Map();
   let url = `https://api.challonge.com/v2.1/tournaments/${challongeTournamentId}/participants.json`;
 
   while (url) {
@@ -28,11 +29,17 @@ async function fetchAllParticipants(challongeTournamentId, headers) {
       throw new HttpsError("internal",
           `Challonge participants error: ${JSON.stringify(data)}`);
     }
-    participants.push(...data.data);
+    if (data.data.length === 0) break;
+    for (const participant of data.data) {
+      participants.set(participant.id, participant);
+    }
+    if (data.meta?.count != null && participants.size >= data.meta.count) {
+      break;
+    }
     url = data.links?.next ?? null;
   }
 
-  return participants;
+  return [...participants.values()];
 }
 
 async function incrementTournamentPlayedCounts(
@@ -55,16 +62,20 @@ async function incrementTournamentPlayedCounts(
   await db.ref().update(updates);
 }
 
-async function awardPrizeElo(participants, challongeParticipants) {
+async function awardPrizeElo(
+    participants, challongeParticipants, isSeasonal) {
+  const prizeEloBonus = isSeasonal ?
+    SEASONAL_PRIZE_ELO_BONUS : FASTCUP_PRIZE_ELO_BONUS;
+
   const prizeParticipants = participants.filter(
-      (item) => PRIZE_ELO_BONUS[item.attributes.final_rank] !== undefined,
+      (item) => prizeEloBonus[item.attributes.final_rank] !== undefined,
   );
 
   for (const participant of prizeParticipants) {
     const uid = challongeParticipants[participant.id];
     if (!uid) continue;
 
-    const bonus = PRIZE_ELO_BONUS[participant.attributes.final_rank];
+    const bonus = prizeEloBonus[participant.attributes.final_rank];
     const playerSnap = await db.ref("players/" + uid).once("value");
     if (!playerSnap.exists()) continue;
 
@@ -112,9 +123,20 @@ export const finishTournament = onCall({
   });
 
   const finalizeData = await finalizeRes.json();
-  if (!finalizeRes.ok && finalizeRes.status !== 422) {
+  const alreadyFinalized = finalizeRes.status === 422 &&
+    finalizeData.errors?.some(
+        (err) => err.source?.pointer === "/data/attributes/state",
+    );
+  if (!finalizeRes.ok && !alreadyFinalized) {
     throw new HttpsError("internal",
         `Challonge error: ${JSON.stringify(finalizeData)}`);
+  }
+  if (alreadyFinalized) {
+    console.warn(
+        `finishTournament: tournament ${tournamentId} was already ` +
+      `finalized on Challonge, continuing`,
+        finalizeData,
+    );
   }
 
   const participants = await fetchAllParticipants(
@@ -137,13 +159,16 @@ export const finishTournament = onCall({
     winnerId,
   });
 
+  const isSeasonal = tournament.overrideEloChange === -1;
+
   await incrementTournamentPlayedCounts(
       participants,
       tournament.challongeParticipants,
-      tournament.overrideEloChange === -1,
+      isSeasonal,
   );
 
-  await awardPrizeElo(participants, tournament.challongeParticipants);
+  await awardPrizeElo(
+      participants, tournament.challongeParticipants, isSeasonal);
 
   await deleteTournamentDiscordChannel(tournamentId);
   await deleteTournamentDiscordRole(tournamentId);

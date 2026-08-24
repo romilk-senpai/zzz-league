@@ -7,6 +7,7 @@ import {
 import {assignDiscordRole} from "../discord/assignDiscordRole.js";
 import {validateAdminRequest} from "../utils/validateAdminRequest.js";
 import {defaultOptions} from "../config/options.js";
+import {computeTierConfirmation} from "../utils/tierConfirmation.js";
 
 export const finalizeTournament = onCall({
   ...defaultOptions,
@@ -25,12 +26,8 @@ export const finalizeTournament = onCall({
 
   Object.values(playersObj).forEach((p) => {
     const next = (p.elo || 1000) + (p.tournamentPoints || 0);
-    let mid = p.isMidConfirmed;
-    let high = p.isHighConfirmed;
-    if (mid && next < 1150) mid = false;
-    if (!mid && next >= 1200) mid = true;
-    if (high && next < 1350) high = false;
-    if (!high && next >= 1400) high = true;
+    const {isMidConfirmed: mid, isHighConfirmed: high} =
+      computeTierConfirmation(p, next);
 
     updates["players/" + p.uid + "/elo"] = next;
     updates["players/" + p.uid + "/tournamentPoints"] = 0;

@@ -41,10 +41,6 @@ export async function registerUser(
 	await signInWithCustomToken(auth, result.data.token);
 }
 
-export async function clearHistory(): Promise<void> {
-	await httpsCallable(functions, 'clearHistory')();
-}
-
 export async function registerMatch(p1: string, p2: string, p1Win: boolean, overrideEloChange: number, techLoss: boolean = false): Promise<void> {
 	await httpsCallable(functions, "registerMatch")({ p1, p2, p1Win, overrideEloChange, techLoss });
 }
@@ -59,6 +55,11 @@ export async function resetSeason(name: string): Promise<void> {
 
 export async function finalizeTournament(): Promise<void> {
 	await httpsCallable(functions, "finalizeTournament")();
+}
+
+export async function backfillLastPlayedTimestamps(): Promise<{ success: boolean; updatedPlayers: number }> {
+	const result = await httpsCallable(functions, "backfillLastPlayedTimestamps")();
+	return result.data as { success: boolean; updatedPlayers: number };
 }
 
 export async function deleteArchive(key: string): Promise<void> {
@@ -105,13 +106,14 @@ function fileToBase64(file: File): Promise<string> {
 	});
 }
 
-export async function applyForTournament(tournamentId: string, zzzUid: string, prizeUid: string, darteNickname: string,
+export async function applyForTournament(tournamentId: string, zzzUid: string, prizeUid: string, prizeAsMoney: boolean, darteNickname: string,
 	darteAccount: string, dartePreset: string, rosterScreenshot: File | null, hoyolabScreenshot: File | null): Promise<void> {
 
 	await httpsCallable(functions, 'applyForTournament')({
 		tournamentId,
 		zzzUid,
 		prizeUid,
+		prizeAsMoney,
 		darteNickname,
 		darteAccount,
 		dartePreset,
@@ -200,4 +202,12 @@ export async function adminSetMatchResult(tournamentId: string, matchId: string,
 	}
 
 	await httpsCallable(functions, 'adminSetMatchResult')(body);
+}
+
+export async function incrementSeasonalTournamentCount(tournamentId: string): Promise<void> {
+	await httpsCallable(functions, 'incrementSeasonalTournamentCount')({ tournamentId });
+}
+
+export async function incrementTournamentCount(tournamentId: string): Promise<void> {
+	await httpsCallable(functions, 'incrementTournamentCount')({ tournamentId });
 }
