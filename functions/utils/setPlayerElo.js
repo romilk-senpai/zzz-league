@@ -1,6 +1,7 @@
 import {HttpsError} from "firebase-functions/https";
 import {db} from "../config/firebase.js";
 import {assignDiscordRole} from "../discord/assignDiscordRole.js";
+import {computeTierConfirmation} from "./tierConfirmation.js";
 
 export async function setPlayerElo(uid, elo) {
   const playerSnap = await db.ref("players/" + uid).once("value");
@@ -12,13 +13,8 @@ export async function setPlayerElo(uid, elo) {
   const oldElo = player.elo;
   const change = elo - oldElo;
 
-  let isMidConfirmed = player.isMidConfirmed || false;
-  let isHighConfirmed = player.isHighConfirmed || false;
-
-  if (isMidConfirmed && elo < 1150) isMidConfirmed = false;
-  if (!isMidConfirmed && elo >= 1200) isMidConfirmed = true;
-  if (isHighConfirmed && elo < 1350) isHighConfirmed = false;
-  if (!isHighConfirmed && elo >= 1400) isHighConfirmed = true;
+  const {isMidConfirmed, isHighConfirmed} =
+    computeTierConfirmation(player, elo);
 
   const historyKey = db.ref("historyV3").push().key;
 

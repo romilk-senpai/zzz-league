@@ -3,6 +3,7 @@ import admin from "firebase-admin";
 import {validateAdminRequest} from "../../utils/validateAdminRequest.js";
 import {db} from "../../config/firebase.js";
 import {defaultOptions} from "../../config/options.js";
+import {computeTierConfirmation} from "../../utils/tierConfirmation.js";
 
 export const deleteHistoryEntry = onCall(defaultOptions, async (request) => {
   await validateAdminRequest(request);
@@ -39,9 +40,11 @@ export const deleteHistoryEntry = onCall(defaultOptions, async (request) => {
     if (playerSnap.exists()) {
       const player = playerSnap.val();
       const revertedElo = (player.elo || 1000) - entry.p1Change;
+      const {isMidConfirmed, isHighConfirmed} =
+        computeTierConfirmation(player, revertedElo);
       updates[`players/${entry.p1}/elo`] = revertedElo;
-      updates[`players/${entry.p1}/isMidConfirmed`] = revertedElo >= 1200;
-      updates[`players/${entry.p1}/isHighConfirmed`] = revertedElo >= 1400;
+      updates[`players/${entry.p1}/isMidConfirmed`] = isMidConfirmed;
+      updates[`players/${entry.p1}/isHighConfirmed`] = isHighConfirmed;
     }
 
     if (entry.p1Change > 0) {

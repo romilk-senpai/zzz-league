@@ -201,3 +201,7 @@ export async function adminSetMatchResult(tournamentId: string, matchId: string,
 
 	await httpsCallable(functions, 'adminSetMatchResult')(body);
 }
+
+export async function incrementSeasonalTournamentCount(tournamentId: string): Promise<void> {
+	await httpsCallable(functions, 'incrementSeasonalTournamentCount')({ tournamentId });
+}

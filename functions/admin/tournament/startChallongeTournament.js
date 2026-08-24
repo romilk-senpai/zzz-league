@@ -76,9 +76,13 @@ export const startChallongeTournament = onCall({
         `Failed to start tournament: ${JSON.stringify(data)}`);
   }
 
-  await db.ref("tournaments/" + tournamentId).update({
-    state: TOURNAMENT_STATE.STARTED,
-  });
+  const startUpdates = {};
+  startUpdates[`tournaments/${tournamentId}/state`] = TOURNAMENT_STATE.STARTED;
+  const now = Date.now();
+  for (const uid of Object.values(tournament.challongeParticipants ?? {})) {
+    startUpdates[`players/${uid}/lastPlayedTournamentTimestamp`] = now;
+  }
+  await db.ref().update(startUpdates);
 
   const followUpErrors = [];
 

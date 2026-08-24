@@ -13,6 +13,7 @@
 		db,
 		deleteTournament,
 		finishTournament,
+		incrementSeasonalTournamentCount,
 		startChallongeTournament,
 		updateTournamentGames,
 	} from "$lib/firebase";
@@ -249,6 +250,25 @@
 		}
 	}
 
+	let incrementingSeasonalCount = $state(false);
+	async function handleIncrementSeasonalCount() {
+		if (incrementingSeasonalCount || !tournament) return;
+		if (
+			!confirm(
+				"Начислить очко сезонных турниров всем подтверждённым участникам?",
+			)
+		)
+			return;
+		incrementingSeasonalCount = true;
+		try {
+			await incrementSeasonalTournamentCount(tournament.id);
+		} catch (error) {
+			alert(error);
+		} finally {
+			incrementingSeasonalCount = false;
+		}
+	}
+
 	let deletingTournament = $state(false);
 	async function handleDeleteTournament() {
 		if (deletingTournament || !tournament) return;
@@ -446,6 +466,12 @@
 							class="btn-common danger"
 							class:btn-loading={deletingTournament}
 							onclick={handleDeleteTournament}>Удалить турнир</button
+						>
+						<button
+							class="btn-common"
+							class:btn-loading={incrementingSeasonalCount}
+							onclick={handleIncrementSeasonalCount}
+							>Начислить сезонный турнир</button
 						>
 						{#if !isLocked(tournament.state)}
 							<a
