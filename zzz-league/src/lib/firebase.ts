@@ -41,10 +41,6 @@ export async function registerUser(
 	await signInWithCustomToken(auth, result.data.token);
 }
 
-export async function clearHistory(): Promise<void> {
-	await httpsCallable(functions, 'clearHistory')();
-}
-
 export async function registerMatch(p1: string, p2: string, p1Win: boolean, overrideEloChange: number, techLoss: boolean = false): Promise<void> {
 	await httpsCallable(functions, "registerMatch")({ p1, p2, p1Win, overrideEloChange, techLoss });
 }

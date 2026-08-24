@@ -1,5 +1,3 @@
-export {addHistoryEntry} from "./admin/history/addHistoryEntry.js";
-export {clearHistory} from "./admin/history/clearHistory.js";
 export {deleteArchive} from "./admin/history/deleteArchive.js";
 export {deleteHistoryEntry} from "./admin/history/deleteHistoryEntry.js";
 export {approveRegistration} from "./admin/tournament/approveRegistration.js";
