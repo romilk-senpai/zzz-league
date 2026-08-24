@@ -15,7 +15,8 @@ import {defaultOptions} from "../../config/options.js";
 import {TOURNAMENT_STATE} from "../../utils/tournamentState.js";
 import {setPlayerElo} from "../../utils/setPlayerElo.js";
 
-const PRIZE_ELO_BONUS = {1: 40, 2: 20, 3: 10};
+const SEASONAL_PRIZE_ELO_BONUS = {1: 40, 2: 20, 3: 10};
+const FASTCUP_PRIZE_ELO_BONUS = {1: 15, 2: 10};
 
 async function fetchAllParticipants(challongeTournamentId, headers) {
   const participants = new Map();
@@ -32,9 +33,6 @@ async function fetchAllParticipants(challongeTournamentId, headers) {
     for (const participant of data.data) {
       participants.set(participant.id, participant);
     }
-    // Challonge keeps returning a links.next URL past the last page of
-    // real data, so stop once we've seen every participant instead of
-    // trusting links.next alone (avoids an infinite pagination loop).
     if (data.meta?.count != null && participants.size >= data.meta.count) {
       break;
     }
@@ -64,16 +62,20 @@ async function incrementTournamentPlayedCounts(
   await db.ref().update(updates);
 }
 
-async function awardPrizeElo(participants, challongeParticipants) {
+async function awardPrizeElo(
+    participants, challongeParticipants, isLongTournament) {
+  const prizeEloBonus = isLongTournament ?
+    SEASONAL_PRIZE_ELO_BONUS : FASTCUP_PRIZE_ELO_BONUS;
+
   const prizeParticipants = participants.filter(
-      (item) => PRIZE_ELO_BONUS[item.attributes.final_rank] !== undefined,
+      (item) => prizeEloBonus[item.attributes.final_rank] !== undefined,
   );
 
   for (const participant of prizeParticipants) {
     const uid = challongeParticipants[participant.id];
     if (!uid) continue;
 
-    const bonus = PRIZE_ELO_BONUS[participant.attributes.final_rank];
+    const bonus = prizeEloBonus[participant.attributes.final_rank];
     const playerSnap = await db.ref("players/" + uid).once("value");
     if (!playerSnap.exists()) continue;
 
@@ -157,13 +159,16 @@ export const finishTournament = onCall({
     winnerId,
   });
 
+  const isLongTournament = tournament.overrideEloChange === -1;
+
   await incrementTournamentPlayedCounts(
       participants,
       tournament.challongeParticipants,
-      tournament.overrideEloChange === -1,
+      isLongTournament,
   );
 
-  await awardPrizeElo(participants, tournament.challongeParticipants);
+  await awardPrizeElo(
+      participants, tournament.challongeParticipants, isLongTournament);
 
   await deleteTournamentDiscordChannel(tournamentId);
   await deleteTournamentDiscordRole(tournamentId);
