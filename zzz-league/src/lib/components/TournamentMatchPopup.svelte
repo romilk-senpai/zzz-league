@@ -207,182 +207,198 @@
 	}
 </script>
 
-<div class="popup">
-	<div class="card">
-		<div class="match-players">
-			<span
-				class="match-player-name match-player-left {getPlayerClass(
-					match.p1,
-					match.winnerId,
-					match.techLossUid,
-				)}">{getPlayerName(match.p1)}</span
-			>
-			<span class="match-vs">vs</span>
-			<span
-				class="match-player-name match-player-right {getPlayerClass(
-					match.p2,
-					match.winnerId,
-					match.techLossUid,
-				)}">{getPlayerName(match.p2)}</span
-			>
-			{#if match.resultP1 && match.resultP2}
-				<span class="match-player-left">{match.resultP1}</span>
-				<span> </span>
-				<span class="match-player-right">{match.resultP2}</span>
-			{/if}
-		</div>
-		{#if match.techLossUid}
-			<span class="techloss-label"
-				>{getPlayerName(match.techLossUid)} тех. луз</span
-			>
-		{/if}
-		{#if canApproveOwnResult}
-			<hr style="width: 100%" />
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="popup" onclick={handleClose}>
+	<div class="popup-stack">
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="card" onclick={(e) => e.stopPropagation()}>
 			<div class="match-players">
-				<span class="match-player-left"
-					>Введите время {getPlayerName(match.p1)}</span
+				<span
+					class="match-player-name match-player-left {getPlayerClass(
+						match.p1,
+						match.winnerId,
+						match.techLossUid,
+					)}">{getPlayerName(match.p1)}</span
 				>
-				<span> </span>
-				<span class="match-player-right"
-					>Введите время {getPlayerName(match.p2)}</span
+				<span class="match-vs">vs</span>
+				<span
+					class="match-player-name match-player-right {getPlayerClass(
+						match.p2,
+						match.winnerId,
+						match.techLossUid,
+					)}">{getPlayerName(match.p2)}</span
 				>
-				<input
-					class="time-input match-player-left"
-					type="time"
-					step="60"
-					lang="en-GB"
-					bind:value={matchResultP1}
-				/>
-				<span> </span>
-				<input
-					class="time-input match-player-right"
-					type="time"
-					step="60"
-					lang="en-GB"
-					bind:value={matchResultP2}
-				/>
+				{#if match.resultP1 && match.resultP2}
+					<span class="match-player-left">{match.resultP1}</span>
+					<span> </span>
+					<span class="match-player-right">{match.resultP2}</span>
+				{/if}
 			</div>
-		{/if}
+			{#if match.techLossUid}
+				<span class="techloss-label"
+					>{getPlayerName(match.techLossUid)} тех. луз</span
+				>
+			{/if}
+			{#if canApproveOwnResult}
+				<hr style="width: 100%" />
+				<div class="match-players">
+					<span class="match-player-left"
+						>Введите время {getPlayerName(match.p1)}</span
+					>
+					<span> </span>
+					<span class="match-player-right"
+						>Введите время {getPlayerName(match.p2)}</span
+					>
+					<input
+						class="time-input match-player-left"
+						type="time"
+						step="60"
+						lang="en-GB"
+						bind:value={matchResultP1}
+					/>
+					<span> </span>
+					<input
+						class="time-input match-player-right"
+						type="time"
+						step="60"
+						lang="en-GB"
+						bind:value={matchResultP2}
+					/>
+				</div>
+			{/if}
 
-		{#if match.resultScreenshot}
-			<span>Результат</span>
-			<button
-				class="img-btn"
-				onclick={() => openImagePopup(match.resultScreenshot)}
-			>
-				<img src={bustCache(match.resultScreenshot)} alt="" />
-			</button>
-		{/if}
-		{#if canApproveOwnResult}
-			<span>Загрузить скриншот результатов</span>
-			<div class="input-row">
-				<input
-					class="input-screenshot"
-					type="file"
-					accept="image/*"
-					bind:files={inputScreenshot}
-				/>
-				<button
-					type="button"
-					class="btn-common paste-btn"
-					onclick={() => handlePasteScreenshot("own")}
-					>Вставить(Ctrl+V)</button
-				>
-			</div>
-			{#if inputScreenshotPreview.url}
+			{#if match.resultScreenshot}
+				<span>Результат</span>
 				<button
 					class="img-btn"
-					onclick={() => openImagePopup(inputScreenshotPreview.url!)}
+					onclick={() => openImagePopup(match.resultScreenshot)}
 				>
-					<img src={inputScreenshotPreview.url} alt="" />
+					<img src={bustCache(match.resultScreenshot)} alt="" />
 				</button>
 			{/if}
-			<button
-				class="btn-common"
-				class:btn-loading={isApproving}
-				onclick={handleApproveResult}
-				>Подтвердить результат {match.p1ApprovedResult ? "✅" : "❌"}
-				{match.p2ApprovedResult ? "✅" : "❌"}</button
+			{#if canApproveOwnResult}
+				<span>Загрузить скриншот результатов</span>
+				<div class="input-row">
+					<input
+						class="input-screenshot"
+						type="file"
+						accept="image/*"
+						bind:files={inputScreenshot}
+					/>
+					<button
+						type="button"
+						class="btn-common paste-btn"
+						onclick={() => handlePasteScreenshot("own")}
+						>Вставить(Ctrl+V)</button
+					>
+				</div>
+				{#if inputScreenshotPreview.url}
+					<button
+						class="img-btn"
+						onclick={() => openImagePopup(inputScreenshotPreview.url!)}
+					>
+						<img src={inputScreenshotPreview.url} alt="" />
+					</button>
+				{/if}
+				<button
+					class="btn-common"
+					class:btn-loading={isApproving}
+					onclick={handleApproveResult}
+					>Подтвердить результат {match.p1ApprovedResult ? "✅" : "❌"}
+					{match.p2ApprovedResult ? "✅" : "❌"}</button
+				>
+			{/if}
+
+			<button class="btn-common back-btn" onclick={handleClose}
+				>← Закрыть</button
 			>
-		{/if}
+		</div>
 
 		{#if canAdminSetResult}
-			<hr style="width: 100%" />
-			<span class="admin-label">Админ: изменить результат</span>
-			<div class="match-players">
-				<span class="match-player-left">{getPlayerName(match.p1)}</span>
-				<span> </span>
-				<span class="match-player-right">{getPlayerName(match.p2)}</span>
-				<input
-					class="time-input match-player-left"
-					type="time"
-					step="60"
-					lang="en-GB"
-					bind:value={matchResultP1}
-				/>
-				<span> </span>
-				<input
-					class="time-input match-player-right"
-					type="time"
-					step="60"
-					lang="en-GB"
-					bind:value={matchResultP2}
-				/>
-			</div>
-			<div class="input-row">
-				<input
-					class="input-screenshot"
-					type="file"
-					accept="image/*"
-					bind:files={adminInputScreenshot}
-				/>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="card admin-card" onclick={(e) => e.stopPropagation()}>
+				<span class="admin-label">Админ: изменить результат</span>
+				<div class="match-players">
+					<span class="match-player-left">{getPlayerName(match.p1)}</span>
+					<span> </span>
+					<span class="match-player-right">{getPlayerName(match.p2)}</span>
+					<input
+						class="time-input match-player-left"
+						type="time"
+						step="60"
+						lang="en-GB"
+						bind:value={matchResultP1}
+					/>
+					<span> </span>
+					<input
+						class="time-input match-player-right"
+						type="time"
+						step="60"
+						lang="en-GB"
+						bind:value={matchResultP2}
+					/>
+				</div>
+				<div class="input-row">
+					<input
+						class="input-screenshot"
+						type="file"
+						accept="image/*"
+						bind:files={adminInputScreenshot}
+					/>
+					<button
+						type="button"
+						class="btn-common paste-btn"
+						onclick={() => handlePasteScreenshot("admin")}
+						>Вставить из буфера</button
+					>
+				</div>
+				{#if adminScreenshotPreview.url}
+					<button
+						class="img-btn"
+						onclick={() => openImagePopup(adminScreenshotPreview.url!)}
+					>
+						<img src={adminScreenshotPreview.url} alt="" />
+					</button>
+				{/if}
 				<button
-					type="button"
-					class="btn-common paste-btn"
-					onclick={() => handlePasteScreenshot("admin")}
-					>Вставить из буфера</button
+					class="btn-common"
+					class:btn-loading={adminAction === "result"}
+					onclick={handleAdminSetResult}
 				>
-			</div>
-			{#if adminScreenshotPreview.url}
-				<button
-					class="img-btn"
-					onclick={() => openImagePopup(adminScreenshotPreview.url!)}
-				>
-					<img src={adminScreenshotPreview.url} alt="" />
+					Записать результат
 				</button>
-			{/if}
-			<button
-				class="btn-common"
-				class:btn-loading={adminAction === "result"}
-				onclick={handleAdminSetResult}
-			>
-				Записать результат
-			</button>
-			<div class="admin-techloss-row">
-				<button
-					class="btn-common danger"
-					class:btn-loading={adminAction === "techloss-p1"}
-					onclick={() => handleAdminTechLoss(match.p1)}
-				>
-					Техлуз {getPlayerName(match.p1)}
-				</button>
-				<button
-					class="btn-common danger"
-					class:btn-loading={adminAction === "techloss-p2"}
-					onclick={() => handleAdminTechLoss(match.p2)}
-				>
-					Техлуз {getPlayerName(match.p2)}
-				</button>
+				<div class="admin-techloss-row">
+					<button
+						class="btn-common danger"
+						class:btn-loading={adminAction === "techloss-p1"}
+						onclick={() => handleAdminTechLoss(match.p1)}
+					>
+						Техлуз {getPlayerName(match.p1)}
+					</button>
+					<button
+						class="btn-common danger"
+						class:btn-loading={adminAction === "techloss-p2"}
+						onclick={() => handleAdminTechLoss(match.p2)}
+					>
+						Техлуз {getPlayerName(match.p2)}
+					</button>
+				</div>
 			</div>
 		{/if}
-
-		<button class="btn-common back-btn" onclick={handleClose}
-			>← Закрыть</button
-		>
 	</div>
 </div>
 
 <style>
+	.popup-stack {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 16px;
+	}
+
 	.card {
 		width: 420px;
 		justify-content: center;
