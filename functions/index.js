@@ -37,6 +37,8 @@ export {updateMatchData} from "./admin/updateMatchData.js";
 export {updatePlayerElo} from "./admin/updatePlayerElo.js";
 
 export {applyForTournament} from "./user/applyForTournament.js";
+export {cancelTournamentRegistration}
+  from "./user/cancelTournamentRegistration.js";
 export {approveResult} from "./user/approveResult.js";
 export {register} from "./user/register.js";
 export {updateProfile} from "./user/updateProfile.js";

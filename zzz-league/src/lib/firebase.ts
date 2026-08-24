@@ -122,6 +122,10 @@ export async function applyForTournament(tournamentId: string, zzzUid: string, p
 	});
 }
 
+export async function cancelTournamentRegistration(tournamentId: string): Promise<void> {
+	await httpsCallable(functions, 'cancelTournamentRegistration')({ tournamentId });
+}
+
 export async function approveRegistration(tournamentId: string, uid: string, approved: boolean): Promise<void> {
 	await httpsCallable(functions, 'approveRegistration')({
 		tournamentId,
