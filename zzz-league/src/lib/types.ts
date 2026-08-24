@@ -10,7 +10,8 @@ export interface Player {
 	wins: number,
 	losses: number,
 	playedTournamentCount: number,
-	seasonalPlayedTournamentCount: number
+	seasonalPlayedTournamentCount: number,
+	lastPlayedTournamentTimestamp?: number
 }
 
 export interface MatchRecord {

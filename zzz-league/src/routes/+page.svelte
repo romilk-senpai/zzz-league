@@ -24,6 +24,7 @@
 	let archives = $state<Archives>({});
 
 	let searchQuery = $state("");
+	let showInactivePlayers = $state(false);
 
 	let isViewingArchive = $state(false);
 	let archiveKey = $state("");
@@ -134,6 +135,10 @@
 						>← ТЕКУЩАЯ ЛИГА</button
 					>
 				{/if}
+				<label class="filter-toggle">
+					<input type="checkbox" bind:checked={showInactivePlayers} />
+					<p>Показать неактивных игроков</p>
+				</label>
 				<input
 					class="search-input"
 					placeholder="Поиск..."
@@ -149,6 +154,7 @@
 			<Leaderboard
 				players={displayPlayers}
 				{searchQuery}
+				{showInactivePlayers}
 				hideOptions={isViewingArchive}
 			/>
 		</div>
@@ -219,5 +225,21 @@
 	.section-label {
 		width: 100%;
 		color: #555;
+	}
+
+	.filter-toggle {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		cursor: pointer;
+		color: #ccc;
+	}
+
+	.filter-toggle input {
+		padding: 0;
+	}
+
+	.filter-toggle p {
+		white-space: nowrap;
 	}
 </style>
