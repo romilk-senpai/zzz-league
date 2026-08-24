@@ -57,6 +57,11 @@ export async function finalizeTournament(): Promise<void> {
 	await httpsCallable(functions, "finalizeTournament")();
 }
 
+export async function backfillLastPlayedTimestamps(): Promise<{ success: boolean; updatedPlayers: number }> {
+	const result = await httpsCallable(functions, "backfillLastPlayedTimestamps")();
+	return result.data as { success: boolean; updatedPlayers: number };
+}
+
 export async function deleteArchive(key: string): Promise<void> {
 	await httpsCallable(functions, "deleteArchive")({ key });
 }

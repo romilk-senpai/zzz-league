@@ -86,7 +86,14 @@
 			{@const tier = getTier(player)}
 			{@const ladderPos = getLadderPos(player)}
 
-			<tr class={ladderPos < 3 ? `top-${ladderPos + 1}` : ""}>
+			<tr
+				class={[
+					ladderPos < 3 ? `top-${ladderPos + 1}` : "",
+					!isActive(player) ? "inactive" : "",
+				]
+					.filter(Boolean)
+					.join(" ")}
+			>
 				<td>{index + 1}</td>
 				<td><span class="tier-badge {tier.cls}">{tier.name}</span></td>
 				<td class="player-name">

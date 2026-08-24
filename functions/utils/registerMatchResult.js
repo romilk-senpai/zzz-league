@@ -37,6 +37,7 @@ export async function registerMatchResult(
   const historyKey = db.ref("historyV3").push().key;
 
   const increment = admin.database.ServerValue.increment(1);
+  const timestamp = Date.now();
 
   const historyEntry = {
     id: historyKey,
@@ -49,7 +50,7 @@ export async function registerMatchResult(
     resultP1,
     resultP2,
     resultScreenshot,
-    timestamp: Date.now(),
+    timestamp,
   };
 
   await db.ref().update({
@@ -59,6 +60,8 @@ export async function registerMatchResult(
       (p2.tournamentPoints || 0) + p2Change,
     [`players/${p1.uid}/${p1Win ? "wins" : "losses"}`]: increment,
     [`players/${p2.uid}/${p1Win ? "losses" : "wins"}`]: increment,
+    [`players/${p1.uid}/lastPlayedTournamentTimestamp`]: timestamp,
+    [`players/${p2.uid}/lastPlayedTournamentTimestamp`]: timestamp,
     [`historyV3/${historyKey}`]: historyEntry,
     [`historyByPlayer/${p1.uid}/${historyKey}`]: historyEntry,
     [`historyByPlayer/${p2.uid}/${historyKey}`]: historyEntry,

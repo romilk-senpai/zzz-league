@@ -1,6 +1,7 @@
 <script lang="ts">
 	import {
 		addPlayer,
+		backfillLastPlayedTimestamps,
 		finalizeTournament,
 		registerMatch,
 		resetSeason,
@@ -191,6 +192,16 @@
 		if (!name) return;
 		try {
 			await resetSeason(name);
+		} catch (error) {
+			alert(error);
+		}
+	}
+
+	async function handleBackfillLastPlayed() {
+		if (!confirm("Пересчитать дату последнего матча для всех игроков?")) return;
+		try {
+			const { updatedPlayers } = await backfillLastPlayedTimestamps();
+			alert(`Обновлено игроков: ${updatedPlayers}`);
 		} catch (error) {
 			alert(error);
 		}

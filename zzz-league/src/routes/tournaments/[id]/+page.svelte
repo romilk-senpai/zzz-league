@@ -487,18 +487,6 @@
 							class:btn-loading={deletingTournament}
 							onclick={handleDeleteTournament}>Удалить турнир</button
 						>
-						<!-- <button
-							class="btn-common"
-							class:btn-loading={incrementingSeasonalCount}
-							onclick={handleIncrementSeasonalCount}
-							>Зачислить сезонный турнир</button
-						>
-						<button
-							class="btn-common"
-							class:btn-loading={incrementingCount}
-							onclick={handleIncrementCount}
-							>Зачислить обычный турнир</button
-						> -->
 						{#if !isLocked(tournament.state)}
 							<a
 								class="btn-common"
