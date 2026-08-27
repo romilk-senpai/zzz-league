@@ -20,8 +20,12 @@
 	});
 </script>
 
-<div class="popup">
-	<div class="card profile-card">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="popup" onclick={closeProfilePopup}>
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="card profile-card" onclick={(e) => e.stopPropagation()}>
 		{#if !player}
 			<h1>Игрок не найден</h1>
 		{:else}

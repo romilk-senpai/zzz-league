@@ -52,8 +52,12 @@
 	}
 </script>
 
-<div class="popup">
-	<div class="card">
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="popup" onclick={close}>
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="card" onclick={(e) => e.stopPropagation()}>
 		{#if resettingPassword}
 			<h2>Сброс пароля</h2>
 			<div class="form-row">
