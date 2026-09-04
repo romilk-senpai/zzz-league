@@ -574,6 +574,13 @@
 							>{#if myRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</a
 						>
 					{/if}
+					{#if $currentUser && myRegistration}
+						<button
+							class="btn-common"
+							onclick={() => openRegistration($currentUser!.uid)}
+							>Моя регистрация</button
+						>
+					{/if}
 					{#if $currentUser && myRegistration && canCancelRegistration}
 						<button
 							class="btn-common danger"

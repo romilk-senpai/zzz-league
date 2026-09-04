@@ -10,8 +10,9 @@
 		reg = undefined,
 	} = $props();
 
+	let isOwnRegistration = $derived($currentUser?.uid === player?.uid);
 	let canViewHoyolab = $derived(
-		($isAdmin || $currentUser?.uid === player?.uid) &&
+		($isAdmin || isOwnRegistration) &&
 			!hasTournamentStarted(tournament?.state),
 	);
 </script>
@@ -25,7 +26,7 @@
 		<div class="card" onclick={(e) => e.stopPropagation()}>
 			<h2>Регистрация</h2>
 			<p>Discord: {player?.discord ?? "-"}</p>
-			{#if $isAdmin}
+			{#if $isAdmin || isOwnRegistration}
 				<div class="form-row">
 					<label for="reg-zzz-uid">Игровой UID</label>
 					<input
