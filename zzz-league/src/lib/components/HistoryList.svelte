@@ -3,7 +3,6 @@
 	import { db, deleteHistoryEntry } from "$lib/firebase";
 	import { isAdmin, playersByUid } from "$lib/store";
 	import {
-		bustCache,
 		dateDisplayOptions,
 		openImagePopup,
 		openProfilePopup,
@@ -177,6 +176,8 @@
 		{@const right = isLeft ? entry.p2 : entry.p1}
 		{@const leftChange = isLeft ? entry.p1Change : entry.p2Change!}
 		{@const rightChange = isLeft ? entry.p2Change : entry.p1Change}
+		{@const leftResult = isLeft ? entry.resultP1 : entry.resultP2}
+		{@const rightResult = isLeft ? entry.resultP2 : entry.resultP1}
 
 		<div class="match-item {viewerId ? `border-${changeClass(leftChange)}` : ''}">
 			<div class="match-row">
@@ -184,18 +185,14 @@
 					<span class={changeClass(leftChange)}>
 						({leftChange > 0 ? "+" : ""}{leftChange})
 					</span>
-					{#if !viewerId}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<span
-							class="history-match-player-name match-opponent"
-							onclick={() => openPlayer(left)}
-						>
-							{getPlayerName(left)}
-						</span>
-					{:else}
-						<span class="history-match-player-name">{getPlayerName(left)}</span>
-					{/if}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<span
+						class="history-match-player-name match-opponent"
+						onclick={() => openPlayer(left)}
+					>
+						{getPlayerName(left)}
+					</span>
 					{#if right}
 						<span class="history-match-player-name">vs</span>
 						<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -245,15 +242,15 @@
 
 			{#if entry.resultP1 && entry.resultP2}
 				<div class="match-result">
-					<span>{entry.resultP1}</span>
+					<span>{leftResult}</span>
 					<span class="history-match-vs">—</span>
-					<span>{entry.resultP2}</span>
+					<span>{rightResult}</span>
 					{#if entry.resultScreenshot}
 						<button
-							class="history-img-btn"
+							class="btn-common history-img-btn"
 							onclick={() => openImagePopup(entry.resultScreenshot!)}
 						>
-							<img src={bustCache(entry.resultScreenshot)} alt="" />
+							Скриншот результатов
 						</button>
 					{/if}
 				</div>
@@ -348,6 +345,10 @@
 		color: var(--gold);
 	}
 
+	.match-tournament-link:hover {
+		text-decoration: underline;
+	}
+
 	.match-adjustment {
 		color: #888;
 		font-weight: normal;
@@ -372,18 +373,9 @@
 	}
 
 	.history-img-btn {
-		background: none;
-		border: none;
-		padding: 0;
 		margin-left: auto;
-	}
-
-	.history-img-btn img {
-		width: 48px;
-		height: 48px;
-		object-fit: cover;
-		border-radius: 6px;
-		cursor: pointer;
+		padding: 6px 12px;
+		width: auto;
 	}
 
 	.load-sentinel {
