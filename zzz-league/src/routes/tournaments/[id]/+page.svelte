@@ -80,7 +80,6 @@
 			const parsed = raw ? JSON.parse(raw) : null;
 			showCompleted = parsed?.showCompleted ?? true;
 			showOnlyMine = parsed?.showOnlyMine ?? false;
-			matchSearchQuery = parsed?.matchSearchQuery ?? "";
 		} catch {
 			// localStorage unavailable — ignore
 		}
@@ -92,7 +91,7 @@
 		try {
 			localStorage.setItem(
 				`tournament-filters-${currentId}`,
-				JSON.stringify({ showCompleted, showOnlyMine, matchSearchQuery }),
+				JSON.stringify({ showCompleted, showOnlyMine }),
 			);
 		} catch {
 			// localStorage unavailable — ignore
