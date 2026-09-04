@@ -1,11 +1,27 @@
 <script lang="ts">
 	import { resolve } from "$app/paths";
+	import { getAgentAvatar } from "$lib/agentAvatars";
+	import avatarPlaceholder from "$lib/assets/avatar-placeholder.webp";
 	import { isAdmin } from "$lib/store";
 	import type { Player } from "$lib/types";
 	import { closeProfilePopup, getTier } from "$lib/uiCommon";
 	import PointsDelta from "$lib/components/PointsDelta.svelte";
 
 	let { player = null }: { player?: Player | null } = $props();
+
+	let avatar = $derived(getAgentAvatar(player?.avatar));
+
+	let copiedField = $state<string | null>(null);
+	async function copyToClipboard(text: string, field: string) {
+		if (!text) return;
+		try {
+			await navigator.clipboard.writeText(text);
+			copiedField = field;
+			setTimeout(() => {
+				if (copiedField === field) copiedField = null;
+			}, 1500);
+		} catch {}
+	}
 
 	let stats = $derived.by(() => {
 		const wins = player?.wins ?? 0;
@@ -31,14 +47,71 @@
 		{:else}
 			{@const tier = getTier(player)}
 
-			<h1 id="profName">{player.name}</h1>
-			<div id="profTier">
-				<span class="tier-badge {tier.cls}">{tier.name}</span>
+			{#snippet copyIcon()}
+				<svg
+					width="18"
+					height="18"
+					viewBox="0 0 24 24"
+					fill="none"
+					xmlns="http://www.w3.org/2000/svg"
+				>
+					<path
+						d="M17.5 14H19C20.1046 14 21 13.1046 21 12V5C21 3.89543 20.1046 3 19 3H12C10.8954 3 10 3.89543 10 5V6.5M5 10H12C13.1046 10 14 10.8954 14 12V19C14 20.1046 13.1046 21 12 21H5C3.89543 21 3 20.1046 3 19V12C3 10.8954 3.89543 10 5 10Z"
+						stroke="currentColor"
+						stroke-width="1.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+				</svg>
+			{/snippet}
+
+			<div class="profile-header">
+				<span
+					class="avatar-wrap"
+					style="background-image: url({avatarPlaceholder})"
+				>
+					{#if avatar}
+						<img class="profile-avatar" src={avatar.src} alt={avatar.name} />
+					{/if}
+				</span>
+				<div class="profile-header-info">
+					<div class="profile-name-row">
+						<h1 id="profName">{player.name}</h1>
+						<span class="tier-badge {tier.cls}">{tier.name}</span>
+					</div>
+					<button
+						type="button"
+						class="info-card"
+						class:copied={copiedField === "discord"}
+						disabled={!player.discord}
+						onclick={() => copyToClipboard(player.discord, "discord")}
+						title="Скопировать"
+					>
+						<span class="info-label">Discord</span>
+						<span class="info-value">{player.discord ?? "-"}</span>
+						{#if copiedField === "discord"}
+							<span class="copied-label">Скопировано</span>
+						{/if}
+						<span class="copy-icon">{@render copyIcon()}</span>
+					</button>
+					{#if $isAdmin}
+						<button
+							type="button"
+							class="info-card"
+							class:copied={copiedField === "uid"}
+							onclick={() => copyToClipboard(player.uid, "uid")}
+							title="Скопировать"
+						>
+							<span class="info-label">UID</span>
+							<span class="info-value">{player.uid}</span>
+							{#if copiedField === "uid"}
+								<span class="copied-label">Скопировано</span>
+							{/if}
+							<span class="copy-icon">{@render copyIcon()}</span>
+						</button>
+					{/if}
+				</div>
 			</div>
-			<div id="discordTag">Discord: {player.discord ?? "-"}</div>
-			{#if $isAdmin}
-				<div id="discordTag">UID: {player.uid}</div>
-			{/if}
 
 			<div class="stat-grid">
 				<div class="stat-item elo-item">
@@ -101,31 +174,149 @@
 
 <style>
 	.profile-card {
+		width: 480px;
 		text-align: center;
 	}
 
+	.profile-header {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 16px;
+		text-align: left;
+	}
+
+	.avatar-wrap {
+		flex-shrink: 0;
+		width: 96px;
+		height: 96px;
+		border-radius: 50%;
+		border: 2px solid #444;
+		background-size: cover;
+		background-position: center;
+		overflow: hidden;
+	}
+
+	.profile-avatar {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.profile-header-info {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+		min-width: 0;
+		flex: 1;
+	}
+
+	.profile-name-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+	}
+
+	.profile-name-row h1 {
+		margin-bottom: 0;
+		font-size: 20px;
+	}
+
+	.info-card {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		background: #222;
+		padding: 6px 10px;
+		border-radius: 8px;
+		border: 1px solid #333;
+		font-size: 13px;
+		cursor: pointer;
+		transition: 0.15s;
+	}
+
+	.info-card:hover {
+		border-color: #555;
+		background: #272727;
+	}
+
+	.info-card:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+
+	.info-label {
+		flex-shrink: 0;
+		color: #888;
+		font-size: 12px;
+	}
+
+	.info-value {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		text-align: left;
+		color: #ddd;
+	}
+
+	.copied-label {
+		flex-shrink: 0;
+		color: var(--gold);
+		font-size: 12px;
+		white-space: nowrap;
+	}
+
+	.copy-icon {
+		flex-shrink: 0;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		color: #888;
+		transition: 0.15s;
+	}
+
+	.info-card:hover .copy-icon,
+	.info-card.copied .copy-icon {
+		color: var(--gold);
+	}
+
 	.btn-history {
-		margin-top: 14px;
+		margin-top: 8px;
 	}
 
 	.stat-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 15px;
-		margin-top: 25px;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+		margin-top: 16px;
 	}
 
 	.stat-item {
+		flex: 1 1 130px;
+		height: 42px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
 		background: #222;
-		padding: 20px;
-		border-radius: 12px;
+		padding: 0 14px;
+		border-radius: 8px;
 		border: 1px solid #333;
 	}
 
+	.elo-item {
+		flex-basis: 100%;
+	}
+
 	.stat-label {
-		color: #888;
-		text-transform: uppercase;
-		margin-bottom: 5px;
+		color: #9f9f9f;
+		/* text-transform: uppercase; */
 	}
 
 	.stat-value {
@@ -135,10 +326,6 @@
 
 	.winrate {
 		color: #2eb82e;
-	}
-
-	.elo-item {
-		grid-column: span 2;
 	}
 
 	.gold {
