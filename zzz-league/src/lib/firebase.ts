@@ -70,6 +70,10 @@ export async function updateProfile(username: string | null): Promise<void> {
 	await httpsCallable(functions, 'updateProfile')({ username });
 }
 
+export async function updateAvatar(avatar: string): Promise<void> {
+	await httpsCallable(functions, 'updateAvatar')({ avatar });
+}
+
 export async function linkDiscord(code: string, redirectUri: string): Promise<void> {
 	await httpsCallable(functions, 'linkDiscord')({ code, redirectUri });
 }

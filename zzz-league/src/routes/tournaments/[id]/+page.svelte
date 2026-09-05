@@ -80,7 +80,6 @@
 			const parsed = raw ? JSON.parse(raw) : null;
 			showCompleted = parsed?.showCompleted ?? true;
 			showOnlyMine = parsed?.showOnlyMine ?? false;
-			matchSearchQuery = parsed?.matchSearchQuery ?? "";
 		} catch {
 			// localStorage unavailable — ignore
 		}
@@ -92,7 +91,7 @@
 		try {
 			localStorage.setItem(
 				`tournament-filters-${currentId}`,
-				JSON.stringify({ showCompleted, showOnlyMine, matchSearchQuery }),
+				JSON.stringify({ showCompleted, showOnlyMine }),
 			);
 		} catch {
 			// localStorage unavailable — ignore
@@ -572,6 +571,13 @@
 							class="btn-common btn-play"
 							href={resolve(`/tournaments/${tournament.id}/register`)}
 							>{#if myRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</a
+						>
+					{/if}
+					{#if $currentUser && myRegistration}
+						<button
+							class="btn-common"
+							onclick={() => openRegistration($currentUser!.uid)}
+							>Моя регистрация</button
 						>
 					{/if}
 					{#if $currentUser && myRegistration && canCancelRegistration}

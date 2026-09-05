@@ -6,11 +6,15 @@
 		openSettingsPopup,
 	} from "$lib/uiCommon";
 
+	import { getAgentAvatar } from "$lib/agentAvatars";
+	import avatarPlaceholder from "$lib/assets/avatar-placeholder.webp";
 	import { auth } from "$lib/firebase";
 	import { signOut } from "firebase/auth";
 	import AdminPanel from "./AdminPanel.svelte";
 	import { currentUser, isAdmin } from "$lib/store";
 	import { resolve } from "$app/paths";
+
+	let avatar = $derived(getAgentAvatar($currentUser?.avatar));
 </script>
 
 <div class="side-panel">
@@ -30,8 +34,17 @@
 			<button
 				class="user-label"
 				onclick={() => openProfilePopup($currentUser)}
-				><h2>{$currentUser.name}</h2></button
 			>
+				<span
+					class="avatar-wrap"
+					style="background-image: url({avatarPlaceholder})"
+				>
+					{#if avatar}
+						<img class="user-avatar" src={avatar.src} alt={avatar.name} />
+					{/if}
+				</span>
+				<h2>{$currentUser.name}</h2>
+			</button>
 			<button class="btn-common" onclick={openSettingsPopup}
 				>Настройки</button
 			>
@@ -108,6 +121,39 @@
 </div>
 
 <style>
+	.user-label {
+		display: flex;
+		align-items: center;
+		gap: 18px;
+		width: 100%;
+		margin-bottom: 8px;
+	}
+
+	.user-label h2 {
+		flex: 1;
+		border-bottom: none;
+		padding-bottom: 0;
+		margin-bottom: 0;
+	}
+
+	.avatar-wrap {
+		flex-shrink: 0;
+		width: 42px;
+		height: 42px;
+		border-radius: 50%;
+		border: 2px solid #444;
+		background-size: cover;
+		background-position: center;
+		overflow: hidden;
+	}
+
+	.user-avatar {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
 	.rules-list {
 		padding-left: 18px;
 		margin: 0;

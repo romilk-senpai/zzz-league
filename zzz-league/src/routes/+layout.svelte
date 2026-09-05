@@ -59,6 +59,7 @@
 							seasonalPlayedTournamentCount:
 								player.seasonalPlayedTournamentCount ?? 0,
 							lastRegistration: player.lastRegistration,
+							avatar: player.avatar,
 						};
 						$role = player.role ?? "player";
 					}

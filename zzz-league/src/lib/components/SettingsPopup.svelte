@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { getAgentAvatar } from "$lib/agentAvatars";
+	import AvatarPickerPopup from "$lib/components/AvatarPickerPopup.svelte";
 	import { openDiscordOAuth } from "$lib/discord";
 	import { auth, unlinkDiscord, updateProfile } from "$lib/firebase";
 	import { currentUser } from "$lib/store";
@@ -10,6 +12,7 @@
 	} from "firebase/auth";
 
 	let user = $derived($currentUser!);
+	let selectedAvatar = $derived(getAgentAvatar(user.avatar));
 
 	// svelte-ignore state_referenced_locally
 	let username = $state(user.name);
@@ -20,6 +23,7 @@
 	let status = $state("");
 	let savingSettings = $state(false);
 	let unlinkingDiscord = $state(false);
+	let avatarPickerOpen = $state(false);
 
 	function close() {
 		currentPassword = "";
@@ -111,6 +115,17 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="card" onclick={(e) => e.stopPropagation()}>
 		<h2>Настройки аккаунта</h2>
+		<button
+			type="button"
+			class="avatar-preview"
+			onclick={() => (avatarPickerOpen = true)}
+		>
+			{#if selectedAvatar}
+				<img src={selectedAvatar.src} alt={selectedAvatar.name} />
+			{:else}
+				<span class="avatar-placeholder">?</span>
+			{/if}
+		</button>
 		<div class="form-row">
 			<label for="settings-email">Email</label>
 			<input
@@ -194,3 +209,42 @@
 		</div>
 	</div>
 </div>
+
+<AvatarPickerPopup bind:open={avatarPickerOpen} selected={user.avatar} />
+
+<style>
+	.avatar-preview {
+		display: block;
+		width: 72px;
+		height: 72px;
+		margin: 0 auto 10px;
+		padding: 0;
+		border-radius: 50%;
+		border: 2px solid #444;
+		background: #222;
+		cursor: pointer;
+		overflow: hidden;
+		transition: 0.15s;
+	}
+
+	.avatar-preview:hover {
+		border-color: var(--gold);
+	}
+
+	.avatar-preview img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+
+	.avatar-placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
+		color: #888;
+		font-size: 24px;
+	}
+</style>

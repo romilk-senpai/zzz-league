@@ -12,7 +12,8 @@ export interface Player {
 	playedTournamentCount: number,
 	seasonalPlayedTournamentCount: number,
 	lastPlayedTournamentTimestamp?: number,
-	lastRegistration?: LastRegistrationData
+	lastRegistration?: LastRegistrationData,
+	avatar?: string
 }
 
 export interface LastRegistrationData {

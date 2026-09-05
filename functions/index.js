@@ -42,6 +42,7 @@ export {cancelTournamentRegistration}
 export {approveResult} from "./user/approveResult.js";
 export {register} from "./user/register.js";
 export {updateProfile} from "./user/updateProfile.js";
+export {updateAvatar} from "./user/updateAvatar.js";
 
 export {linkDiscord} from "./discord/linkDiscord.js";
 export {unlinkDiscord} from "./discord/unlinkDiscord.js";
