@@ -2,7 +2,6 @@
 	import {
 		openLoginPopup,
 		openProfilePopup,
-		openRegistrationPopup,
 		openSettingsPopup,
 	} from "$lib/uiCommon";
 
@@ -23,9 +22,6 @@
 			<div class="btn-row">
 				<button class="btn-common btn-play" onclick={openLoginPopup}
 					>Вход</button
-				>
-				<button class="btn-common" onclick={openRegistrationPopup}
-					>Регистрация</button
 				>
 			</div>
 		</div>

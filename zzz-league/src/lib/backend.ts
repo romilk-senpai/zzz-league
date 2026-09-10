@@ -1,6 +1,6 @@
 // REST wrappers against ZenlessLeague.Api, replacing the Firebase Cloud Functions callables in
-// firebase.ts for everything except auth-adjacent flows (registerUser/linkDiscord/unlinkDiscord,
-// explicitly out of scope — those stay on Firebase Functions until the auth migration phase).
+// firebase.ts for everything except auth-adjacent flows (loginWithDiscord/linkDiscord/unlinkDiscord,
+// which live in firebase.ts since they're tied to signInWithCustomToken).
 import { apiDelete, apiGet, apiPost, apiPut } from './api';
 import type {
 	Archive,

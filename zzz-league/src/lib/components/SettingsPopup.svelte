@@ -36,7 +36,7 @@
 
 	async function handleLinkDiscord() {
 		try {
-			openDiscordOAuth();
+			openDiscordOAuth('link');
 		} catch (error: any) {
 			status = error.message;
 		}

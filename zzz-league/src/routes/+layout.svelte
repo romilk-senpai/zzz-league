@@ -5,7 +5,6 @@
 		profileUser,
 		settingsOpen,
 		loginOpen,
-		registerOpen,
 		currentUser,
 		role,
 		viewingImage,
@@ -17,7 +16,6 @@
 
 	import LoginPopup from "$lib/components/LoginPopup.svelte";
 	import PlayerProfilePopup from "$lib/components/PlayerProfilePopup.svelte";
-	import RegisterPopup from "$lib/components/RegisterPopup.svelte";
 	import SettingsPopup from "$lib/components/SettingsPopup.svelte";
 	import { onMount } from "svelte";
 	import { onAuthStateChanged } from "firebase/auth";
@@ -74,7 +72,6 @@
 {@render children()}
 
 {#if $loginOpen}<LoginPopup />{/if}
-{#if $registerOpen}<RegisterPopup />{/if}
 {#if $settingsOpen}<SettingsPopup />{/if}
 {#if profileOpen}<PlayerProfilePopup player={$profileUser} />{/if}
 {#if imageViewerOpen}<ImageViwerPopup src={$viewingImage} />{/if}

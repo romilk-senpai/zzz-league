@@ -1,10 +1,15 @@
 <script lang="ts">
 	import { auth } from "$lib/firebase";
+	import { openDiscordOAuth } from "$lib/discord";
 	import { closeLoginPopup } from "$lib/uiCommon";
 	import {
 		sendPasswordResetEmail,
 		signInWithEmailAndPassword,
 	} from "firebase/auth";
+
+	function handleDiscordLogin() {
+		openDiscordOAuth("login");
+	}
 
 	let email = $state("");
 	let password = $state("");
@@ -82,6 +87,12 @@
 			</div>
 		{:else}
 			<h2>Вход</h2>
+			<div class="btn-row">
+				<button class="btn-common btn-play" onclick={handleDiscordLogin}
+					>Войти через Discord</button
+				>
+			</div>
+			<p class="login-divider">или по email</p>
 			<div class="form-row">
 				<label for="login-email">Email</label>
 				<input

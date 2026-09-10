@@ -1,11 +1,10 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, signInWithCustomToken } from 'firebase/auth'
-import { getFunctions, httpsCallable } from 'firebase/functions'
+import { apiPost } from './api'
 
 // Firebase Auth stays the identity provider (see zzz-league-server's migration plan) — everything
 // else has moved to backend.ts against ZenlessLeague.Api. What's left here is genuinely
-// auth-adjacent and explicitly out of scope for that migration: account creation (tied to
-// signInWithCustomToken) and Discord OAuth linking.
+// auth-adjacent: signInWithCustomToken-based login and Discord OAuth linking.
 const firebaseConfig = {
 	apiKey: "AIzaSyAlcnUiLJ1cq7ekCQFi_NOPAQ6UiG92ZqM",
 	databaseURL: "https://zzz-league-default-rtdb.firebaseio.com",
@@ -15,22 +14,19 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-const functions = getFunctions(app, "europe-west1");
 
-export async function registerUser(
-	username: string,
-	email: string,
-	password: string,
-): Promise<void> {
-	const fn = httpsCallable(functions, 'register');
-	const result = await fn({ username, email, password }) as any;
-	await signInWithCustomToken(auth, result.data.token);
+// Login via Discord OAuth, against ZenlessLeague.Api rather than a Firebase Function — the new
+// backend mints the Firebase custom token itself (see Features/Auth/AuthService.cs). Auto-creates
+// a Player if this Discord id hasn't been seen before.
+export async function loginWithDiscord(code: string, redirectUri: string): Promise<void> {
+	const { token } = await apiPost<{ token: string }>('/api/auth/discord/login', { code, redirectUri });
+	await signInWithCustomToken(auth, token);
 }
 
 export async function linkDiscord(code: string, redirectUri: string): Promise<void> {
-	await httpsCallable(functions, 'linkDiscord')({ code, redirectUri });
+	await apiPost('/api/players/me/discord/link', { code, redirectUri });
 }
 
 export async function unlinkDiscord(): Promise<void> {
-	await httpsCallable(functions, 'unlinkDiscord')();
+	await apiPost('/api/players/me/discord/unlink');
 }

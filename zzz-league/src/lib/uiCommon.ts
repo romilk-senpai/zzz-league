@@ -1,6 +1,6 @@
 import DOMPurify from "dompurify";
 import { marked } from "marked";
-import { loginOpen, profileUser, registerOpen, settingsOpen, viewingImage } from "./store";
+import { loginOpen, profileUser, settingsOpen, viewingImage } from "./store";
 import type { Player } from "./types";
 
 marked.setOptions({ breaks: true });
@@ -65,14 +65,6 @@ export function openLoginPopup() {
 
 export function closeLoginPopup() {
 	loginOpen.set(false);
-}
-
-export function openRegistrationPopup() {
-	registerOpen.set(true);
-}
-
-export function closeRegistrationPopup() {
-	registerOpen.set(false);
 }
 
 export function openSettingsPopup() {

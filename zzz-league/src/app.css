@@ -400,6 +400,12 @@ h1 {
 	align-self: center;
 }
 
+.login-divider {
+	text-align: center;
+	color: #888;
+	margin: 4px 0;
+}
+
 .back-btn {
 	display: inline-block;
 	margin-top: 14px;
