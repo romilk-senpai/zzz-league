@@ -25,7 +25,7 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card" onclick={(e) => e.stopPropagation()}>
 			<h2>Регистрация</h2>
-			<p>Discord: {player?.discord ?? "-"}</p>
+			<p>Discord: {player?.discordUsername ?? "-"}</p>
 			{#if $isAdmin || isOwnRegistration}
 				<div class="form-row">
 					<label for="reg-zzz-uid">Игровой UID</label>
@@ -33,21 +33,21 @@
 						id="reg-zzz-uid"
 						type="text"
 						class="input-disabled"
-						value={reg?.zzzUid ?? ""}
+						value={reg?.player1?.gameUid ?? ""}
 						placeholder="Игровой UID"
 						disabled
 					/>
 				</div>
 				<div class="form-row">
 					<label for="reg-prize-uid">UID для призовых</label>
-					{#if reg?.prizeAsMoney}
+					{#if reg?.player1?.prizeAsMoney}
 						<p id="reg-prize-uid">Выбран призовой деньгами</p>
 					{:else}
 						<input
 							id="reg-prize-uid"
 							type="text"
 							class="input-disabled"
-							value={reg?.prizeUid ?? ""}
+							value={reg?.player1?.prizeUid ?? ""}
 							placeholder="UID для призовых"
 							disabled
 						/>
@@ -60,7 +60,7 @@
 					id="reg-darte-nickname"
 					class="input-disabled"
 					type="text"
-					value={reg?.darteNickname ?? ""}
+					value={reg?.player1?.darteNickname ?? ""}
 					placeholder="Ник на Darte"
 					disabled
 				/>
@@ -71,7 +71,7 @@
 					id="reg-darte-account"
 					class="input-disabled"
 					type="text"
-					value={reg?.darteAccount ?? ""}
+					value={reg?.player1?.dartePresetName ?? ""}
 					placeholder="Название аккаунта на Darte"
 					disabled
 				/>
@@ -82,30 +82,30 @@
 					id="reg-darte-preset"
 					class="input-disabled"
 					type="text"
-					value={reg?.dartePreset ?? ""}
+					value={reg?.player1?.rosterName ?? ""}
 					placeholder="Название пресета"
 					disabled
 				/>
 			</div>
 			<hr style="width: 100%" />
 			<span>Скриншот ростера</span>
-			{#if reg?.rosterScreenshot}
+			{#if reg?.player1?.rosterScreenshotUrl}
 				<button
 					class="img-btn"
-					onclick={() => openImagePopup(reg.rosterScreenshot)}
+					onclick={() => openImagePopup(reg.player1.rosterScreenshotUrl)}
 				>
-					<img src={bustCache(reg.rosterScreenshot)} alt="" />
+					<img src={bustCache(reg.player1.rosterScreenshotUrl)} alt="" />
 				</button>
 			{/if}
 			{#if canViewHoyolab}
 				<hr style="width: 100%" />
 				<span>Скриншот персонажей в Hoyolab</span>
-				{#if reg?.hoyolabScreenshot}
+				{#if reg?.player1?.hoyolabScreenshotUrl}
 					<button
 						class="img-btn"
-						onclick={() => openImagePopup(reg.hoyolabScreenshot)}
+						onclick={() => openImagePopup(reg.player1.hoyolabScreenshotUrl)}
 					>
-						<img src={bustCache(reg.hoyolabScreenshot)} alt="" />
+						<img src={bustCache(reg.player1.hoyolabScreenshotUrl)} alt="" />
 					</button>
 				{/if}
 			{/if}

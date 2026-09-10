@@ -7,22 +7,34 @@
 	import TournamentPlayerTable from "$lib/components/TournamentPlayerTable.svelte";
 	import TournamentRegisterPopup from "$lib/components/TournamentRegistrationPopup.svelte";
 	import TournamentAddPlayerPopup from "$lib/components/TournamentAddPlayerPopup.svelte";
+	import TeamDetailsPopup from "$lib/components/TeamDetailsPopup.svelte";
 	import {
 		cancelTournamentRegistration,
 		closeTournamentRegistration,
 		createChallongeBracket,
-		db,
 		deleteTournament,
 		finishTournament,
+		getTeam,
+		getTournament,
 		incrementSeasonalTournamentCount,
 		incrementTournamentCount,
+		listRegistrations,
 		startChallongeTournament,
 		updateTournamentGames,
-	} from "$lib/firebase";
-	import { currentUser, isAdmin, playersByUid } from "$lib/store";
+	} from "$lib/backend";
+	import {
+		joinTournamentGroup,
+		leaveTournamentGroup,
+		onMatchChanged,
+		onMatchesSynced,
+		onRegistrationChanged,
+		onTournamentChanged,
+	} from "$lib/signalr";
+	import { currentUser, isAdmin, playersByUid, refreshPlayers } from "$lib/store";
 	import type {
 		Player,
 		RegisteredPlayer,
+		Team,
 		Tournament,
 		TournamentMatch,
 		TournamentRegistration,
@@ -38,7 +50,6 @@
 	} from "$lib/tournamentState";
 	import { dateDisplayOptions, renderMarkdown } from "$lib/uiCommon";
 	import { capDefaultHeight } from "$lib/actions/capDefaultHeight";
-	import { onValue, ref } from "firebase/database";
 	import { onMount } from "svelte";
 
 	const id = $derived(page.params.id);
@@ -47,12 +58,18 @@
 	let tournament = $state<Tournament>();
 	let userRegistration = $state<TournamentRegistration | null>();
 	let userPlayer = $state<Player | null>();
-	let myRegistration = $state<TournamentRegistration | null>();
 	let registrations = $state<TournamentRegistration[]>([]);
+	let myRegistration = $derived(
+		$currentUser
+			? (registrations.find((r) => r.playerId === $currentUser!.uid) ?? null)
+			: null,
+	);
 	let registeredPlayers = $derived(
 		registrations
 			.map((registration) => {
-				const player = $playersByUid.get(registration.uid);
+				const player = registration.playerId
+					? $playersByUid.get(registration.playerId)
+					: undefined;
 				return player ? { player, registration } : null;
 			})
 			.filter(Boolean) as RegisteredPlayer[],
@@ -61,7 +78,10 @@
 	let registrationOpen = $state(false);
 	let matchOpen = $state(false);
 	let addPlayerPopupOpen = $state(false);
-	let currentMatchId = $state();
+	let teamsById = $state<Map<string, Team>>(new Map());
+	let teamDetailsOpen = $state(false);
+	let selectedTeam = $state<Team | null>(null);
+	let currentMatchId = $state<string>();
 	let currentMatch = $derived(
 		tournament?.matches.find((m: TournamentMatch) => m.id === currentMatchId),
 	);
@@ -98,6 +118,27 @@
 		}
 	});
 
+	$effect(() => {
+		const matches = tournament?.matches;
+		if (!matches) return;
+		const ids = new Set<string>();
+		for (const m of matches) {
+			if (m.p1TeamId) ids.add(m.p1TeamId);
+			if (m.p2TeamId) ids.add(m.p2TeamId);
+		}
+		const missing = [...ids].filter((teamId) => !teamsById.has(teamId));
+		if (missing.length === 0) return;
+
+		(async () => {
+			const loaded = await Promise.all(missing.map((teamId) => getTeam(teamId)));
+			const next = new Map(teamsById);
+			loaded.forEach((team, i) => {
+				if (team) next.set(missing[i], team);
+			});
+			teamsById = next;
+		})();
+	});
+
 	let currentUserParticipates = $derived(
 		!!$currentUser &&
 			registeredPlayers.some((p) => p.player.uid === $currentUser!.uid),
@@ -105,7 +146,7 @@
 
 	let filteredMatches = $derived(
 		tournament?.matches.filter((m: TournamentMatch) => {
-			if (m.p1 === "TBD" || m.p2 === "TBD") return false;
+			if (!(m.p1 && m.p2) && !(m.p1TeamId && m.p2TeamId)) return false;
 			if (!showCompleted && m.state === "complete") return false;
 			if (
 				showOnlyMine &&
@@ -116,8 +157,10 @@
 				return false;
 			if (matchSearchQuery) {
 				const query = matchSearchQuery.toLowerCase();
-				const p1Name = getPlayerName(m.p1)?.toLowerCase() ?? "";
-				const p2Name = getPlayerName(m.p2)?.toLowerCase() ?? "";
+				const p1Name =
+					getMatchSideLabel(m.p1, m.p1TeamId)?.toLowerCase() ?? "";
+				const p2Name =
+					getMatchSideLabel(m.p2, m.p2TeamId)?.toLowerCase() ?? "";
 				if (!p1Name.includes(query) && !p2Name.includes(query))
 					return false;
 			}
@@ -148,24 +191,6 @@
 				now,
 			),
 	);
-	let unsubRegistration: (() => void) | null = null;
-
-	$effect(() => {
-		if ($currentUser) {
-			unsubRegistration?.();
-			unsubRegistration = onValue(
-				ref(db, `tournaments/${id}/registrations/${$currentUser.uid}`),
-				(snap) => {
-					myRegistration = snap.val() as TournamentRegistration | null;
-				},
-			);
-		} else {
-			unsubRegistration?.();
-			unsubRegistration = null;
-			myRegistration = null;
-		}
-	});
-
 	let canCancelRegistration = $derived(
 		!!tournament && !isLocked(tournament.state) && !tournament.challongeTournamentId,
 	);
@@ -232,15 +257,10 @@
 
 	let updatingGames = $state(false);
 	async function handleUpdateTournamentGames() {
-		if (updatingGames) return;
+		if (updatingGames || !tournament) return;
 		updatingGames = true;
 		try {
-			if (tournament) {
-				await updateTournamentGames(
-					tournament.id,
-					tournament.challongeTournamentId,
-				);
-			}
+			await updateTournamentGames(tournament.id);
 		} catch (error) {
 			alert(error);
 		} finally {
@@ -250,16 +270,11 @@
 
 	let finishingTournament = $state(false);
 	async function handleFinishTournament() {
-		if (finishingTournament) return;
+		if (finishingTournament || !tournament) return;
 		if (!confirm("Закончить турнир?")) return;
 		finishingTournament = true;
 		try {
-			if (tournament) {
-				await finishTournament(
-					tournament.id,
-					tournament.challongeTournamentUrl,
-				);
-			}
+			await finishTournament(tournament.id);
 		} catch (error) {
 			alert(error);
 		} finally {
@@ -324,13 +339,27 @@
 		}
 	}
 
-	function getPlayerName(uid: string) {
+	function getPlayerName(uid: string | null) {
+		if (!uid) return undefined;
 		return registeredPlayers.find((p) => p.player.uid === uid)?.player.name;
 	}
 
+	// 2v2 equivalent of getPlayerName — "TEAM_NAME (P1 + P2)", per how team participants are
+	// named on the Challonge bracket itself.
+	function getTeamLabel(teamId: string | null) {
+		if (!teamId) return undefined;
+		const team = teamsById.get(teamId);
+		if (!team) return undefined;
+		return `${team.name} (${team.creator.name} + ${team.player2.name})`;
+	}
+
+	function getMatchSideLabel(uid: string | null, teamId: string | null) {
+		return teamId ? getTeamLabel(teamId) : getPlayerName(uid);
+	}
+
 	function getPlayerClass(
-		player: string,
-		winnerId: string,
+		player: string | null,
+		winnerId: string | null,
 		techLossUid?: string | null,
 	) {
 		if (player === techLossUid) return "match-techloss";
@@ -339,11 +368,20 @@
 		return player === winnerId ? "match-winner" : "match-loser";
 	}
 
-	function openRegistration(uid: string) {
+	function openRegistration(uid: string | null) {
+		if (!uid) return;
 		const found = registeredPlayers.find((p) => p.player.uid === uid);
 		userRegistration = found?.registration;
 		userPlayer = found?.player;
 		if (userRegistration) registrationOpen = true;
+	}
+
+	function openTeamDetails(teamId: string | null) {
+		if (!teamId) return;
+		const team = teamsById.get(teamId);
+		if (!team) return;
+		selectedTeam = team;
+		teamDetailsOpen = true;
 	}
 
 	function openMatch(match: TournamentMatch) {
@@ -352,38 +390,57 @@
 	}
 
 	onMount(() => {
-		const unsubTournament = onValue(ref(db, "tournaments/" + id), (snap) => {
-			const data = snap.val();
-			if (!data) return;
+		const tournamentId = id!;
+		let cancelled = false;
 
-			const matches = data.matches ?? {};
-			tournament = {
-				...data,
-				matches: Object.entries(matches).map(
-					([, match]: [string, any]) => ({
-						...match,
-					}),
-				),
-			};
+		async function loadTournament() {
+			const loaded = await getTournament(tournamentId);
+			if (!cancelled) tournament = loaded ?? undefined;
+		}
+
+		async function loadRegistrations() {
+			const loaded = await listRegistrations(tournamentId);
+			if (!cancelled) registrations = loaded;
+		}
+
+		loadTournament();
+		loadRegistrations();
+		joinTournamentGroup(tournamentId);
+
+		// Match results (and tournament finish) change player Elo/tier/points, which live in the
+		// separate global `players` store (see $lib/store) — refresh it alongside the
+		// tournament/match data so TournamentPlayerTable's Elo/tier columns update live too,
+		// instead of only reflecting whatever was loaded on initial page mount.
+		const unsubTournamentChanged = onTournamentChanged((changedId) => {
+			if (changedId !== tournamentId) return;
+			loadTournament();
+			refreshPlayers();
 		});
-
-		const unsubRegistrations = onValue(
-			ref(db, `tournaments/${id}/registrations/`),
-			(snap) => {
-				const data = snap.val();
-				registrations = data
-					? (Object.values(data) as TournamentRegistration[])
-					: [];
-			},
-		);
+		const unsubRegistrationChanged = onRegistrationChanged((changedId) => {
+			if (changedId === tournamentId) loadRegistrations();
+		});
+		const unsubMatchChanged = onMatchChanged((changedId) => {
+			if (changedId !== tournamentId) return;
+			loadTournament();
+			refreshPlayers();
+		});
+		const unsubMatchesSynced = onMatchesSynced((changedId) => {
+			if (changedId !== tournamentId) return;
+			loadTournament();
+			refreshPlayers();
+		});
 
 		const interval = setInterval(() => {
 			now = Date.now();
 		}, 1000);
 
 		return () => {
-			unsubTournament();
-			unsubRegistrations();
+			cancelled = true;
+			leaveTournamentGroup(tournamentId);
+			unsubTournamentChanged();
+			unsubRegistrationChanged();
+			unsubMatchChanged();
+			unsubMatchesSynced();
 			clearInterval(interval);
 		};
 	});
@@ -402,7 +459,7 @@
 					<p>Сетка {tournament.divisionIndex}</p>
 				{/if}
 				<div class="description-text">
-					{@html renderMarkdown(tournament.description)}
+					{@html renderMarkdown(tournament.description ?? "")}
 				</div>
 				<p>
 					Рамки коста
@@ -566,10 +623,14 @@
 							>
 						{/if}
 					{/if}
-					{#if $currentUser && tierEligible && registrationWindowOpen}
+					{#if $currentUser && registrationWindowOpen && (tournament.registrationType === "team" || tierEligible)}
 						<a
 							class="btn-common btn-play"
-							href={resolve(`/tournaments/${tournament.id}/register`)}
+							href={resolve(
+								tournament.registrationType === "team"
+									? `/tournaments/${tournament.id}/register-team`
+									: `/tournaments/${tournament.id}/register`,
+							)}
 							>{#if myRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</a
 						>
 					{/if}
@@ -594,6 +655,10 @@
 			{#if tournament.winnerId}
 				<h2 class="winner-label">
 					Победил {getPlayerName(tournament.winnerId)!}
+				</h2>
+			{:else if tournament.winnerTeamId}
+				<h2 class="winner-label">
+					Победила {getTeamLabel(tournament.winnerTeamId)!}
 				</h2>
 			{/if}
 
@@ -702,28 +767,40 @@
 										<!-- svelte-ignore a11y_no_static_element_interactions -->
 										<span
 											class="match-player-name match-player-left hover-emphasis {getPlayerClass(
-												match.p1,
-												match.winnerId,
-												match.techLossUid,
+												match.p1 ?? match.p1TeamId,
+												match.winnerId ?? match.winnerTeamId,
+												match.techLossUid ?? match.techLossTeamId,
 											)} {match.p1 === $currentUser?.uid
 												? 'match-player-self'
 												: ''}"
-											onclick={() => openRegistration(match.p1)}
-											>{getPlayerName(match.p1)}</span
+											onclick={() =>
+												match.p1TeamId
+													? openTeamDetails(match.p1TeamId)
+													: openRegistration(match.p1)}
+											>{getMatchSideLabel(
+												match.p1,
+												match.p1TeamId,
+											)}</span
 										>
 										<span class="match-vs">vs</span>
 										<!-- svelte-ignore a11y_click_events_have_key_events -->
 										<!-- svelte-ignore a11y_no_static_element_interactions -->
 										<span
 											class="match-player-name match-player-right hover-emphasis {getPlayerClass(
-												match.p2,
-												match.winnerId,
-												match.techLossUid,
+												match.p2 ?? match.p2TeamId,
+												match.winnerId ?? match.winnerTeamId,
+												match.techLossUid ?? match.techLossTeamId,
 											)} {match.p2 === $currentUser?.uid
 												? 'match-player-self'
 												: ''}"
-											onclick={() => openRegistration(match.p2)}
-											>{getPlayerName(match.p2)}</span
+											onclick={() =>
+												match.p2TeamId
+													? openTeamDetails(match.p2TeamId)
+													: openRegistration(match.p2)}
+											>{getMatchSideLabel(
+												match.p2,
+												match.p2TeamId,
+											)}</span
 										>
 									</div>
 								</div>
@@ -781,6 +858,7 @@
 		{tournament}
 		match={currentMatch}
 		{registeredPlayers}
+		{teamsById}
 	></TournamentGamePopup>
 {/if}
 {#if addPlayerPopupOpen}
@@ -790,6 +868,7 @@
 		registeredUids={registeredPlayers.map((p) => p.player.uid)}
 	></TournamentAddPlayerPopup>
 {/if}
+<TeamDetailsPopup bind:open={teamDetailsOpen} team={selectedTeam} />
 
 <style>
 	.bracket-resizable {

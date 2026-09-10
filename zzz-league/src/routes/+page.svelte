@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { db, deleteArchive, deleteHistoryEntry } from "$lib/firebase";
-	import { ref, onValue } from "firebase/database";
-	import type { Archives } from "$lib/types";
+	import { deleteArchive, deleteHistoryEntry, listArchives } from "$lib/backend";
+	import type { Archive } from "$lib/types";
 	import Leaderboard from "$lib/components/Leaderboard.svelte";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TournamentCard from "$lib/components/TournamentCard.svelte";
-	import { isAdmin, players, tournaments } from "$lib/store";
+	import { isAdmin, players, seasonTimerEndsAt, tournaments, refreshSeasonTimer } from "$lib/store";
 	import { capDefaultHeight } from "$lib/actions/capDefaultHeight";
 	import { TOURNAMENT_STATE } from "$lib/tournamentState";
 
@@ -21,56 +20,42 @@
 			.sort((a, b) => b.tournamentStartDate - a.tournamentStartDate),
 	);
 
-	let archives = $state<Archives>({});
+	let archives = $state<Archive[]>([]);
 
 	let searchQuery = $state("");
 	let showInactivePlayers = $state(false);
 
 	let isViewingArchive = $state(false);
 	let archiveKey = $state("");
-	let timerText = $state("0D 00:00:00");
-	let timerInterval: ReturnType<typeof setInterval> | null = null;
 
 	let displayPlayers = $derived(
-		isViewingArchive ? (archives[archiveKey] ?? []) : $players,
+		isViewingArchive
+			? (archives.find((a) => a.seasonName === archiveKey)?.players ?? [])
+			: $players,
 	);
 
 	let now = $state(Date.now());
 
-	onMount(() => {
-		const unsubTimer = onValue(ref(db, "timer"), (snap) => {
-			const endTime = snap.val();
-			if (!endTime) return;
-			if (timerInterval) clearInterval(timerInterval);
-			const tick = () => {
-				const diff = endTime - Date.now();
-				if (diff <= 0) {
-					timerText = "СЕЗОН ОКОНЧЕН";
-					clearInterval(timerInterval!);
-					return;
-				}
-				const d = Math.floor(diff / 86400000);
-				const h = Math.floor((diff % 86400000) / 3600000);
-				const m = Math.floor((diff % 3600000) / 60000);
-				const s = Math.floor((diff % 60000) / 1000);
-				timerText = `${d}d ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-			};
-			timerInterval = setInterval(tick, 1000);
-			tick();
-		});
+	let timerText = $derived.by(() => {
+		if (!$seasonTimerEndsAt) return null;
+		const diff = $seasonTimerEndsAt - now;
+		if (diff <= 0) return "СЕЗОН ОКОНЧЕН";
+		const d = Math.floor(diff / 86400000);
+		const h = Math.floor((diff % 86400000) / 3600000);
+		const m = Math.floor((diff % 3600000) / 60000);
+		const s = Math.floor((diff % 60000) / 1000);
+		return `${d}d ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+	});
 
-		const unsubArchives = onValue(ref(db, "archives"), (snap) => {
-			archives = snap.val() ?? {};
-		});
+	onMount(() => {
+		listArchives().then((loaded) => (archives = loaded));
+		refreshSeasonTimer();
 
 		const interval = setInterval(() => {
 			now = Date.now();
 		}, 1000);
 
 		return () => {
-			unsubTimer();
-			unsubArchives();
-			if (timerInterval) clearInterval(timerInterval);
 			clearInterval(interval);
 		};
 	});
@@ -88,6 +73,7 @@
 	async function handleDeleteArchive(key: string) {
 		try {
 			await deleteArchive(key);
+			archives = await listArchives();
 		} catch (error) {
 			alert(error);
 		}
@@ -107,10 +93,12 @@
 <div class="layout">
 	<SidePanel></SidePanel>
 	<div class="card main-content">
-		<div class="main-timer">
-			<div class="timer-label">ДО КОНЦА ЛИГИ:</div>
-			<div class="timer-value">{timerText}</div>
-		</div>
+		{#if timerText}
+			<div class="main-timer">
+				<div class="timer-label">ДО КОНЦА ЛИГИ:</div>
+				<div class="timer-value">{timerText}</div>
+			</div>
+		{/if}
 
 		{#if filteredTournaments && filteredTournaments.length > 0}
 			<div>
@@ -159,13 +147,15 @@
 			/>
 		</div>
 
-		{#if Object.keys(archives).length > 0}
+		{#if archives.length > 0}
 			<div class="archive-section">
 				<div class="section-label">АРХИВ СЕЗОНОВ:</div>
 				<div class="archive-buttons">
-					{#each Object.keys(archives).reverse() as key}
-						<button class="btn-common" onclick={() => loadArchive(key)}
-							>{key}</button
+					{#each [...archives].reverse() as archive (archive.id)}
+						<button
+							class="btn-common"
+							onclick={() => loadArchive(archive.seasonName)}
+							>{archive.seasonName}</button
 						>
 					{/each}
 				</div>
@@ -189,17 +179,17 @@
 		color: #888;
 	}
 
-	.back-btn {
-		margin-top: 0;
-		padding: 8px 14px;
-	}
-
 	.timer-value {
 		color: var(--gold);
 		font-size: 18px;
 		font-weight: bold;
 		text-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
 		margin-top: 4px;
+	}
+
+	.back-btn {
+		margin-top: 0;
+		padding: 8px 14px;
 	}
 
 	.archive-section {

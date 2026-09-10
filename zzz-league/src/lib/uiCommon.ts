@@ -83,6 +83,7 @@ export function closeSettingsPopup() {
 	settingsOpen.set(false);
 }
 
+
 export function openImagePopup(src: string) {
 	viewingImage.set(src);
 }
@@ -91,7 +92,7 @@ export function closeImagePopup() {
 	viewingImage.set("");
 }
 
-export function getTier(p: Player): { cls: string; name: string } {
+export function getTier(p: { isMidConfirmed: boolean; isHighConfirmed: boolean }): { cls: string; name: string } {
 	if (p.isHighConfirmed) return { cls: "t-high", name: "HIGH TIER" };
 	if (p.isMidConfirmed) return { cls: "t-mid", name: "MID TIER" };
 	return { cls: "t-newbie", name: "NEWBIE" };

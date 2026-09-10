@@ -3,11 +3,10 @@
 	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
 	import SidePanel from "$lib/components/SidePanel.svelte";
-	import { db, splitTournament } from "$lib/firebase";
+	import { getTournament, listRegistrations, splitTournament } from "$lib/backend";
 	import { isAdmin, playersByUid } from "$lib/store";
-	import type { Tournament, TournamentRegistration } from "$lib/types";
+	import type { Tournament } from "$lib/types";
 	import { isLocked } from "$lib/tournamentState";
-	import { get, ref } from "firebase/database";
 	import { onMount, untrack } from "svelte";
 
 	const id = $derived(page.params.id!);
@@ -156,8 +155,7 @@
 
 	onMount(async () => {
 		try {
-			const snap = await get(ref(db, "tournaments/" + id));
-			const data = snap.val() as Tournament | null;
+			const data = await getTournament(id);
 			if (!data) {
 				loadError = "Турнир не найден.";
 				return;
@@ -172,17 +170,13 @@
 			}
 			tournament = data;
 
-			const regSnap = await get(ref(db, `tournaments/${id}/registrations`));
-			const regData = regSnap.val();
-			const registrations: TournamentRegistration[] = regData
-				? Object.values(regData)
-				: [];
+			const registrations = await listRegistrations(id);
 
 			approvedPlayers = registrations
-				.filter((r) => r.approved)
+				.filter((r) => r.approved && r.playerId)
 				.map((r) => ({
-					uid: r.uid,
-					name: $playersByUid.get(r.uid)?.name ?? r.uid,
+					uid: r.playerId!,
+					name: $playersByUid.get(r.playerId!)?.name ?? r.playerId!,
 				}));
 		} catch (e: any) {
 			loadError = e.message;

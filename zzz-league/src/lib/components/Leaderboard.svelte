@@ -1,14 +1,27 @@
 <script lang="ts">
-	import { deletePlayer, updatePlayerElo } from "$lib/firebase";
-	import { isAdmin } from "$lib/store";
+	import { deletePlayer, updatePlayerElo } from "$lib/backend";
+	import { isAdmin, refreshPlayers } from "$lib/store";
 	import type { Player } from "$lib/types";
 	import { getLvl, getTier, openProfilePopup } from "$lib/uiCommon";
 	import PointsDelta from "$lib/components/PointsDelta.svelte";
 
 	const INACTIVITY_THRESHOLD_MS = 90 * 24 * 60 * 60 * 1000;
 
+	// Also fed archived season snapshots (ArchivedPlayerSnapshot) from the home page's archive
+	// viewer — those lack uid/tournamentPoints/lastPlayedTournamentTimestamp, so every field but
+	// name/elo/tier flags is optional here.
+	type LeaderboardPlayer = {
+		uid?: string;
+		name: string;
+		elo: number;
+		tournamentPoints?: number;
+		isMidConfirmed: boolean;
+		isHighConfirmed: boolean;
+		lastPlayedTournamentTimestamp?: number;
+	};
+
 	interface Props {
-		players?: Player[];
+		players?: LeaderboardPlayer[];
 		hideOptions?: boolean;
 		searchQuery?: string;
 		showInactivePlayers?: boolean;
@@ -21,7 +34,10 @@
 		showInactivePlayers = false,
 	}: Props = $props();
 
-	function isActive(p: Player) {
+	function isActive(p: LeaderboardPlayer) {
+		// Archived snapshots (hideOptions=true) are a frozen point-in-time view — activity
+		// filtering only makes sense for the live leaderboard.
+		if (hideOptions) return true;
 		return (
 			!!p.lastPlayedTournamentTimestamp &&
 			Date.now() - p.lastPlayedTournamentTimestamp < INACTIVITY_THRESHOLD_MS
@@ -50,6 +66,7 @@
 		if (isNaN(elo)) return;
 		try {
 			await updatePlayerElo(uid, elo);
+			await refreshPlayers();
 		} catch (e: any) {
 			alert(e.message);
 		}
@@ -59,12 +76,17 @@
 		if (!confirm("Удалить игрока?")) return;
 		try {
 			await deletePlayer(uid);
+			await refreshPlayers();
 		} catch (e: any) {
 			alert(e.message);
 		}
 	}
 
-	function getLadderPos(p: Player) {
+	function handleNameClick(player: LeaderboardPlayer) {
+		if (player.uid) openProfilePopup(player as Player);
+	}
+
+	function getLadderPos(p: LeaderboardPlayer) {
 		return sortedPlayers.indexOf(p);
 	}
 </script>
@@ -99,24 +121,25 @@
 				<td class="player-name">
 					<button
 						class="hover-emphasis"
-						onclick={() => openProfilePopup(player)}>{player.name}</button
+						disabled={!player.uid}
+						onclick={() => handleNameClick(player)}>{player.name}</button
 					>
 				</td>
 				<td>
 					<b>{elo}</b>
-					<PointsDelta points={player.tournamentPoints} />
+					<PointsDelta points={player.tournamentPoints ?? 0} />
 				</td>
 				<td><span class="lvl-badge">L{getLvl(elo)}</span></td>
 				{#if $isAdmin && !hideOptions}
 					<td class="options-cell">
 						<button
 							class="icon-btn"
-							onclick={() => handleUpdatePlayerElo(player.uid, elo)}
+							onclick={() => handleUpdatePlayerElo(player.uid!, elo)}
 							>⚙️</button
 						>
 						<button
 							class="icon-btn danger"
-							onclick={() => handleDelete(player.uid)}>✕</button
+							onclick={() => handleDelete(player.uid!)}>✕</button
 						>
 					</td>
 				{/if}

@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
 	import { resolve } from "$app/paths";
-	import { createTournament } from "$lib/firebase";
+	import { createTournament } from "$lib/backend";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import { isAdmin } from "$lib/store";
-	import type { Tournament } from "$lib/types";
+	import type { TournamentRegistrationKind } from "$lib/types";
 	import { renderMarkdown } from "$lib/uiCommon";
 
 	let name = $state("");
 	let description = $state("");
 	let descriptionPreview = $derived(renderMarkdown(description));
+	let registrationType = $state<TournamentRegistrationKind>("solo");
 
 	const now = new Date();
 	let registrationStartDate = $state(toDateTimeLocal(now));
@@ -19,7 +20,8 @@
 	let tournamentType = $state("double elimination");
 	let breakTiesEnabled = $state(false);
 	let breakTiesPlace = $state(3);
-	let overrideEloChange = $state(-1);
+	let overrideEloEnabled = $state(false);
+	let overrideEloValue = $state(5);
 	let minCost = $state(2100);
 	let maxCost = $state(2200);
 	let minCharacters = $state(14);
@@ -67,14 +69,18 @@
 			status = "Конец турнира должен быть позже начала";
 			return;
 		}
+		if (overrideEloEnabled && overrideEloValue <= 0) {
+			status = "Фиксированное эло должно быть больше 0";
+			return;
+		}
 
 		try {
 			if (creatingTournament) return;
 			creatingTournament = true;
-			let tournament: Tournament = {
-				id: "",
+			const created = await createTournament({
 				name,
 				description,
+				registrationType,
 				registrationStartDate: regStart,
 				registrationEndDate: regEnd,
 				tournamentStartDate: tourStart,
@@ -84,22 +90,16 @@
 				minCharacters,
 				minTier: parseInt(minTier),
 				maxTier: parseInt(maxTier),
-				challongeTournamentId: "",
-				challongeTournamentUrl: "",
-				matches: [],
-				state: "",
-				winnerId: undefined,
-				overrideEloChange: overrideEloChange,
-				type: tournamentType,
+				overrideEloChange: overrideEloEnabled ? overrideEloValue : -1,
+				bracketType: tournamentType,
 				consolationMatchesTargetRank: breakTiesEnabled
 					? breakTiesPlace
 					: null,
 				visible,
 				discordRoleName,
 				discordChannelName,
-			};
-			const id = await createTournament(tournament);
-			await goto(resolve(`/tournaments/${id}`));
+			});
+			await goto(resolve(`/tournaments/${created.id}`));
 		} catch (e: any) {
 			status = e.message;
 		} finally {
@@ -119,6 +119,19 @@
 				<label for="f-name">Название</label>
 				<input id="f-name" type="text" bind:value={name} />
 			</div>
+			<div class="form-row-wide">
+				<label for="f-registration-type">Тип регистрации</label>
+				<select id="f-registration-type" bind:value={registrationType}>
+					<option value="solo">Соло</option>
+					<option value="team">2x2</option>
+				</select>
+			</div>
+			{#if registrationType === "team"}
+				<p class="notice">
+					Для турниров 2x2 пока недоступно создание сетки Challonge —
+					только регистрация команд.
+				</p>
+			{/if}
 			<div class="form-row-wide">
 				<label for="f-description">Описание</label>
 				<textarea id="f-description" rows="4" bind:value={description}
@@ -161,11 +174,24 @@
 				</div>
 			{/if}
 			<div class="form-row-wide">
-				<label for="f-elo"
-					>Фикс эло для турнира (-1 для стандартной системы)</label
-				>
-				<input id="f-elo" type="number" bind:value={overrideEloChange} />
+				<label for="f-elo-enabled">Фиксированное эло за победу/поражение</label>
+				<input
+					id="f-elo-enabled"
+					type="checkbox"
+					bind:checked={overrideEloEnabled}
+				/>
 			</div>
+			{#if overrideEloEnabled}
+				<div class="form-row-wide">
+					<label for="f-elo-value">Значение эло</label>
+					<input
+						id="f-elo-value"
+						type="number"
+						min="1"
+						bind:value={overrideEloValue}
+					/>
+				</div>
+			{/if}
 			<div class="form-row-wide">
 				<label for="f-min-tier">Мин. тир игроков</label>
 				<select id="f-min-tier" bind:value={minTier}>

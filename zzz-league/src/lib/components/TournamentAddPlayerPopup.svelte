@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { adminAddTournamentRegistration } from "$lib/firebase";
+	import { adminAddTournamentRegistration } from "$lib/backend";
 	import { players } from "$lib/store";
 	import type { Player } from "$lib/types";
 

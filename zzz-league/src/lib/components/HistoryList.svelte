@@ -1,54 +1,24 @@
 <script lang="ts">
 	import { resolve } from "$app/paths";
-	import { db, deleteHistoryEntry } from "$lib/firebase";
+	import { deleteHistoryEntry, listHistoryByPlayerPage, listHistoryPage } from "$lib/backend";
 	import { isAdmin, playersByUid } from "$lib/store";
+	import type { HistoryCursor, HistoryEntry } from "$lib/types";
 	import {
 		dateDisplayOptions,
 		openImagePopup,
 		openProfilePopup,
 	} from "$lib/uiCommon";
-	import {
-		endBefore,
-		get,
-		limitToLast,
-		onValue,
-		orderByKey,
-		query,
-		ref,
-		type DataSnapshot,
-	} from "firebase/database";
 
 	let { viewerId = undefined }: { viewerId?: string } = $props();
 
-	type HistoryEntry = {
-		id: string;
-		p1: string;
-		p1Change: number;
-		p2: string | null;
-		p2Change: number | null;
-		tournamentId: string | null;
-		tournamentMatch: string;
-		resultP1: string | null;
-		resultP2: string | null;
-		resultScreenshot: string | null;
-		timestamp: number;
-	};
-
 	const PAGE_SIZE = 50;
 
-	let liveEntries = $state<HistoryEntry[]>([]);
-	let olderEntries = $state<HistoryEntry[]>([]);
-	let oldestKey = $state<string | null>(null);
+	let entries = $state<HistoryEntry[]>([]);
+	let cursor = $state<HistoryCursor | null>(null);
 	let hasMore = $state(true);
+	let loading = $state(true);
 	let loadingMore = $state(false);
 	let sentinel = $state<HTMLDivElement | undefined>();
-
-	const entries = $derived.by(() => {
-		const byId = new Map<string, HistoryEntry>();
-		for (const e of olderEntries) byId.set(e.id, e);
-		for (const e of liveEntries) byId.set(e.id, e);
-		return [...byId.values()].sort((a, b) => b.timestamp - a.timestamp);
-	});
 
 	const LEGACY_CUTOFF_TIMESTAMP = 1783017803637;
 
@@ -87,65 +57,56 @@
 		}
 	}
 
-	function basePath(currentViewerId: string | undefined) {
-		return currentViewerId
-			? `historyByPlayer/${currentViewerId}`
-			: "historyV3";
-	}
+	let generation = 0;
 
-	function snapshotToEntries(snapshot: DataSnapshot) {
-		const result: HistoryEntry[] = [];
-		snapshot.forEach((child) => {
-			result.push(child.val() as HistoryEntry);
-		});
-		return result;
+	function fetchPage(currentViewerId: string | undefined, pageCursor: HistoryCursor | null) {
+		return currentViewerId
+			? listHistoryByPlayerPage(currentViewerId, pageCursor, PAGE_SIZE)
+			: listHistoryPage(pageCursor, PAGE_SIZE);
 	}
 
 	async function loadMore() {
-		if (!oldestKey || loadingMore) return;
+		// `loading` guards against the IntersectionObserver firing its initial "already
+		// intersecting" callback before the first page has even resolved (the sentinel renders
+		// immediately since `hasMore` starts true) — without it, that fires a duplicate page-1
+		// fetch racing the initial load.
+		if (!hasMore || loadingMore || loading) return;
+		const myGeneration = generation;
 		loadingMore = true;
 		try {
-			const moreRef = query(
-				ref(db, basePath(viewerId)),
-				orderByKey(),
-				endBefore(oldestKey),
-				limitToLast(PAGE_SIZE),
-			);
-			const snap = await get(moreRef);
-			const older = snapshotToEntries(snap);
-			hasMore = older.length === PAGE_SIZE;
-			if (older.length) {
-				oldestKey = older[0].id;
-				olderEntries = [...olderEntries, ...older];
-			}
+			const page = await fetchPage(viewerId, cursor);
+			if (myGeneration !== generation) return;
+			entries = [...entries, ...page.entries];
+			hasMore = page.hasMore;
+			cursor = page.entries.length
+				? { timestamp: page.entries[page.entries.length - 1].timestamp, id: page.entries[page.entries.length - 1].id }
+				: cursor;
 		} finally {
-			loadingMore = false;
+			if (myGeneration === generation) loadingMore = false;
 		}
 	}
 
 	$effect(() => {
 		const currentViewerId = viewerId;
-		liveEntries = [];
-		olderEntries = [];
-		oldestKey = null;
+		generation++;
+		const myGeneration = generation;
+		loading = true;
+		entries = [];
+		cursor = null;
 		hasMore = true;
 
-		const historyRef = query(
-			ref(db, basePath(currentViewerId)),
-			orderByKey(),
-			limitToLast(PAGE_SIZE),
-		);
-
-		const unsubscribe = onValue(historyRef, (snapshot) => {
-			const page = snapshotToEntries(snapshot);
-			liveEntries = page;
-			if (oldestKey === null) {
-				hasMore = page.length === PAGE_SIZE;
-				if (page.length) oldestKey = page[0].id;
-			}
-		});
-
-		return () => unsubscribe();
+		fetchPage(currentViewerId, null)
+			.then((page) => {
+				if (myGeneration !== generation) return;
+				entries = page.entries;
+				hasMore = page.hasMore;
+				cursor = page.entries.length
+					? { timestamp: page.entries[page.entries.length - 1].timestamp, id: page.entries[page.entries.length - 1].id }
+					: null;
+			})
+			.finally(() => {
+				if (myGeneration === generation) loading = false;
+			});
 	});
 
 	$effect(() => {
@@ -171,9 +132,9 @@
 			<div class="legacy-divider">Легаси история (возможны ошибки)</div>
 		{/if}
 
-		{@const isLeft = !viewerId || entry.p1 === viewerId}
-		{@const left = isLeft ? entry.p1 : entry.p2!}
-		{@const right = isLeft ? entry.p2 : entry.p1}
+		{@const isLeft = !viewerId || entry.p1PlayerId === viewerId}
+		{@const left = isLeft ? entry.p1PlayerId : entry.p2PlayerId!}
+		{@const right = isLeft ? entry.p2PlayerId : entry.p1PlayerId}
 		{@const leftChange = isLeft ? entry.p1Change : entry.p2Change!}
 		{@const rightChange = isLeft ? entry.p2Change : entry.p1Change}
 		{@const leftResult = isLeft ? entry.resultP1 : entry.resultP2}
@@ -225,7 +186,7 @@
 							Турнир
 						</a>
 					{/if}
-					{#if entry.tournamentMatch === "techloss"}
+					{#if entry.kind === "tech_loss"}
 						<span class="history-match-techloss">Техлуз</span>
 					{/if}
 					<span>{formatDate(entry.timestamp)}</span>
@@ -245,10 +206,10 @@
 					<span>{leftResult}</span>
 					<span class="history-match-vs">—</span>
 					<span>{rightResult}</span>
-					{#if entry.resultScreenshot}
+					{#if entry.resultScreenshotUrl}
 						<button
 							class="btn-common history-img-btn"
-							onclick={() => openImagePopup(entry.resultScreenshot!)}
+							onclick={() => openImagePopup(entry.resultScreenshotUrl!)}
 						>
 							Скриншот результатов
 						</button>
@@ -257,7 +218,7 @@
 			{/if}
 		</div>
 	{:else}
-		<span>Игр пока нет</span>
+		<span>{loading ? "Загрузка..." : "Игр пока нет"}</span>
 	{/each}
 </div>
 

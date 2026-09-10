@@ -5,9 +5,9 @@
 		finalizeTournament,
 		registerMatch,
 		resetSeason,
-		setTimer,
-	} from "$lib/firebase";
-	import { players } from "$lib/store";
+		setSeasonTimer,
+	} from "$lib/backend";
+	import { players, refreshPlayers, refreshSeasonTimer } from "$lib/store";
 	import type { Player } from "$lib/types";
 	import { resolve } from "$app/paths";
 
@@ -50,7 +50,8 @@
 		const hours = prompt("Через сколько часов закончить?");
 		if (hours) {
 			try {
-				await setTimer(new Date().getTime() + parseFloat(hours) * 3600000);
+				await setSeasonTimer(Date.now() + parseFloat(hours) * 3600000);
+				await refreshSeasonTimer();
 			} catch (error) {
 				alert(error);
 			}
@@ -63,6 +64,7 @@
 		if (playerName.length < 2) alert("Мала букв");
 		try {
 			await addPlayer(playerName);
+			await refreshPlayers();
 		} catch (error) {
 			alert(error);
 		}
@@ -137,6 +139,7 @@
 				winner === 1,
 				-1,
 			);
+			await refreshPlayers();
 
 			showingForecast = false;
 		} catch (error) {
@@ -178,6 +181,7 @@
 				-1,
 				true,
 			);
+			await refreshPlayers();
 
 			showingForecast = false;
 		} catch (error) {
@@ -192,26 +196,30 @@
 		if (!name) return;
 		try {
 			await resetSeason(name);
+			await refreshPlayers();
 		} catch (error) {
 			alert(error);
 		}
 	}
 
 	async function handleBackfillLastPlayed() {
-		if (!confirm("Пересчитать дату последнего матча для всех игроков?")) return;
+		if (!confirm("Пересчитать дату последнего матча для всех игроков?"))
+			return;
 		try {
 			const { updatedPlayers } = await backfillLastPlayedTimestamps();
+			await refreshPlayers();
 			alert(`Обновлено игроков: ${updatedPlayers}`);
 		} catch (error) {
 			alert(error);
 		}
 	}
 
-	function handleFinalizeTournament() {
+	async function handleFinalizeTournament() {
 		if (!confirm("Применить очки?")) return;
 
 		try {
-			finalizeTournament();
+			await finalizeTournament();
+			await refreshPlayers();
 		} catch (error) {
 			alert(error);
 		}
@@ -220,6 +228,12 @@
 
 <div class="card admin-card">
 	<h2>Control Panel</h2>
+	<a class="btn-common" href={resolve("/tournaments/create")}>Создать турнир</a
+	>
+	<button type="button" class="btn-common" onclick={handleFinalizeTournament}
+		>✅ Применить итоги</button
+	>
+	<hr style="width: 100%;" />
 	<button class="btn-common" onclick={handleSetTimer}
 		>⏳ Установить таймер</button
 	>
@@ -286,14 +300,8 @@
 		>🚫 Техлуз</button
 	>
 	<hr style="width: 100%;" />
-	<button type="button" class="btn-common" onclick={handleFinalizeTournament}
-		>✅ Применить итоги</button
-	>
 	<button type="button" class="btn-common" onclick={handleResetSeason}
 		>📦 Сброс сезона</button
-	>
-	<hr style="width: 100%;" />
-	<a class="btn-common" href={resolve("/tournaments/create")}>Создать турнир</a
 	>
 </div>
 

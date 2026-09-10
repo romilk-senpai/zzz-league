@@ -2,8 +2,9 @@
 	import { getAgentAvatar } from "$lib/agentAvatars";
 	import AvatarPickerPopup from "$lib/components/AvatarPickerPopup.svelte";
 	import { openDiscordOAuth } from "$lib/discord";
-	import { auth, unlinkDiscord, updateProfile } from "$lib/firebase";
-	import { currentUser } from "$lib/store";
+	import { auth, unlinkDiscord } from "$lib/firebase";
+	import { updateProfile } from "$lib/backend";
+	import { currentUser, refreshCurrentUser } from "$lib/store";
 	import { closeSettingsPopup } from "$lib/uiCommon";
 	import {
 		EmailAuthProvider,
@@ -90,7 +91,8 @@
 
 			if (newUsername) {
 				try {
-					await updateProfile(newUsername);
+					await updateProfile(user.uid, newUsername);
+					await refreshCurrentUser(user.uid);
 					successData = true;
 				} catch (error: any) {
 					status = error.message;
@@ -152,7 +154,7 @@
 				id="settings-discord"
 				type="text"
 				class="input-disabled"
-				value={user.discord ?? ""}
+				value={user.discordUsername ?? ""}
 				placeholder="Discord"
 				disabled
 			/>

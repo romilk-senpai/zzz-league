@@ -2,7 +2,7 @@ import { auth } from './firebase';
 
 // Local dev only for now — ZenlessLeague.Api isn't deployed anywhere yet.
 // Will need to become environment-specific once it is (see zzz-league-server's migration plan).
-const API_BASE_URL = 'http://localhost:5158';
+export const API_BASE_URL = 'http://localhost:5158';
 
 export class ApiError extends Error {
 	constructor(public status: number, message: string) {

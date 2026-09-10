@@ -8,9 +8,11 @@
 		registerOpen,
 		currentUser,
 		role,
-		players,
-		tournaments,
 		viewingImage,
+		refreshCurrentUser,
+		refreshPlayers,
+		refreshTournaments,
+		refreshOneTournament,
 	} from "$lib/store";
 
 	import LoginPopup from "$lib/components/LoginPopup.svelte";
@@ -19,9 +21,8 @@
 	import SettingsPopup from "$lib/components/SettingsPopup.svelte";
 	import { onMount } from "svelte";
 	import { onAuthStateChanged } from "firebase/auth";
-	import { onValue, ref } from "firebase/database";
-	import { auth, db } from "$lib/firebase";
-	import type { Player, Tournament } from "$lib/types";
+	import { auth } from "$lib/firebase";
+	import { connectIfAuthenticated, disconnect, onTournamentChanged } from "$lib/signalr";
 	import ImageViwerPopup from "$lib/components/ImageViwerPopup.svelte";
 	import SiteHeader from "$lib/components/Header.svelte";
 	import favicon from "$lib/assets/favicon.png";
@@ -37,56 +38,29 @@
 	});
 
 	onMount(() => {
-		let unsubUser: (() => void) | null = null;
-
 		const unsubAuth = onAuthStateChanged(auth, async (user) => {
 			if (user) {
-				unsubUser = onValue(ref(db, "players/" + user.uid), (snap) => {
-					if (snap.exists()) {
-						const player = snap.val();
-						$currentUser = {
-							uid: player.uid,
-							name: player.name,
-							discord: player.discord,
-							discordId: player.discordId,
-							elo: player.elo,
-							tournamentPoints: player.tournamentPoints,
-							isMidConfirmed: player.isMidConfirmed,
-							isHighConfirmed: player.isHighConfirmed,
-							wins: player.wins ?? 0,
-							losses: player.losses ?? 0,
-							playedTournamentCount: player.playedTournamentCount ?? 0,
-							seasonalPlayedTournamentCount:
-								player.seasonalPlayedTournamentCount ?? 0,
-							lastRegistration: player.lastRegistration,
-							avatar: player.avatar,
-						};
-						$role = player.role ?? "player";
-					}
-				});
+				await refreshCurrentUser(user.uid);
+				await connectIfAuthenticated();
 			} else {
 				$currentUser = null;
 				$role = "player";
+				await disconnect();
 			}
 		});
 
-		const unsubPlayers = onValue(ref(db, "players"), (snap) => {
-			const val = snap.val();
-			$players = val
-				? (Object.values(val).filter((p: any) => p?.name) as Player[])
-				: [];
-		});
+		refreshPlayers();
+		refreshTournaments();
 
-		const unsubTournaments = onValue(ref(db, "tournaments"), (snap) => {
-			const val = snap.val();
-			$tournaments = val ? (Object.values(val) as Tournament[]) : [];
+		// Every client is auto-joined to the hub's list group (see TournamentHub), so this covers
+		// the home page / tournament archive lists without a per-tournament subscription.
+		const unsubTournamentChanged = onTournamentChanged((tournamentId) => {
+			refreshOneTournament(tournamentId);
 		});
 
 		return () => {
 			unsubAuth();
-			if (unsubUser) unsubUser();
-			unsubPlayers();
-			unsubTournaments();
+			unsubTournamentChanged();
 		};
 	});
 </script>

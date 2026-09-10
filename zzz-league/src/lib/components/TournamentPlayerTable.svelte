@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { approveRegistration } from "$lib/firebase";
+	import { approveRegistration } from "$lib/backend";
 	import { isAdmin, isModerator } from "$lib/store";
 	import type { RegisteredPlayer, Tournament } from "$lib/types";
 	import { hasTournamentStarted } from "$lib/tournamentState";
@@ -40,8 +40,8 @@
 		),
 	);
 
-	async function handleApprove(uid: string, approved: boolean) {
-		approveRegistration(tournament!.id, uid, !approved);
+	async function handleApprove(registrationId: string, approved: boolean) {
+		approveRegistration(tournament!.id, registrationId, !approved);
 	}
 
 	let canViewRegistrations = $derived(
@@ -97,7 +97,7 @@
 							class="icon-btn"
 							onclick={() =>
 								handleApprove(
-									reg.player.uid,
+									reg.registration.id,
 									reg.registration.approved,
 								)}>⚙️</button
 						>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { adminSetMatchResult, approveResult } from "$lib/firebase";
+	import { adminSetMatchResult, approveResult } from "$lib/backend";
 	import { useObjectUrlPreview } from "$lib/imagePreview.svelte.js";
 	import { currentUser, isAdmin, isModerator } from "$lib/store";
 	import {
@@ -17,10 +17,25 @@
 		tournament = $bindable(),
 		match = $bindable(),
 		registeredPlayers = $bindable([]),
+		teamsById = new Map(),
 	} = $props();
 
+	let isTeamMatch = $derived(!!match.p1TeamId || !!match.p2TeamId);
+
+	function isMemberOfTeam(teamId: string | null) {
+		if (!teamId || !$currentUser) return false;
+		const team = teamsById.get(teamId);
+		return (
+			!!team &&
+			(team.creator.uid === $currentUser.uid ||
+				team.player2.uid === $currentUser.uid)
+		);
+	}
+
 	let myGame = $derived(
-		$currentUser?.uid == match.p1 || $currentUser?.uid == match.p2,
+		isTeamMatch
+			? isMemberOfTeam(match.p1TeamId) || isMemberOfTeam(match.p2TeamId)
+			: $currentUser?.uid == match.p1 || $currentUser?.uid == match.p2,
 	);
 	let canApproveOwnResult = $derived(match.state !== "complete" && myGame);
 	let canAdminSetResult = $derived(
@@ -101,13 +116,26 @@
 		return () => window.removeEventListener("paste", onPaste);
 	});
 
-	function getPlayerName(uid: string) {
+	function getPlayerName(uid: string | null) {
+		if (!uid) return undefined;
 		return registeredPlayers.find((p) => p.player.uid === uid)?.player.name;
 	}
 
+	// "TEAM_NAME (P1 + P2)" — matches how team participants are named on the Challonge bracket.
+	function getTeamLabel(teamId: string | null) {
+		if (!teamId) return undefined;
+		const team = teamsById.get(teamId);
+		if (!team) return undefined;
+		return `${team.name} (${team.creator.name} + ${team.player2.name})`;
+	}
+
+	function getSideLabel(uid: string | null, teamId: string | null) {
+		return teamId ? getTeamLabel(teamId) : getPlayerName(uid);
+	}
+
 	function getPlayerClass(
-		player: string,
-		winnerId: string,
+		player: string | null,
+		winnerId: string | null,
 		techLossUid?: string | null,
 	) {
 		if (player === techLossUid) return "match-techloss";
@@ -180,9 +208,11 @@
 		}
 	}
 
-	async function handleAdminTechLoss(uid: string) {
+	async function handleAdminTechLoss(side: "p1" | "p2") {
 		if (adminAction) return;
-		const loserName = getPlayerName(uid);
+		const loserName = isTeamMatch
+			? getTeamLabel(side === "p1" ? match.p1TeamId : match.p2TeamId)
+			: getPlayerName(side === "p1" ? match.p1 : match.p2);
 		if (
 			!confirm(
 				`${loserName} получает техлуз, оппонент побеждает без ELO. Продолжить?`,
@@ -190,15 +220,27 @@
 		)
 			return;
 		try {
-			adminAction = uid === match.p1 ? "techloss-p1" : "techloss-p2";
-			await adminSetMatchResult(
-				tournament.id,
-				match.id,
-				null,
-				null,
-				null,
-				uid,
-			);
+			adminAction = side === "p1" ? "techloss-p1" : "techloss-p2";
+			if (isTeamMatch) {
+				await adminSetMatchResult(
+					tournament.id,
+					match.id,
+					null,
+					null,
+					null,
+					null,
+					side === "p1" ? match.p1TeamId : match.p2TeamId,
+				);
+			} else {
+				await adminSetMatchResult(
+					tournament.id,
+					match.id,
+					null,
+					null,
+					null,
+					side === "p1" ? match.p1 : match.p2,
+				);
+			}
 		} catch (error) {
 			alert(error);
 		} finally {
@@ -217,18 +259,18 @@
 			<div class="match-players">
 				<span
 					class="match-player-name match-player-left {getPlayerClass(
-						match.p1,
-						match.winnerId,
-						match.techLossUid,
-					)}">{getPlayerName(match.p1)}</span
+						match.p1 ?? match.p1TeamId,
+						match.winnerId ?? match.winnerTeamId,
+						match.techLossUid ?? match.techLossTeamId,
+					)}">{getSideLabel(match.p1, match.p1TeamId)}</span
 				>
 				<span class="match-vs">vs</span>
 				<span
 					class="match-player-name match-player-right {getPlayerClass(
-						match.p2,
-						match.winnerId,
-						match.techLossUid,
-					)}">{getPlayerName(match.p2)}</span
+						match.p2 ?? match.p2TeamId,
+						match.winnerId ?? match.winnerTeamId,
+						match.techLossUid ?? match.techLossTeamId,
+					)}">{getSideLabel(match.p2, match.p2TeamId)}</span
 				>
 				{#if match.resultP1 && match.resultP2}
 					<span class="match-player-left">{match.resultP1}</span>
@@ -236,20 +278,20 @@
 					<span class="match-player-right">{match.resultP2}</span>
 				{/if}
 			</div>
-			{#if match.techLossUid}
+			{#if match.techLossUid || match.techLossTeamId}
 				<span class="techloss-label"
-					>{getPlayerName(match.techLossUid)} тех. луз</span
+					>{getSideLabel(match.techLossUid, match.techLossTeamId)} тех. луз</span
 				>
 			{/if}
 			{#if canApproveOwnResult}
 				<hr style="width: 100%" />
 				<div class="match-players">
 					<span class="match-player-left"
-						>Введите время {getPlayerName(match.p1)}</span
+						>Введите время {getSideLabel(match.p1, match.p1TeamId)}</span
 					>
 					<span> </span>
 					<span class="match-player-right"
-						>Введите время {getPlayerName(match.p2)}</span
+						>Введите время {getSideLabel(match.p2, match.p2TeamId)}</span
 					>
 					<input
 						class="time-input match-player-left"
@@ -322,9 +364,13 @@
 			<div class="card admin-card" onclick={(e) => e.stopPropagation()}>
 				<span class="admin-label">Админ: изменить результат</span>
 				<div class="match-players">
-					<span class="match-player-left">{getPlayerName(match.p1)}</span>
+					<span class="match-player-left"
+						>{getSideLabel(match.p1, match.p1TeamId)}</span
+					>
 					<span> </span>
-					<span class="match-player-right">{getPlayerName(match.p2)}</span>
+					<span class="match-player-right"
+						>{getSideLabel(match.p2, match.p2TeamId)}</span
+					>
 					<input
 						class="time-input match-player-left"
 						type="time"
@@ -374,16 +420,16 @@
 					<button
 						class="btn-common danger"
 						class:btn-loading={adminAction === "techloss-p1"}
-						onclick={() => handleAdminTechLoss(match.p1)}
+						onclick={() => handleAdminTechLoss("p1")}
 					>
-						Техлуз {getPlayerName(match.p1)}
+						Техлуз {getSideLabel(match.p1, match.p1TeamId)}
 					</button>
 					<button
 						class="btn-common danger"
 						class:btn-loading={adminAction === "techloss-p2"}
-						onclick={() => handleAdminTechLoss(match.p2)}
+						onclick={() => handleAdminTechLoss("p2")}
 					>
-						Техлуз {getPlayerName(match.p2)}
+						Техлуз {getSideLabel(match.p2, match.p2TeamId)}
 					</button>
 				</div>
 			</div>

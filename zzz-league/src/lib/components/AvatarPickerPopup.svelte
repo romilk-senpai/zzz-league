@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { agentAvatars } from "$lib/agentAvatars";
-	import { updateAvatar } from "$lib/firebase";
+	import { updateAvatar } from "$lib/backend";
+	import { currentUser, refreshCurrentUser } from "$lib/store";
 
 	let {
 		open = $bindable(false),
@@ -36,11 +37,12 @@
 	}
 
 	async function handleSave() {
-		if (saving || !selectedId || selectedId === selected) return;
+		if (saving || !selectedId || selectedId === selected || !$currentUser) return;
 		saving = true;
 		status = "";
 		try {
-			await updateAvatar(selectedId);
+			await updateAvatar($currentUser.uid, selectedId);
+			await refreshCurrentUser($currentUser.uid);
 			close();
 		} catch (error: any) {
 			status = error.message;

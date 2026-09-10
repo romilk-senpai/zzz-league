@@ -83,12 +83,12 @@
 						type="button"
 						class="info-card"
 						class:copied={copiedField === "discord"}
-						disabled={!player.discord}
-						onclick={() => copyToClipboard(player.discord, "discord")}
+						disabled={!player.discordUsername}
+						onclick={() => copyToClipboard(player.discordUsername ?? "", "discord")}
 						title="Скопировать"
 					>
 						<span class="info-label">Discord</span>
-						<span class="info-value">{player.discord ?? "-"}</span>
+						<span class="info-value">{player.discordUsername ?? "-"}</span>
 						{#if copiedField === "discord"}
 							<span class="copied-label">Скопировано</span>
 						{/if}

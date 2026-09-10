@@ -48,6 +48,7 @@
 			<button class="btn-common" onclick={openSettingsPopup}
 				>Настройки</button
 			>
+			<a class="btn-common" href={resolve("/teams/mine")}>Мои команды</a>
 			<a class="btn-common" href={resolve(`/history/${$currentUser.uid}`)}>
 				Моя история
 			</a>

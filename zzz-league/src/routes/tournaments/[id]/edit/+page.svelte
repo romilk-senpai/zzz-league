@@ -2,13 +2,12 @@
 	import { goto } from "$app/navigation";
 	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
-	import { db, updateTournament } from "$lib/firebase";
+	import { getTournament, updateTournament } from "$lib/backend";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import { isAdmin } from "$lib/store";
-	import type { Tournament } from "$lib/types";
 	import { isLocked } from "$lib/tournamentState";
+	import type { TournamentRegistrationKind } from "$lib/types";
 	import { renderMarkdown } from "$lib/uiCommon";
-	import { get, ref } from "firebase/database";
 	import { onMount } from "svelte";
 
 	const id = $derived(page.params.id!);
@@ -20,6 +19,8 @@
 	let name = $state("");
 	let description = $state("");
 	let descriptionPreview = $derived(renderMarkdown(description));
+	// Registration type is fixed at creation — carried through unchanged, not user-editable here.
+	let registrationType = $state<TournamentRegistrationKind>("solo");
 
 	let registrationStartDate = $state("");
 	let registrationEndDate = $state("");
@@ -28,7 +29,8 @@
 	let tournamentType = $state("double elimination");
 	let breakTiesEnabled = $state(false);
 	let breakTiesPlace = $state(3);
-	let overrideEloChange = $state(-1);
+	let overrideEloEnabled = $state(false);
+	let overrideEloValue = $state(5);
 	let minCost = $state(2100);
 	let maxCost = $state(2200);
 	let minCharacters = $state(14);
@@ -48,8 +50,7 @@
 
 	onMount(async () => {
 		try {
-			const snap = await get(ref(db, "tournaments/" + id));
-			const tournament = snap.val() as Tournament | null;
+			const tournament = await getTournament(id);
 			if (!tournament) {
 				loadError = "Турнир не найден.";
 				return;
@@ -74,10 +75,12 @@
 			tournamentEndDate = toDateTimeLocal(
 				new Date(tournament.tournamentEndDate),
 			);
-			tournamentType = tournament.type;
+			tournamentType = tournament.type ?? "double elimination";
+			registrationType = tournament.registrationType;
 			breakTiesEnabled = tournament.consolationMatchesTargetRank != null;
 			breakTiesPlace = tournament.consolationMatchesTargetRank ?? 3;
-			overrideEloChange = tournament.overrideEloChange;
+			overrideEloEnabled = (tournament.overrideEloChange ?? -1) !== -1;
+			overrideEloValue = overrideEloEnabled ? tournament.overrideEloChange! : 5;
 			minCost = tournament.minCost;
 			maxCost = tournament.maxCost;
 			minCharacters = tournament.minCharacters;
@@ -123,14 +126,18 @@
 			status = "Конец турнира должен быть позже начала";
 			return;
 		}
+		if (overrideEloEnabled && overrideEloValue <= 0) {
+			status = "Фиксированное эло должно быть больше 0";
+			return;
+		}
 
 		try {
 			if (savingTournament) return;
 			savingTournament = true;
-			let tournament: Tournament = {
-				id,
+			await updateTournament(id, {
 				name,
 				description,
+				registrationType,
 				registrationStartDate: regStart,
 				registrationEndDate: regEnd,
 				tournamentStartDate: tourStart,
@@ -140,21 +147,15 @@
 				minCharacters,
 				minTier: parseInt(minTier),
 				maxTier: parseInt(maxTier),
-				challongeTournamentId: "",
-				challongeTournamentUrl: "",
-				matches: [],
-				state: "",
-				winnerId: undefined,
-				overrideEloChange: overrideEloChange,
-				type: tournamentType,
+				overrideEloChange: overrideEloEnabled ? overrideEloValue : -1,
+				bracketType: tournamentType,
 				consolationMatchesTargetRank: breakTiesEnabled
 					? breakTiesPlace
 					: null,
 				visible,
 				discordRoleName,
 				discordChannelName,
-			};
-			await updateTournament(id, tournament);
+			});
 			await goto(resolve(`/tournaments/${id}`));
 		} catch (e: any) {
 			status = e.message;
@@ -224,11 +225,24 @@
 					</div>
 				{/if}
 				<div class="form-row-wide">
-					<label for="f-elo"
-						>Фикс эло для турнира (-1 для стандартной системы)</label
-					>
-					<input id="f-elo" type="number" bind:value={overrideEloChange} />
+					<label for="f-elo-enabled">Фиксированное эло за победу/поражение</label>
+					<input
+						id="f-elo-enabled"
+						type="checkbox"
+						bind:checked={overrideEloEnabled}
+					/>
 				</div>
+				{#if overrideEloEnabled}
+					<div class="form-row-wide">
+						<label for="f-elo-value">Значение эло</label>
+						<input
+							id="f-elo-value"
+							type="number"
+							min="1"
+							bind:value={overrideEloValue}
+						/>
+					</div>
+				{/if}
 				<div class="form-row-wide">
 					<label for="f-min-tier">Мин. тир игроков</label>
 					<select id="f-min-tier" bind:value={minTier}>

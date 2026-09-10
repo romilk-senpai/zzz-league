@@ -1,100 +1,194 @@
-export interface Player {
-	uid: string,
-	name: string,
-	discordId: string,
-	discord: string,
-	elo: number,
-	tournamentPoints: number,
-	isMidConfirmed: boolean,
-	isHighConfirmed: boolean,
-	wins: number,
-	losses: number,
-	playedTournamentCount: number,
-	seasonalPlayedTournamentCount: number,
-	lastPlayedTournamentTimestamp?: number,
-	lastRegistration?: LastRegistrationData,
-	avatar?: string
-}
+// Mirrors ZenlessLeague.Api's DTOs (see zzz-league-server/src/ZenlessLeague.Api/Features/**/*Dtos.cs).
+// Dates are converted from the API's ISO-8601 strings to epoch millis at the `backend.ts` boundary
+// so the rest of the app (tournamentState.ts, sorting, countdowns) can keep doing plain number math
+// exactly as it did against the old Firebase RTDB shape.
+
+export type PlayerRole = "player" | "moderator" | "admin";
 
 export interface LastRegistrationData {
-	zzzUid: string,
-	prizeUid: string,
-	prizeAsMoney: boolean,
-	darteNickname: string,
-	darteAccount: string,
-	dartePreset: string,
-	rosterScreenshot: string,
-	hoyolabScreenshot: string,
+	gameUid: string;
+	prizeUid: string | null;
+	prizeAsMoney: boolean;
+	darteNickname: string;
+	dartePresetName: string;
+	rosterName: string;
+	rosterScreenshotUrl: string | null;
+	hoyolabScreenshotUrl: string | null;
 }
 
-export interface MatchRecord {
-	key: string,
-	p1: string,
-	p2: string,
-	change: number
+export interface Player {
+	uid: string;
+	name: string;
+	discordId: string | null;
+	discordUsername: string | null;
+	elo: number;
+	tournamentPoints: number;
+	isMidConfirmed: boolean;
+	isHighConfirmed: boolean;
+	wins: number;
+	losses: number;
+	playedTournamentCount: number;
+	seasonalPlayedTournamentCount: number;
+	lastPlayedTournamentTimestamp?: number;
+	lastRegistration?: LastRegistrationData;
+	avatar?: string;
+	role: PlayerRole;
 }
 
-export type Archives = Record<string, Player[]>
+// A lean snapshot kept in season archives (ArchivedPlayerSnapshotDto) — not a full Player, so
+// components rendering archived data (Leaderboard) must tolerate the missing fields.
+export interface ArchivedPlayerSnapshot {
+	name: string;
+	elo: number;
+	isMidConfirmed: boolean;
+	isHighConfirmed: boolean;
+}
+
+export interface Archive {
+	id: string;
+	seasonName: string;
+	createdAt: number;
+	players: ArchivedPlayerSnapshot[];
+}
+
+export type TournamentMatchState = string; // Challonge's own vocabulary, passed through verbatim.
 
 export interface TournamentMatch {
-	id: number,
-	p1: string,
-	p2: string,
-	state: string,
-	winnerId: string,
-	resultScreenshot: string,
-	resultP1: number,
-	resultP2: number,
-	p1ApprovedResult: boolean,
-	p2ApprovedResult: boolean,
-	techLossUid: string | null
+	id: string;
+	tournamentId: string;
+	challongeMatchId: number;
+	p1: string | null;
+	p2: string | null;
+	// Team-tournament equivalents of p1/p2 — set XOR with them, depending on the owning
+	// Tournament's registrationType.
+	p1TeamId: string | null;
+	p2TeamId: string | null;
+	state: TournamentMatchState;
+	winnerId: string | null;
+	winnerTeamId: string | null;
+	resultScreenshot: string | null;
+	resultP1: string | null;
+	resultP2: string | null;
+	p1ApprovedResult: boolean;
+	p2ApprovedResult: boolean;
+	techLossUid: string | null;
+	techLossTeamId: string | null;
 }
 
+export type TournamentRegistrationKind = "solo" | "team";
+
 export interface Tournament {
-	id: string,
-	name: string,
-	description: string,
-	registrationStartDate: number,
-	registrationEndDate: number,
-	tournamentStartDate: number,
-	tournamentEndDate: number,
-	minCost: number,
-	maxCost: number,
-	minCharacters: number,
-	minTier: number,
-	maxTier: number,
-	challongeTournamentId: string,
-	challongeTournamentUrl: string,
-	matches: TournamentMatch[],
-	state: string,
-	winnerId: any,
-	type: string,
-	overrideEloChange: number,
-	consolationMatchesTargetRank: number | null,
-	divisionGroupId?: string,
-	divisionIndex?: number,
-	visible?: boolean,
-	discordRoleName?: string,
-	discordChannelName?: string,
-	discordRoleId?: string,
-	discordChannelId?: string,
+	id: string;
+	name: string;
+	description: string | null;
+	registrationStartDate: number;
+	registrationEndDate: number;
+	tournamentStartDate: number;
+	tournamentEndDate: number;
+	minCost: number;
+	maxCost: number;
+	minCharacters: number;
+	minTier: number;
+	maxTier: number;
+	state: string;
+	registrationType: TournamentRegistrationKind;
+	visible: boolean;
+	type: string | null; // legacy field name for BracketType, kept to avoid a UI-wide rename
+	challongeTournamentId: string | null;
+	challongeTournamentUrl: string | null;
+	challongeWinnerId: string | null;
+	winnerId: string | null;
+	winnerTeamId: string | null;
+	divisionGroupId: string | null;
+	divisionIndex: number | null;
+	overrideEloChange: number | null;
+	consolationMatchesTargetRank: number | null;
+	discordRoleName: string | null;
+	discordChannelName: string | null;
+	matches: TournamentMatch[];
+}
+
+export interface PlayerRegistrationDetails {
+	gameUid: string;
+	prizeAsMoney: boolean;
+	prizeUid: string | null;
+	darteNickname: string;
+	dartePresetName: string;
+	rosterName: string;
+	rosterScreenshotUrl: string | null;
+	hoyolabScreenshotUrl: string | null;
 }
 
 export interface TournamentRegistration {
-	uid: string,
-	zzzUid: string,
-	prizeUid: string,
-	prizeAsMoney: boolean,
-	darteNickname: string,
-	darteAccount: string,
-	dartePreset: string,
-	rosterScreenshot: string,
-	hoyolabScreenshot: string,
-	approved: boolean,
-	registrationTimestamp: number
+	id: string;
+	tournamentId: string;
+	type: TournamentRegistrationKind;
+	playerId: string | null;
+	teamId: string | null;
+	player1: PlayerRegistrationDetails;
+	player2: PlayerRegistrationDetails | null;
+	approved: boolean;
+	registrationTimestamp: number;
 }
 
 export interface RegisteredPlayer {
-	player: Player,
-	registration: TournamentRegistration
+	player: Player;
+	registration: TournamentRegistration;
+}
+
+export type TournamentMatchKind = "none" | "custom" | "tech_loss" | "adjustment";
+
+export interface HistoryEntry {
+	id: string;
+	p1PlayerId: string;
+	p1Change: number;
+	p2PlayerId: string | null;
+	p2Change: number | null;
+	tournamentId: string | null;
+	tournamentMatchId: string | null;
+	kind: TournamentMatchKind;
+	resultP1: string | null;
+	resultP2: string | null;
+	resultScreenshotUrl: string | null;
+	timestamp: number;
+}
+
+// Keyset pagination cursor — the (timestamp, id) of the last entry seen, matching the API's
+// ListPageAsync/ListPageByPlayerAsync ordering (Timestamp desc, Id desc as tiebreaker).
+export interface HistoryCursor {
+	timestamp: number;
+	id: string;
+}
+
+export interface HistoryPage {
+	entries: HistoryEntry[];
+	hasMore: boolean;
+}
+
+export interface PlayerSummary {
+	uid: string;
+	name: string;
+	avatar: string | null;
+	isMidConfirmed: boolean;
+	isHighConfirmed: boolean;
+}
+
+export interface Team {
+	id: string;
+	name: string;
+	photoUrl: string | null;
+	creator: PlayerSummary;
+	player2: PlayerSummary;
+	createdAt: number;
+}
+
+// Keyset pagination cursor, matching the API's ListPageAsync ordering (CreatedAt desc, Id desc).
+export interface TeamCursor {
+	createdAt: number;
+	id: string;
+}
+
+export interface TeamPage {
+	teams: Team[];
+	hasMore: boolean;
 }

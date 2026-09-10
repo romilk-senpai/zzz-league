@@ -3,7 +3,7 @@
 	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
 	import SidePanel from "$lib/components/SidePanel.svelte";
-	import { applyForTournament, db } from "$lib/firebase";
+	import { applyForTournament, getTournament, listRegistrations } from "$lib/backend";
 	import { useObjectUrlPreview } from "$lib/imagePreview.svelte.js";
 	import { currentUser, isAdmin } from "$lib/store";
 	import type { Tournament, TournamentRegistration } from "$lib/types";
@@ -18,7 +18,6 @@
 		openImagePopup,
 		pasteImageFromClipboard,
 	} from "$lib/uiCommon";
-	import { onValue, ref } from "firebase/database";
 	import { onMount } from "svelte";
 
 	const id = $derived(page.params.id);
@@ -53,14 +52,15 @@
 		regLoaded = true;
 		if (!reg || fieldsInitialized) return;
 		fieldsInitialized = true;
-		zzzUid = reg.zzzUid ?? "";
-		prizeUid = reg.prizeUid ?? "";
-		prizeAsMoney = reg.prizeAsMoney ?? false;
-		darteNickname = reg.darteNickname ?? "";
-		darteAccount = reg.darteAccount ?? "";
-		dartePreset = reg.dartePreset ?? "";
-		regScreenshot = reg.rosterScreenshot ?? "";
-		regHoyolabScreenshot = reg.hoyolabScreenshot ?? "";
+		const details = reg.player1;
+		zzzUid = details.gameUid ?? "";
+		prizeUid = details.prizeUid ?? "";
+		prizeAsMoney = details.prizeAsMoney ?? false;
+		darteNickname = details.darteNickname ?? "";
+		darteAccount = details.dartePresetName ?? "";
+		dartePreset = details.rosterName ?? "";
+		regScreenshot = details.rosterScreenshotUrl ?? "";
+		regHoyolabScreenshot = details.hoyolabScreenshotUrl ?? "";
 	}
 
 	let currentUserTier = $derived(
@@ -107,14 +107,14 @@
 	function handlePrefillFromLastRegistration() {
 		const last = $currentUser?.lastRegistration;
 		if (!last) return;
-		zzzUid = last.zzzUid ?? "";
+		zzzUid = last.gameUid ?? "";
 		prizeUid = last.prizeUid ?? "";
 		prizeAsMoney = last.prizeAsMoney ?? false;
 		darteNickname = last.darteNickname ?? "";
-		darteAccount = last.darteAccount ?? "";
-		dartePreset = last.dartePreset ?? "";
-		regScreenshot = last.rosterScreenshot ?? "";
-		regHoyolabScreenshot = last.hoyolabScreenshot ?? "";
+		darteAccount = last.dartePresetName ?? "";
+		dartePreset = last.rosterName ?? "";
+		regScreenshot = last.rosterScreenshotUrl ?? "";
+		regHoyolabScreenshot = last.hoyolabScreenshotUrl ?? "";
 	}
 
 	async function handlePasteScreenshot(target: "roster" | "hoyolab") {
@@ -171,19 +171,20 @@
 			return;
 		}
 
+		if (!$currentUser) return;
+
 		isRegistering = true;
 		try {
-			await applyForTournament(
-				tournament.id,
-				zzzUid,
+			await applyForTournament(tournament.id, $currentUser.uid, {
+				gameUid: zzzUid,
 				prizeUid,
 				prizeAsMoney,
 				darteNickname,
 				darteAccount,
 				dartePreset,
-				screenshotFile,
-				hoyolabScreenshotFile,
-			);
+				rosterScreenshot: screenshotFile,
+				hoyolabScreenshot: hoyolabScreenshotFile,
+			});
 			await goto(resolve(`/tournaments/${tournament.id}`));
 		} catch (error: any) {
 			status = error.message;
@@ -193,10 +194,10 @@
 	}
 
 	onMount(() => {
-		const unsubTournament = onValue(ref(db, "tournaments/" + id), (snap) => {
-			const data = snap.val();
-			if (!data) return;
-			tournament = { ...data, matches: [] };
+		let cancelled = false;
+
+		getTournament(id!).then((loaded) => {
+			if (!cancelled) tournament = loaded ?? undefined;
 		});
 
 		const interval = setInterval(() => {
@@ -204,24 +205,31 @@
 		}, 1000);
 
 		return () => {
-			unsubTournament();
+			cancelled = true;
 			clearInterval(interval);
 		};
 	});
 
 	$effect(() => {
-		if (!$currentUser || !id) {
+		const uid = $currentUser?.uid;
+		const tournamentId = id;
+		if (!uid || !tournamentId) {
 			myRegistration = null;
+			regLoaded = true;
 			return;
 		}
-		return onValue(
-			ref(db, `tournaments/${id}/registrations/${$currentUser.uid}`),
-			(snap) => {
-				const data = (snap.val() as TournamentRegistration | null) ?? null;
-				myRegistration = data;
-				applyRegistrationData(data);
-			},
-		);
+
+		let cancelled = false;
+		listRegistrations(tournamentId).then((registrations) => {
+			if (cancelled) return;
+			const mine = registrations.find((r) => r.playerId === uid) ?? null;
+			myRegistration = mine;
+			applyRegistrationData(mine);
+		});
+
+		return () => {
+			cancelled = true;
+		};
 	});
 </script>
 
