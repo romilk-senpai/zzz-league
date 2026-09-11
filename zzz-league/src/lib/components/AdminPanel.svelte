@@ -3,26 +3,50 @@
 		addPlayer,
 		backfillLastPlayedTimestamps,
 		finalizeTournament,
+		listPlayers,
+		previewEloChange,
 		registerMatch,
 		resetSeason,
 		setSeasonTimer,
 	} from "$lib/backend";
-	import { players, refreshPlayers, refreshSeasonTimer } from "$lib/store";
-	import type { Player } from "$lib/types";
+	import { refreshSeasonTimer } from "$lib/store";
+	import type { PlayerListItem } from "$lib/types";
 	import { resolve } from "$app/paths";
+	import { onMount } from "svelte";
+
+	let players = $state<PlayerListItem[]>([]);
+
+	onMount(() => {
+		listPlayers().then((loaded) => (players = loaded));
+	});
+
+	// Only for bulk operations that genuinely affect every player (reset season, backfill,
+	// finalize tournament) — single/paired-player mutations patch `players` in place instead
+	// (see patchPlayers/handleAddPlayer/handleRegisterMatch).
+	async function reloadPlayers() {
+		players = await listPlayers();
+	}
+
+	function patchPlayers(updated: PlayerListItem[]) {
+		const byUid = new Map(updated.map((p) => [p.uid, p]));
+		players = [
+			...players.map((p) => byUid.get(p.uid) ?? p),
+			...updated.filter((p) => !players.some((existing) => existing.uid === p.uid)),
+		].sort((a, b) => a.name.localeCompare(b.name));
+	}
 
 	let searchQueryP1 = $state("");
-	let selectedPlayer1: Player | null = $state(null);
+	let selectedPlayer1: PlayerListItem | null = $state(null);
 	let filteredPlayers1 = $derived(
-		$players.filter((p: Player) =>
+		players.filter((p) =>
 			p.name.toLowerCase().includes(searchQueryP1.toLowerCase()),
 		),
 	);
 
 	let searchQueryP2 = $state("");
-	let selectedPlayer2: Player | null = $state(null);
+	let selectedPlayer2: PlayerListItem | null = $state(null);
 	let filteredPlayers2 = $derived(
-		$players.filter((p: Player) =>
+		players.filter((p) =>
 			p.name.toLowerCase().includes(searchQueryP2.toLowerCase()),
 		),
 	);
@@ -37,8 +61,8 @@
 	});
 
 	type Forecast = {
-		p1: { player: Player; w: number; l: number };
-		p2: { player: Player; w: number; l: number };
+		p1: { player: PlayerListItem; w: number; l: number };
+		p2: { player: PlayerListItem; w: number; l: number };
 	};
 
 	let showingForecast = $state(false);
@@ -63,36 +87,14 @@
 		if (!playerName) return;
 		if (playerName.length < 2) alert("Мала букв");
 		try {
-			await addPlayer(playerName);
-			await refreshPlayers();
+			const created = await addPlayer(playerName);
+			patchPlayers([created]);
 		} catch (error) {
 			alert(error);
 		}
 	}
 
-	function effectiveRating(player: Player) {
-		return (player.elo || 1000) + (player.tournamentPoints || 0);
-	}
-
-	function calculateEloChange(p1: Player, p2: Player, outcome: number) {
-		const k =
-			outcome === 1
-				? p1.isMidConfirmed || false
-					? 25
-					: 50
-				: p1.isMidConfirmed || false
-					? 20
-					: 45;
-		const expected =
-			1 /
-			(1 + Math.pow(10, (effectiveRating(p2) - effectiveRating(p1)) / 400));
-		let change = Math.round(k * (outcome - expected));
-		if (outcome === 1 && change <= 0) change = 1;
-		if (outcome === 0 && change >= 0) change = -1;
-		return change;
-	}
-
-	function showForecast() {
+	async function showForecast() {
 		if (
 			!selectedPlayer1 ||
 			!selectedPlayer2 ||
@@ -101,20 +103,16 @@
 			return alert("Выберите разных");
 		}
 
-		forecast = {
-			p1: {
-				player: selectedPlayer1,
-				w: calculateEloChange(selectedPlayer1, selectedPlayer2, 1),
-				l: calculateEloChange(selectedPlayer1, selectedPlayer2, 0),
-			},
-			p2: {
-				player: selectedPlayer2,
-				w: calculateEloChange(selectedPlayer2, selectedPlayer1, 1),
-				l: calculateEloChange(selectedPlayer2, selectedPlayer1, 0),
-			},
-		};
-
-		showingForecast = true;
+		try {
+			const preview = await previewEloChange(selectedPlayer1.uid, selectedPlayer2.uid);
+			forecast = {
+				p1: { player: selectedPlayer1, w: preview.p1ChangeOnWin, l: preview.p1ChangeOnLoss },
+				p2: { player: selectedPlayer2, w: preview.p2ChangeOnWin, l: preview.p2ChangeOnLoss },
+			};
+			showingForecast = true;
+		} catch (error) {
+			alert(error);
+		}
 	}
 
 	let registeringMatch = false;
@@ -139,7 +137,7 @@
 				winner === 1,
 				-1,
 			);
-			await refreshPlayers();
+			patchPlayers(await listPlayers([selectedPlayer1.uid, selectedPlayer2.uid]));
 
 			showingForecast = false;
 		} catch (error) {
@@ -181,7 +179,7 @@
 				-1,
 				true,
 			);
-			await refreshPlayers();
+			patchPlayers(await listPlayers([selectedPlayer1.uid, selectedPlayer2.uid]));
 
 			showingForecast = false;
 		} catch (error) {
@@ -196,7 +194,7 @@
 		if (!name) return;
 		try {
 			await resetSeason(name);
-			await refreshPlayers();
+			await reloadPlayers();
 		} catch (error) {
 			alert(error);
 		}
@@ -207,7 +205,7 @@
 			return;
 		try {
 			const { updatedPlayers } = await backfillLastPlayedTimestamps();
-			await refreshPlayers();
+			await reloadPlayers();
 			alert(`Обновлено игроков: ${updatedPlayers}`);
 		} catch (error) {
 			alert(error);
@@ -219,7 +217,7 @@
 
 		try {
 			await finalizeTournament();
-			await refreshPlayers();
+			await reloadPlayers();
 		} catch (error) {
 			alert(error);
 		}

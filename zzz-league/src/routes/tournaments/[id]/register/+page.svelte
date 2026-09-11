@@ -7,7 +7,7 @@
 	import { useObjectUrlPreview } from "$lib/imagePreview.svelte.js";
 	import { currentUser, isAdmin } from "$lib/store";
 	import type { Tournament, TournamentRegistration } from "$lib/types";
-	import { isLocked, isRegistrationWindowOpen } from "$lib/tournamentState";
+	import { isLocked, isRegistrationWindowOpen, playerTierValue } from "$lib/tournamentState";
 	import {
 		bustCache,
 		dateDisplayOptions,
@@ -63,13 +63,7 @@
 		regHoyolabScreenshot = details.hoyolabScreenshotUrl ?? "";
 	}
 
-	let currentUserTier = $derived(
-		$currentUser?.isHighConfirmed
-			? 1000
-			: $currentUser?.isMidConfirmed
-				? 100
-				: 0,
-	);
+	let currentUserTier = $derived($currentUser ? playerTierValue($currentUser) : 0);
 	let tierEligible = $derived(
 		!!tournament &&
 			currentUserTier >= tournament.minTier &&

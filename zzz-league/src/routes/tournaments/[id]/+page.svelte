@@ -18,6 +18,8 @@
 		getTournament,
 		incrementSeasonalTournamentCount,
 		incrementTournamentCount,
+		listMatches,
+		listPlayers,
 		listRegistrations,
 		startChallongeTournament,
 		updateTournamentGames,
@@ -30,9 +32,9 @@
 		onRegistrationChanged,
 		onTournamentChanged,
 	} from "$lib/signalr";
-	import { currentUser, isAdmin, playersByUid, refreshPlayers } from "$lib/store";
+	import { currentUser, isAdmin } from "$lib/store";
 	import type {
-		Player,
+		PlayerListItem,
 		RegisteredPlayer,
 		Team,
 		Tournament,
@@ -47,6 +49,7 @@
 		isRegistrationClosed,
 		isRegistrationOpen,
 		isRegistrationWindowOpen,
+		playerTierValue,
 	} from "$lib/tournamentState";
 	import { dateDisplayOptions, renderMarkdown } from "$lib/uiCommon";
 	import { capDefaultHeight } from "$lib/actions/capDefaultHeight";
@@ -56,9 +59,13 @@
 
 	let now = $state(Date.now());
 	let tournament = $state<Tournament>();
+	let matches = $state<TournamentMatch[]>([]);
 	let userRegistration = $state<TournamentRegistration | null>();
-	let userPlayer = $state<Player | null>();
+	let userPlayer = $state<PlayerListItem | null>();
 	let registrations = $state<TournamentRegistration[]>([]);
+	// Batch-resolved from registrations' playerIds — this tournament's registrants only, not the
+	// whole roster (see the player-list refactor: no more global players/playersByUid cache).
+	let registeredPlayersData = $state<PlayerListItem[]>([]);
 	let myRegistration = $derived(
 		$currentUser
 			? (registrations.find((r) => r.playerId === $currentUser!.uid) ?? null)
@@ -68,7 +75,7 @@
 		registrations
 			.map((registration) => {
 				const player = registration.playerId
-					? $playersByUid.get(registration.playerId)
+					? registeredPlayersData.find((p) => p.uid === registration.playerId)
 					: undefined;
 				return player ? { player, registration } : null;
 			})
@@ -83,7 +90,7 @@
 	let selectedTeam = $state<Team | null>(null);
 	let currentMatchId = $state<string>();
 	let currentMatch = $derived(
-		tournament?.matches.find((m: TournamentMatch) => m.id === currentMatchId),
+		matches.find((m: TournamentMatch) => m.id === currentMatchId),
 	);
 
 	let showCompleted = $state(true);
@@ -119,8 +126,6 @@
 	});
 
 	$effect(() => {
-		const matches = tournament?.matches;
-		if (!matches) return;
 		const ids = new Set<string>();
 		for (const m of matches) {
 			if (m.p1TeamId) ids.add(m.p1TeamId);
@@ -145,7 +150,7 @@
 	);
 
 	let filteredMatches = $derived(
-		tournament?.matches.filter((m: TournamentMatch) => {
+		matches.filter((m: TournamentMatch) => {
 			if (!(m.p1 && m.p2) && !(m.p1TeamId && m.p2TeamId)) return false;
 			if (!showCompleted && m.state === "complete") return false;
 			if (
@@ -170,13 +175,7 @@
 
 	let canView = $derived(tournament?.visible !== false || $isAdmin);
 
-	let currentUserTier = $derived(
-		$currentUser?.isHighConfirmed
-			? 1000
-			: $currentUser?.isMidConfirmed
-				? 100
-				: 0,
-	);
+	let currentUserTier = $derived($currentUser ? playerTierValue($currentUser) : 0);
 	let tierEligible = $derived(
 		!!tournament &&
 			currentUserTier >= tournament.minTier &&
@@ -398,23 +397,36 @@
 			if (!cancelled) tournament = loaded ?? undefined;
 		}
 
+		async function loadMatches() {
+			const loaded = await listMatches(tournamentId);
+			if (!cancelled) matches = loaded;
+		}
+
+		// Batch-resolves just this tournament's registrants (not the whole roster — see the
+		// player-list refactor) — re-run whenever match/tournament changes might have moved a
+		// registrant's Elo/tier, so TournamentPlayerTable's columns stay live.
+		async function loadRegisteredPlayersData() {
+			const uids = registrations.map((r) => r.playerId).filter((uid): uid is string => !!uid);
+			const loaded = uids.length ? await listPlayers(uids) : [];
+			if (!cancelled) registeredPlayersData = loaded;
+		}
+
 		async function loadRegistrations() {
 			const loaded = await listRegistrations(tournamentId);
 			if (!cancelled) registrations = loaded;
+			await loadRegisteredPlayersData();
 		}
 
 		loadTournament();
+		loadMatches();
 		loadRegistrations();
 		joinTournamentGroup(tournamentId);
 
-		// Match results (and tournament finish) change player Elo/tier/points, which live in the
-		// separate global `players` store (see $lib/store) — refresh it alongside the
-		// tournament/match data so TournamentPlayerTable's Elo/tier columns update live too,
-		// instead of only reflecting whatever was loaded on initial page mount.
 		const unsubTournamentChanged = onTournamentChanged((changedId) => {
 			if (changedId !== tournamentId) return;
 			loadTournament();
-			refreshPlayers();
+			loadMatches();
+			loadRegisteredPlayersData();
 		});
 		const unsubRegistrationChanged = onRegistrationChanged((changedId) => {
 			if (changedId === tournamentId) loadRegistrations();
@@ -422,12 +434,14 @@
 		const unsubMatchChanged = onMatchChanged((changedId) => {
 			if (changedId !== tournamentId) return;
 			loadTournament();
-			refreshPlayers();
+			loadMatches();
+			loadRegisteredPlayersData();
 		});
 		const unsubMatchesSynced = onMatchesSynced((changedId) => {
 			if (changedId !== tournamentId) return;
 			loadTournament();
-			refreshPlayers();
+			loadMatches();
+			loadRegisteredPlayersData();
 		});
 
 		const interval = setInterval(() => {
@@ -712,7 +726,7 @@
 				{/if}
 			{/if}
 
-			{#if tournament.matches && tournament.matches.length > 0}
+			{#if matches.length > 0}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div

@@ -1,10 +1,8 @@
 import { auth, linkDiscord, loginWithDiscord } from "./firebase"
+import { applyPlayerUpdate } from "./store"
 
 const DISCORD_CLIENT_ID = '1501228042926690486'
 
-// 'login' (no session yet, from LoginPopup) and 'link' (already logged in, from SettingsPopup)
-// both redirect through the same /discord-callback route — `state` is the only way Discord carries
-// intent across that redirect, since it's just echoed back verbatim on callback.
 export type DiscordOAuthMode = 'login' | 'link';
 
 export function openDiscordOAuth(mode: DiscordOAuthMode) {
@@ -36,6 +34,6 @@ export async function handleDiscordCallback() {
 		// moment even though the user is genuinely logged in, which would send this request with
 		// no Authorization header and get a 401. Wait for the initial auth state to settle first.
 		await auth.authStateReady();
-		await linkDiscord(code, redirectUri);
+		applyPlayerUpdate(await linkDiscord(code, redirectUri));
 	}
 }

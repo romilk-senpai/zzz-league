@@ -1,17 +1,18 @@
 <script lang="ts">
 	import { deletePlayer, updatePlayerElo } from "$lib/backend";
-	import { isAdmin, refreshPlayers } from "$lib/store";
-	import type { Player } from "$lib/types";
+	import { isAdmin } from "$lib/store";
+	import type { Player, PlayerListItem } from "$lib/types";
 	import { getLvl, getTier, openProfilePopup } from "$lib/uiCommon";
 	import PointsDelta from "$lib/components/PointsDelta.svelte";
 
 	const INACTIVITY_THRESHOLD_MS = 90 * 24 * 60 * 60 * 1000;
 
 	// Also fed archived season snapshots (ArchivedPlayerSnapshot) from the home page's archive
-	// viewer — those lack uid/tournamentPoints/lastPlayedTournamentTimestamp, so every field but
-	// name/elo/tier flags is optional here.
+	// viewer — those lack tournamentPoints/lastPlayedTournamentTimestamp (and may have a null uid,
+	// for archives predating the snapshot's player FK), so every field but name/elo/tier flags is
+	// optional here.
 	type LeaderboardPlayer = {
-		uid?: string;
+		uid?: string | null;
 		name: string;
 		elo: number;
 		tournamentPoints?: number;
@@ -25,6 +26,10 @@
 		hideOptions?: boolean;
 		searchQuery?: string;
 		showInactivePlayers?: boolean;
+		// Live (non-archived) admin edits need the caller to patch its own player list — this
+		// component no longer owns any shared player state itself. Unused when hideOptions is true.
+		onPlayerUpdated?: (player: Player) => void;
+		onPlayerDeleted?: (uid: string) => void;
 	}
 
 	let {
@@ -32,6 +37,8 @@
 		hideOptions = false,
 		searchQuery = "",
 		showInactivePlayers = false,
+		onPlayerUpdated = undefined,
+		onPlayerDeleted = undefined,
 	}: Props = $props();
 
 	function isActive(p: LeaderboardPlayer) {
@@ -65,8 +72,7 @@
 		const elo = parseInt(val);
 		if (isNaN(elo)) return;
 		try {
-			await updatePlayerElo(uid, elo);
-			await refreshPlayers();
+			onPlayerUpdated?.(await updatePlayerElo(uid, elo));
 		} catch (e: any) {
 			alert(e.message);
 		}
@@ -76,14 +82,14 @@
 		if (!confirm("Удалить игрока?")) return;
 		try {
 			await deletePlayer(uid);
-			await refreshPlayers();
+			onPlayerDeleted?.(uid);
 		} catch (e: any) {
 			alert(e.message);
 		}
 	}
 
 	function handleNameClick(player: LeaderboardPlayer) {
-		if (player.uid) openProfilePopup(player as Player);
+		if (player.uid) openProfilePopup(player as PlayerListItem);
 	}
 
 	function getLadderPos(p: LeaderboardPlayer) {

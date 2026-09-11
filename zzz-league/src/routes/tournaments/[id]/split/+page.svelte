@@ -3,8 +3,8 @@
 	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
 	import SidePanel from "$lib/components/SidePanel.svelte";
-	import { getTournament, listRegistrations, splitTournament } from "$lib/backend";
-	import { isAdmin, playersByUid } from "$lib/store";
+	import { getTournament, listPlayers, listRegistrations, splitTournament } from "$lib/backend";
+	import { isAdmin } from "$lib/store";
 	import type { Tournament } from "$lib/types";
 	import { isLocked } from "$lib/tournamentState";
 	import { onMount, untrack } from "svelte";
@@ -171,13 +171,17 @@
 			tournament = data;
 
 			const registrations = await listRegistrations(id);
-
-			approvedPlayers = registrations
+			const approvedUids = registrations
 				.filter((r) => r.approved && r.playerId)
-				.map((r) => ({
-					uid: r.playerId!,
-					name: $playersByUid.get(r.playerId!)?.name ?? r.playerId!,
-				}));
+				.map((r) => r.playerId!);
+			const namesByUid = new Map(
+				(await listPlayers(approvedUids)).map((p) => [p.uid, p.name]),
+			);
+
+			approvedPlayers = approvedUids.map((uid) => ({
+				uid,
+				name: namesByUid.get(uid) ?? uid,
+			}));
 		} catch (e: any) {
 			loadError = e.message;
 		} finally {

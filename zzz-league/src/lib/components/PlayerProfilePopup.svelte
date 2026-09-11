@@ -3,11 +3,11 @@
 	import { getAgentAvatar } from "$lib/agentAvatars";
 	import avatarPlaceholder from "$lib/assets/avatar-placeholder.webp";
 	import { isAdmin } from "$lib/store";
-	import type { Player } from "$lib/types";
+	import type { PlayerListItem } from "$lib/types";
 	import { closeProfilePopup, getTier } from "$lib/uiCommon";
 	import PointsDelta from "$lib/components/PointsDelta.svelte";
 
-	let { player = null }: { player?: Player | null } = $props();
+	let { player = null }: { player?: PlayerListItem | null } = $props();
 
 	let avatar = $derived(getAgentAvatar(player?.avatar));
 

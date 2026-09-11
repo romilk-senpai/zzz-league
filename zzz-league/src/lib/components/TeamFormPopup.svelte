@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { createTeam, updateTeam } from "$lib/backend";
+	import { createTeam, listPlayers, updateTeam } from "$lib/backend";
 	import { useObjectUrlPreview } from "$lib/imagePreview.svelte.js";
-	import { currentUser, players } from "$lib/store";
-	import type { Player, Team } from "$lib/types";
+	import { currentUser } from "$lib/store";
+	import type { PlayerListItem, Team } from "$lib/types";
 	import { bustCache, isImageTooLarge, MAX_IMAGE_SIZE_MB, openImagePopup } from "$lib/uiCommon";
 
 	let {
@@ -24,6 +24,7 @@
 	let photoFile = $state<FileList | null>(null);
 	let status = $state("");
 	let saving = $state(false);
+	let players = $state<PlayerListItem[]>([]);
 
 	let photoPreview = useObjectUrlPreview(() => photoFile?.[0]);
 
@@ -35,12 +36,13 @@
 			photoFile = null;
 			searchQuery = "";
 			status = "";
+			listPlayers().then((loaded) => (players = loaded));
 		}
 	});
 
 	let availablePlayers = $derived(
-		$players.filter(
-			(p: Player) =>
+		players.filter(
+			(p) =>
 				p.uid !== $currentUser?.uid &&
 				p.name.toLowerCase().includes(searchQuery.toLowerCase()),
 		),

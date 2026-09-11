@@ -1,7 +1,7 @@
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { loginOpen, profileUser, settingsOpen, viewingImage } from "./store";
-import type { Player } from "./types";
+import type { PlayerListItem } from "./types";
 
 marked.setOptions({ breaks: true });
 
@@ -51,7 +51,7 @@ export function imageFileFromPasteEvent(e: ClipboardEvent): File | null {
 	return null;
 }
 
-export function openProfilePopup(player: Player) {
+export function openProfilePopup(player: PlayerListItem) {
 	profileUser.set(player);
 }
 

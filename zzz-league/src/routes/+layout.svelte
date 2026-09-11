@@ -9,7 +9,6 @@
 		role,
 		viewingImage,
 		refreshCurrentUser,
-		refreshPlayers,
 		refreshTournaments,
 		refreshOneTournament,
 	} from "$lib/store";
@@ -47,7 +46,6 @@
 			}
 		});
 
-		refreshPlayers();
 		refreshTournaments();
 
 		// Every client is auto-joined to the hub's list group (see TournamentHub), so this covers

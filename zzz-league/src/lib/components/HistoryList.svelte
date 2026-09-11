@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { resolve } from "$app/paths";
-	import { deleteHistoryEntry, listHistoryByPlayerPage, listHistoryPage } from "$lib/backend";
-	import { isAdmin, playersByUid } from "$lib/store";
-	import type { HistoryCursor, HistoryEntry } from "$lib/types";
+	import { deleteHistoryEntry, listHistoryByPlayerPage, listHistoryPage, listPlayers } from "$lib/backend";
+	import { isAdmin } from "$lib/store";
+	import type { HistoryCursor, HistoryEntry, PlayerListItem } from "$lib/types";
 	import {
 		dateDisplayOptions,
 		openImagePopup,
@@ -20,6 +20,26 @@
 	let loadingMore = $state(false);
 	let sentinel = $state<HTMLDivElement | undefined>();
 
+	// Resolved lazily as entries load — batch-fetch just the uids that appear on loaded pages,
+	// instead of relying on a preloaded global player list.
+	let resolvedPlayers = $state<Map<string, PlayerListItem>>(new Map());
+
+	async function resolvePlayersFor(pageEntries: HistoryEntry[]) {
+		const uids = new Set<string>();
+		for (const e of pageEntries) {
+			uids.add(e.p1PlayerId);
+			if (e.p2PlayerId) uids.add(e.p2PlayerId);
+		}
+
+		const missing = [...uids].filter((uid) => !resolvedPlayers.has(uid));
+		if (missing.length === 0) return;
+
+		const loaded = await listPlayers(missing);
+		const next = new Map(resolvedPlayers);
+		for (const p of loaded) next.set(p.uid, p);
+		resolvedPlayers = next;
+	}
+
 	const LEGACY_CUTOFF_TIMESTAMP = 1783017803637;
 
 	const legacyDividerEntryId = $derived(
@@ -27,11 +47,11 @@
 	);
 
 	function getPlayerName(uid: string) {
-		return $playersByUid.get(uid)?.name ?? uid;
+		return resolvedPlayers.get(uid)?.name ?? uid;
 	}
 
 	function openPlayer(uid: string) {
-		const player = $playersByUid.get(uid);
+		const player = resolvedPlayers.get(uid);
 		if (player) openProfilePopup(player);
 	}
 
@@ -78,6 +98,7 @@
 			if (myGeneration !== generation) return;
 			entries = [...entries, ...page.entries];
 			hasMore = page.hasMore;
+			resolvePlayersFor(page.entries);
 			cursor = page.entries.length
 				? { timestamp: page.entries[page.entries.length - 1].timestamp, id: page.entries[page.entries.length - 1].id }
 				: cursor;
@@ -100,6 +121,7 @@
 				if (myGeneration !== generation) return;
 				entries = page.entries;
 				hasMore = page.hasMore;
+				resolvePlayersFor(page.entries);
 				cursor = page.entries.length
 					? { timestamp: page.entries[page.entries.length - 1].timestamp, id: page.entries[page.entries.length - 1].id }
 					: null;
@@ -183,7 +205,7 @@
 							class="match-tournament-link"
 							href={resolve(`/tournaments/${entry.tournamentId}`)}
 						>
-							Турнир
+							{entry.tournamentName ?? "Турнир"}
 						</a>
 					{/if}
 					{#if entry.kind === "tech_loss"}

@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { adminAddTournamentRegistration } from "$lib/backend";
-	import { players } from "$lib/store";
-	import type { Player } from "$lib/types";
+	import { adminAddTournamentRegistration, listPlayers } from "$lib/backend";
+	import type { PlayerListItem } from "$lib/types";
 
 	let {
 		open = $bindable(false),
@@ -16,10 +15,17 @@
 	let searchQuery = $state("");
 	let selectedUid = $state("");
 	let status = $state("");
+	let players = $state<PlayerListItem[]>([]);
+
+	$effect(() => {
+		if (open) {
+			listPlayers().then((loaded) => (players = loaded));
+		}
+	});
 
 	let availablePlayers = $derived(
-		$players.filter(
-			(p: Player) =>
+		players.filter(
+			(p) =>
 				!registeredUids.includes(p.uid) &&
 				p.name.toLowerCase().includes(searchQuery.toLowerCase()),
 		),

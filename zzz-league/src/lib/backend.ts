@@ -9,6 +9,7 @@ import type {
 	HistoryEntry,
 	HistoryPage,
 	Player,
+	PlayerListItem,
 	PlayerRegistrationDetails,
 	PlayerRole,
 	PlayerSummary,
@@ -34,7 +35,7 @@ interface LastRegistrationCacheDto {
 	hoyolabScreenshotUrl: string | null;
 }
 
-interface PlayerDto {
+export interface PlayerDto {
 	uid: string;
 	name: string;
 	discordId: string | null;
@@ -52,6 +53,22 @@ interface PlayerDto {
 	role: PlayerRole;
 	createdAt: string;
 	lastRegistration: LastRegistrationCacheDto | null;
+}
+
+export interface PlayerListItemDto {
+	uid: string;
+	name: string;
+	discordUsername: string | null;
+	elo: number;
+	tournamentPoints: number;
+	isMidConfirmed: boolean;
+	isHighConfirmed: boolean;
+	wins: number;
+	losses: number;
+	playedTournamentCount: number;
+	seasonalPlayedTournamentCount: number;
+	lastPlayedTournamentTimestamp: string | null;
+	avatar: string | null;
 }
 
 interface TournamentDto {
@@ -135,6 +152,7 @@ interface HistoryEntryDto {
 	p2PlayerId: string | null;
 	p2Change: number | null;
 	tournamentId: string | null;
+	tournamentName: string | null;
 	tournamentMatchId: string | null;
 	kind: string;
 	resultP1: string | null;
@@ -171,6 +189,7 @@ interface TeamPageDto {
 }
 
 interface ArchivedPlayerSnapshotDto {
+	uid: string | null;
 	name: string;
 	elo: number;
 	isMidConfirmed: boolean;
@@ -188,7 +207,7 @@ interface ArchiveDto {
 
 const epoch = (iso: string) => Date.parse(iso);
 
-function toPlayer(dto: PlayerDto): Player {
+export function toPlayer(dto: PlayerDto): Player {
 	return {
 		uid: dto.uid,
 		name: dto.name,
@@ -222,6 +241,26 @@ function toPlayer(dto: PlayerDto): Player {
 	};
 }
 
+export function toPlayerListItem(dto: PlayerListItemDto): PlayerListItem {
+	return {
+		uid: dto.uid,
+		name: dto.name,
+		discordUsername: dto.discordUsername,
+		elo: dto.elo,
+		tournamentPoints: dto.tournamentPoints,
+		isMidConfirmed: dto.isMidConfirmed,
+		isHighConfirmed: dto.isHighConfirmed,
+		wins: dto.wins,
+		losses: dto.losses,
+		playedTournamentCount: dto.playedTournamentCount,
+		seasonalPlayedTournamentCount: dto.seasonalPlayedTournamentCount,
+		lastPlayedTournamentTimestamp: dto.lastPlayedTournamentTimestamp
+			? epoch(dto.lastPlayedTournamentTimestamp)
+			: undefined,
+		avatar: dto.avatar ?? undefined,
+	};
+}
+
 function toMatch(dto: TournamentMatchDto): TournamentMatch {
 	return {
 		id: dto.id,
@@ -244,7 +283,7 @@ function toMatch(dto: TournamentMatchDto): TournamentMatch {
 	};
 }
 
-function toTournament(dto: TournamentDto, matches: TournamentMatch[] = []): Tournament {
+function toTournament(dto: TournamentDto): Tournament {
 	return {
 		id: dto.id,
 		name: dto.name,
@@ -273,7 +312,6 @@ function toTournament(dto: TournamentDto, matches: TournamentMatch[] = []): Tour
 		consolationMatchesTargetRank: dto.consolationMatchesTargetRank,
 		discordRoleName: dto.discordRoleName,
 		discordChannelName: dto.discordChannelName,
-		matches,
 	};
 }
 
@@ -312,6 +350,7 @@ function toHistoryEntry(dto: HistoryEntryDto): HistoryEntry {
 		p2PlayerId: dto.p2PlayerId,
 		p2Change: dto.p2Change,
 		tournamentId: dto.tournamentId,
+		tournamentName: dto.tournamentName,
 		tournamentMatchId: dto.tournamentMatchId,
 		kind: dto.kind as HistoryEntry['kind'],
 		resultP1: dto.resultP1,
@@ -328,6 +367,7 @@ function toArchive(dto: ArchiveDto): Archive {
 		createdAt: epoch(dto.createdAt),
 		players: dto.players.map(
 			(p): ArchivedPlayerSnapshot => ({
+				uid: p.uid,
 				name: p.name,
 				elo: p.elo,
 				isMidConfirmed: p.isMidConfirmed,
@@ -369,8 +409,11 @@ function fileToBase64(file: File): Promise<string> {
 
 // ---- Players ----
 
-export async function listPlayers(): Promise<Player[]> {
-	return (await apiGet<PlayerDto[]>('/api/players')).map(toPlayer);
+// uids: batch-resolve a known set of players (e.g. a tournament's registrants); omit for the
+// whole roster. Always the lean PlayerListItem shape — use getPlayer for a full single Player.
+export async function listPlayers(uids?: string[]): Promise<PlayerListItem[]> {
+	const query = uids?.length ? `?uids=${uids.map(encodeURIComponent).join(',')}` : '';
+	return (await apiGet<PlayerListItemDto[]>(`/api/players${query}`)).map(toPlayerListItem);
 }
 
 export async function getPlayer(uid: string): Promise<Player | null> {
@@ -409,11 +452,11 @@ export async function listTournaments(): Promise<Tournament[]> {
 }
 
 export async function getTournament(id: string): Promise<Tournament | null> {
-	const [tournament, matches] = await Promise.all([
-		apiGet<TournamentDto>(`/api/tournaments/${id}`).catch(() => null),
-		listMatches(id).catch(() => []),
-	]);
-	return tournament ? toTournament(tournament, matches) : null;
+	try {
+		return toTournament(await apiGet<TournamentDto>(`/api/tournaments/${id}`));
+	} catch {
+		return null;
+	}
 }
 
 export interface CreateTournamentInput {
@@ -651,6 +694,21 @@ export async function registerMatch(
 		techLoss,
 	});
 	return toHistoryEntry(dto);
+}
+
+export interface EloPreview {
+	p1ChangeOnWin: number;
+	p1ChangeOnLoss: number;
+	p2ChangeOnWin: number;
+	p2ChangeOnLoss: number;
+}
+
+// Non-authoritative preview for the admin match-registration tool's Elo forecast — computed
+// server-side by the exact same formula real match registration uses (see
+// HistoryService.PreviewEloChangeAsync), instead of a separately maintained frontend copy.
+export async function previewEloChange(p1Uid: string, p2Uid: string): Promise<EloPreview> {
+	const params = new URLSearchParams({ p1Uid, p2Uid });
+	return apiGet<EloPreview>(`/api/history/elo-preview?${params}`);
 }
 
 function historyPageQuery(cursor: HistoryCursor | null | undefined, take: number): string {

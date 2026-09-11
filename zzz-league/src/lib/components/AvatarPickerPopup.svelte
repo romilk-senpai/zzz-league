@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { agentAvatars } from "$lib/agentAvatars";
 	import { updateAvatar } from "$lib/backend";
-	import { currentUser, refreshCurrentUser } from "$lib/store";
+	import { applyPlayerUpdate, currentUser } from "$lib/store";
 
 	let {
 		open = $bindable(false),
@@ -41,8 +41,7 @@
 		saving = true;
 		status = "";
 		try {
-			await updateAvatar($currentUser.uid, selectedId);
-			await refreshCurrentUser($currentUser.uid);
+			applyPlayerUpdate(await updateAvatar($currentUser.uid, selectedId));
 			close();
 		} catch (error: any) {
 			status = error.message;

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { deleteTeam } from "$lib/backend";
-	import { currentUser, isAdmin, playersByUid } from "$lib/store";
-	import type { Team } from "$lib/types";
+	import { deleteTeam, listPlayers } from "$lib/backend";
+	import { currentUser, isAdmin } from "$lib/store";
+	import type { PlayerListItem, Team } from "$lib/types";
 	import { bustCache, dateDisplayOptions, openProfilePopup } from "$lib/uiCommon";
 
 	let {
@@ -27,8 +27,20 @@
 
 	let deleting = $state(false);
 
+	// Team.creator/player2 are the lean PlayerSummary shape (uid/name/avatar/tier only) — not
+	// enough for the full profile popup, so fetch the two members' full list-item data on open.
+	let membersByUid = $state<Map<string, PlayerListItem>>(new Map());
+
+	$effect(() => {
+		if (open && team) {
+			listPlayers([team.creator.uid, team.player2.uid]).then((loaded) => {
+				membersByUid = new Map(loaded.map((p) => [p.uid, p]));
+			});
+		}
+	});
+
 	function openMemberProfile(uid: string) {
-		const player = $playersByUid.get(uid);
+		const player = membersByUid.get(uid);
 		if (player) openProfilePopup(player);
 	}
 

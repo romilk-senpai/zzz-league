@@ -4,7 +4,7 @@
 	import { openDiscordOAuth } from "$lib/discord";
 	import { auth, unlinkDiscord } from "$lib/firebase";
 	import { updateProfile } from "$lib/backend";
-	import { currentUser, refreshCurrentUser } from "$lib/store";
+	import { applyPlayerUpdate, currentUser } from "$lib/store";
 	import { closeSettingsPopup } from "$lib/uiCommon";
 	import {
 		EmailAuthProvider,
@@ -46,7 +46,7 @@
 		if (unlinkingDiscord) return;
 		unlinkingDiscord = true;
 		try {
-			await unlinkDiscord();
+			applyPlayerUpdate(await unlinkDiscord());
 		} catch (error: any) {
 			status = error.message;
 		} finally {
@@ -91,8 +91,7 @@
 
 			if (newUsername) {
 				try {
-					await updateProfile(user.uid, newUsername);
-					await refreshCurrentUser(user.uid);
+					applyPlayerUpdate(await updateProfile(user.uid, newUsername));
 					successData = true;
 				} catch (error: any) {
 					status = error.message;

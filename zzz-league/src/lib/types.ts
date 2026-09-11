@@ -35,9 +35,32 @@ export interface Player {
 	role: PlayerRole;
 }
 
+// Lean shape returned by GET /api/players (optionally filtered by uids) — everything list-context
+// views (leaderboard, pickers, tournament rosters, history rows, profile popups opened from any of
+// those) actually render. Omits discordId/role/lastRegistration, which only ever matter for the
+// logged-in user's own full Player (fetched separately via getPlayer/$currentUser).
+export interface PlayerListItem {
+	uid: string;
+	name: string;
+	discordUsername: string | null;
+	elo: number;
+	tournamentPoints: number;
+	isMidConfirmed: boolean;
+	isHighConfirmed: boolean;
+	wins: number;
+	losses: number;
+	playedTournamentCount: number;
+	seasonalPlayedTournamentCount: number;
+	lastPlayedTournamentTimestamp?: number;
+	avatar?: string;
+}
+
 // A lean snapshot kept in season archives (ArchivedPlayerSnapshotDto) — not a full Player, so
 // components rendering archived data (Leaderboard) must tolerate the missing fields.
 export interface ArchivedPlayerSnapshot {
+	// Null for archives created before the snapshot carried a real FK back to the player, or if
+	// that player was later deleted. Present for anything archived going forward.
+	uid: string | null;
 	name: string;
 	elo: number;
 	isMidConfirmed: boolean;
@@ -105,7 +128,6 @@ export interface Tournament {
 	consolationMatchesTargetRank: number | null;
 	discordRoleName: string | null;
 	discordChannelName: string | null;
-	matches: TournamentMatch[];
 }
 
 export interface PlayerRegistrationDetails {
@@ -132,7 +154,7 @@ export interface TournamentRegistration {
 }
 
 export interface RegisteredPlayer {
-	player: Player;
+	player: PlayerListItem;
 	registration: TournamentRegistration;
 }
 
@@ -145,6 +167,7 @@ export interface HistoryEntry {
 	p2PlayerId: string | null;
 	p2Change: number | null;
 	tournamentId: string | null;
+	tournamentName: string | null;
 	tournamentMatchId: string | null;
 	kind: TournamentMatchKind;
 	resultP1: string | null;

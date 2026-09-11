@@ -1,21 +1,14 @@
-import { derived, writable } from 'svelte/store'
-import type { Player, PlayerRole, Tournament } from './types';
+import { derived, get, writable } from 'svelte/store'
+import type { Player, PlayerListItem, PlayerRole, Tournament } from './types';
 import { hasRole } from './roles';
-import { getPlayer, getSeasonTimer, getTournament, listPlayers, listTournaments } from './backend';
+import { getPlayer, getSeasonTimer, getTournament, listTournaments } from './backend';
 
 export const currentUser = writable<Player | null>(null);
 export const role = writable<PlayerRole>("player");
 export const isAdmin = derived(role, ($role) => hasRole($role, "admin"));
 export const isModerator = derived(role, ($role) => hasRole($role, "moderator"));
 
-export const players = writable<Player[]>([]);
 export const tournaments = writable<Tournament[]>([]);
-
-export const playersByUid = derived(players, ($players) => {
-	const map = new Map<string, Player>();
-	for (const p of $players) map.set(p.uid, p);
-	return map;
-});
 
 export const seasonTimerEndsAt = writable<number | null>(null);
 
@@ -25,14 +18,10 @@ export async function refreshSeasonTimer(): Promise<void> {
 
 export const loginOpen = writable(false);
 export const settingsOpen = writable(false);
-export const profileUser = writable<Player | null>(null);
+export const profileUser = writable<PlayerListItem | null>(null);
 export const viewingImage = writable<string>("");
 
 // ---- REST-backed data loading, replacing the old onValue-fed stores ----
-
-export async function refreshPlayers(): Promise<void> {
-	players.set(await listPlayers());
-}
 
 export async function refreshTournaments(): Promise<void> {
 	tournaments.set(await listTournaments());
@@ -58,4 +47,15 @@ export async function refreshCurrentUser(uid: string): Promise<void> {
 	const player = await getPlayer(uid);
 	currentUser.set(player);
 	role.set(player?.role ?? "player");
+}
+
+// Applies an already-fetched updated Player (from a mutation response) to currentUser, if it's
+// the logged-in user — avoids a redundant re-fetch of data the mutation's response already gave
+// us. (Used to also patch a global players list; that list is gone now — see the player-list
+// refactor — each view owns its own player data instead.)
+export function applyPlayerUpdate(updated: Player): void {
+	if (get(currentUser)?.uid === updated.uid) {
+		currentUser.set(updated);
+		role.set(updated.role);
+	}
 }

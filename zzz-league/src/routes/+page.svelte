@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { deleteArchive, deleteHistoryEntry, listArchives } from "$lib/backend";
-	import type { Archive } from "$lib/types";
+	import { listArchives, listPlayers } from "$lib/backend";
+	import type { Archive, Player, PlayerListItem } from "$lib/types";
 	import Leaderboard from "$lib/components/Leaderboard.svelte";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TournamentCard from "$lib/components/TournamentCard.svelte";
-	import { isAdmin, players, seasonTimerEndsAt, tournaments, refreshSeasonTimer } from "$lib/store";
+	import { isAdmin, seasonTimerEndsAt, tournaments, refreshSeasonTimer } from "$lib/store";
 	import { capDefaultHeight } from "$lib/actions/capDefaultHeight";
 	import { TOURNAMENT_STATE } from "$lib/tournamentState";
 
@@ -21,6 +21,7 @@
 	);
 
 	let archives = $state<Archive[]>([]);
+	let livePlayers = $state<PlayerListItem[]>([]);
 
 	let searchQuery = $state("");
 	let showInactivePlayers = $state(false);
@@ -31,8 +32,20 @@
 	let displayPlayers = $derived(
 		isViewingArchive
 			? (archives.find((a) => a.seasonName === archiveKey)?.players ?? [])
-			: $players,
+			: livePlayers,
 	);
+
+	function handlePlayerUpdated(updated: Player) {
+		const index = livePlayers.findIndex((p) => p.uid === updated.uid);
+		if (index === -1) return;
+		const next = [...livePlayers];
+		next[index] = updated;
+		livePlayers = next;
+	}
+
+	function handlePlayerDeleted(uid: string) {
+		livePlayers = livePlayers.filter((p) => p.uid !== uid);
+	}
 
 	let now = $state(Date.now());
 
@@ -49,6 +62,7 @@
 
 	onMount(() => {
 		listArchives().then((loaded) => (archives = loaded));
+		listPlayers().then((loaded) => (livePlayers = loaded));
 		refreshSeasonTimer();
 
 		const interval = setInterval(() => {
@@ -70,24 +84,6 @@
 		archiveKey = "";
 	}
 
-	async function handleDeleteArchive(key: string) {
-		try {
-			await deleteArchive(key);
-			archives = await listArchives();
-		} catch (error) {
-			alert(error);
-		}
-	}
-
-	async function handleDeleteHistoryEntry(key: string) {
-		if (!confirm("Удалить запись?")) return;
-
-		try {
-			await deleteHistoryEntry(key);
-		} catch (error) {
-			alert(error);
-		}
-	}
 </script>
 
 <div class="layout">
@@ -144,6 +140,8 @@
 				{searchQuery}
 				{showInactivePlayers}
 				hideOptions={isViewingArchive}
+				onPlayerUpdated={handlePlayerUpdated}
+				onPlayerDeleted={handlePlayerDeleted}
 			/>
 		</div>
 
