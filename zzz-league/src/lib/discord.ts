@@ -29,10 +29,6 @@ export async function handleDiscordCallback() {
 	if (mode === 'login') {
 		await loginWithDiscord(code, redirectUri);
 	} else {
-		// This page is landed on via a full-page redirect back from Discord, so Firebase Auth's
-		// session restore is still in flight at this point — auth.currentUser can read null for a
-		// moment even though the user is genuinely logged in, which would send this request with
-		// no Authorization header and get a 401. Wait for the initial auth state to settle first.
 		await auth.authStateReady();
 		applyPlayerUpdate(await linkDiscord(code, redirectUri));
 	}

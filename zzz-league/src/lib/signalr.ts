@@ -22,6 +22,7 @@ function getConnection(): signalR.HubConnection {
 			// the negotiate request's preflight.
 			withCredentials: false,
 			accessTokenFactory: async () => {
+				await auth.authStateReady();
 				const user = auth.currentUser;
 				return user ? await user.getIdToken() : '';
 			},
@@ -33,6 +34,7 @@ function getConnection(): signalR.HubConnection {
 }
 
 export async function connectIfAuthenticated(): Promise<void> {
+	await auth.authStateReady();
 	if (!auth.currentUser) return;
 	const conn = getConnection();
 	if (conn.state !== signalR.HubConnectionState.Disconnected) return;
@@ -85,6 +87,7 @@ export function onMatchesSynced(handler: (tournamentId: string) => void): () => 
 // (registration/match changes) — the list group above is separate and always-on. No-ops for
 // anonymous visitors (never connected) instead of hanging.
 export async function joinTournamentGroup(tournamentId: string): Promise<void> {
+	await auth.authStateReady();
 	if (!auth.currentUser) return;
 	const conn = getConnection();
 	await connectIfAuthenticated();

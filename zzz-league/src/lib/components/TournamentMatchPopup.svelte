@@ -21,6 +21,8 @@
 	} = $props();
 
 	let isTeamMatch = $derived(!!match.p1TeamId || !!match.p2TeamId);
+	let isDeadlyAssault = $derived(tournament.gameMode === "deadly_assault");
+	let defaultResult = $derived(isDeadlyAssault ? "0" : "00:00");
 
 	function isMemberOfTeam(teamId: string | null) {
 		if (!teamId || !$currentUser) return false;
@@ -49,8 +51,8 @@
 
 	$effect(() => {
 		match;
-		matchResultP1 = match.resultP1 ?? "00:00";
-		matchResultP2 = match.resultP2 ?? "00:00";
+		matchResultP1 = match.resultP1 ?? defaultResult;
+		matchResultP2 = match.resultP2 ?? defaultResult;
 		inputScreenshot = null;
 	});
 
@@ -64,9 +66,20 @@
 		return h * 60 + m > 0;
 	}
 
+	function isValidScore(score: string) {
+		// Free-text input now (see resultP1/resultP2's string contract with the API) — digits only,
+		// not just "parses as a positive integer", so things like "2e3" or "2000.0" don't sneak
+		// through as a valid score and then fail to parse server-side.
+		return /^[0-9]+$/.test(score) && Number(score) > 0;
+	}
+
+	function isValidResult(value: string) {
+		return isDeadlyAssault ? isValidScore(value) : isValidTime(value);
+	}
+
 	let hasUnsavedInput = $derived(
-		matchResultP1 !== (match.resultP1 ?? "00:00") ||
-			matchResultP2 !== (match.resultP2 ?? "00:00") ||
+		matchResultP1 !== (match.resultP1 ?? defaultResult) ||
+			matchResultP2 !== (match.resultP2 ?? defaultResult) ||
 			!!inputScreenshot?.length ||
 			!!adminInputScreenshot?.length,
 	);
@@ -147,8 +160,8 @@
 	let isApproving = $state(false);
 	async function handleApproveResult() {
 		if (isApproving) return;
-		if (!isValidTime(matchResultP1) || !isValidTime(matchResultP2)) {
-			alert("Введите время больше 00:00");
+		if (!isValidResult(matchResultP1) || !isValidResult(matchResultP2)) {
+			alert(isDeadlyAssault ? "Введите очки больше 0" : "Введите время больше 00:00");
 			return;
 		}
 		const resultScreenshot = inputScreenshot?.[0];
@@ -182,8 +195,8 @@
 
 	async function handleAdminSetResult() {
 		if (adminAction) return;
-		if (!isValidTime(matchResultP1) || !isValidTime(matchResultP2)) {
-			alert("Введите время больше 00:00");
+		if (!isValidResult(matchResultP1) || !isValidResult(matchResultP2)) {
+			alert(isDeadlyAssault ? "Введите очки больше 0" : "Введите время больше 00:00");
 			return;
 		}
 		const adminScreenshot = adminInputScreenshot?.[0] ?? null;
@@ -287,27 +300,45 @@
 				<hr style="width: 100%" />
 				<div class="match-players">
 					<span class="match-player-left"
-						>Введите время {getSideLabel(match.p1, match.p1TeamId)}</span
+						>{isDeadlyAssault ? "Введите очки" : "Введите время"} {getSideLabel(match.p1, match.p1TeamId)}</span
 					>
 					<span> </span>
 					<span class="match-player-right"
-						>Введите время {getSideLabel(match.p2, match.p2TeamId)}</span
+						>{isDeadlyAssault ? "Введите очки" : "Введите время"} {getSideLabel(match.p2, match.p2TeamId)}</span
 					>
-					<input
-						class="time-input match-player-left"
-						type="time"
-						step="60"
-						lang="en-GB"
-						bind:value={matchResultP1}
-					/>
-					<span> </span>
-					<input
-						class="time-input match-player-right"
-						type="time"
-						step="60"
-						lang="en-GB"
-						bind:value={matchResultP2}
-					/>
+					{#if isDeadlyAssault}
+						<input
+							class="time-input match-player-left"
+							type="text"
+							inputmode="numeric"
+							pattern="[0-9]*"
+							bind:value={matchResultP1}
+						/>
+						<span> </span>
+						<input
+							class="time-input match-player-right"
+							type="text"
+							inputmode="numeric"
+							pattern="[0-9]*"
+							bind:value={matchResultP2}
+						/>
+					{:else}
+						<input
+							class="time-input match-player-left"
+							type="time"
+							step="60"
+							lang="en-GB"
+							bind:value={matchResultP1}
+						/>
+						<span> </span>
+						<input
+							class="time-input match-player-right"
+							type="time"
+							step="60"
+							lang="en-GB"
+							bind:value={matchResultP2}
+						/>
+					{/if}
 				</div>
 			{/if}
 
@@ -371,21 +402,39 @@
 					<span class="match-player-right"
 						>{getSideLabel(match.p2, match.p2TeamId)}</span
 					>
-					<input
-						class="time-input match-player-left"
-						type="time"
-						step="60"
-						lang="en-GB"
-						bind:value={matchResultP1}
-					/>
-					<span> </span>
-					<input
-						class="time-input match-player-right"
-						type="time"
-						step="60"
-						lang="en-GB"
-						bind:value={matchResultP2}
-					/>
+					{#if isDeadlyAssault}
+						<input
+							class="time-input match-player-left"
+							type="text"
+							inputmode="numeric"
+							pattern="[0-9]*"
+							bind:value={matchResultP1}
+						/>
+						<span> </span>
+						<input
+							class="time-input match-player-right"
+							type="text"
+							inputmode="numeric"
+							pattern="[0-9]*"
+							bind:value={matchResultP2}
+						/>
+					{:else}
+						<input
+							class="time-input match-player-left"
+							type="time"
+							step="60"
+							lang="en-GB"
+							bind:value={matchResultP1}
+						/>
+						<span> </span>
+						<input
+							class="time-input match-player-right"
+							type="time"
+							step="60"
+							lang="en-GB"
+							bind:value={matchResultP2}
+						/>
+					{/if}
 				</div>
 				<div class="input-row">
 					<input

@@ -6,7 +6,7 @@
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import { isAdmin } from "$lib/store";
 	import { isLocked } from "$lib/tournamentState";
-	import type { TournamentRegistrationKind } from "$lib/types";
+	import type { TournamentGameMode, TournamentRegistrationKind } from "$lib/types";
 	import { renderMarkdown } from "$lib/uiCommon";
 	import { onMount } from "svelte";
 
@@ -19,8 +19,10 @@
 	let name = $state("");
 	let description = $state("");
 	let descriptionPreview = $derived(renderMarkdown(description));
-	// Registration type is fixed at creation — carried through unchanged, not user-editable here.
+	// Registration type and game mode are fixed at creation — carried through unchanged, not
+	// user-editable here.
 	let registrationType = $state<TournamentRegistrationKind>("solo");
+	let gameMode = $state<TournamentGameMode>("shiyu_defense");
 
 	let registrationStartDate = $state("");
 	let registrationEndDate = $state("");
@@ -77,6 +79,7 @@
 			);
 			tournamentType = tournament.type ?? "double elimination";
 			registrationType = tournament.registrationType;
+			gameMode = tournament.gameMode;
 			breakTiesEnabled = tournament.consolationMatchesTargetRank != null;
 			breakTiesPlace = tournament.consolationMatchesTargetRank ?? 3;
 			overrideEloEnabled = (tournament.overrideEloChange ?? -1) !== -1;
@@ -138,6 +141,7 @@
 				name,
 				description,
 				registrationType,
+				gameMode,
 				registrationStartDate: regStart,
 				registrationEndDate: regEnd,
 				tournamentStartDate: tourStart,

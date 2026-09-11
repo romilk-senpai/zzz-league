@@ -4,13 +4,14 @@
 	import { createTournament } from "$lib/backend";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import { isAdmin } from "$lib/store";
-	import type { TournamentRegistrationKind } from "$lib/types";
+	import type { TournamentGameMode, TournamentRegistrationKind } from "$lib/types";
 	import { renderMarkdown } from "$lib/uiCommon";
 
 	let name = $state("");
 	let description = $state("");
 	let descriptionPreview = $derived(renderMarkdown(description));
 	let registrationType = $state<TournamentRegistrationKind>("solo");
+	let gameMode = $state<TournamentGameMode>("shiyu_defense");
 
 	const now = new Date();
 	let registrationStartDate = $state(toDateTimeLocal(now));
@@ -81,6 +82,7 @@
 				name,
 				description,
 				registrationType,
+				gameMode,
 				registrationStartDate: regStart,
 				registrationEndDate: regEnd,
 				tournamentStartDate: tourStart,
@@ -122,16 +124,17 @@
 			<div class="form-row-wide">
 				<label for="f-registration-type">Тип регистрации</label>
 				<select id="f-registration-type" bind:value={registrationType}>
-					<option value="solo">Соло</option>
+					<option value="solo">1x1</option>
 					<option value="team">2x2</option>
 				</select>
 			</div>
-			{#if registrationType === "team"}
-				<p class="notice">
-					Для турниров 2x2 пока недоступно создание сетки Challonge —
-					только регистрация команд.
-				</p>
-			{/if}
+			<div class="form-row-wide">
+				<label for="f-game-mode">Режим игры</label>
+				<select id="f-game-mode" bind:value={gameMode}>
+					<option value="shiyu_defense">Shiyu Defense</option>
+					<option value="deadly_assault">Deadly Assault</option>
+				</select>
+			</div>
 			<div class="form-row-wide">
 				<label for="f-description">Описание</label>
 				<textarea id="f-description" rows="4" bind:value={description}

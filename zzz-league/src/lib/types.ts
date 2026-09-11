@@ -100,6 +100,8 @@ export interface TournamentMatch {
 
 export type TournamentRegistrationKind = "solo" | "team";
 
+export type TournamentGameMode = "shiyu_defense" | "deadly_assault";
+
 export interface Tournament {
 	id: string;
 	name: string;
@@ -115,6 +117,7 @@ export interface Tournament {
 	maxTier: number;
 	state: string;
 	registrationType: TournamentRegistrationKind;
+	gameMode: TournamentGameMode;
 	visible: boolean;
 	type: string | null; // legacy field name for BracketType, kept to avoid a UI-wide rename
 	challongeTournamentId: string | null;

@@ -7,6 +7,7 @@
 	import TournamentPlayerTable from "$lib/components/TournamentPlayerTable.svelte";
 	import TournamentRegisterPopup from "$lib/components/TournamentRegistrationPopup.svelte";
 	import TournamentAddPlayerPopup from "$lib/components/TournamentAddPlayerPopup.svelte";
+	import TournamentAddTeamPopup from "$lib/components/TournamentAddTeamPopup.svelte";
 	import TeamDetailsPopup from "$lib/components/TeamDetailsPopup.svelte";
 	import {
 		cancelTournamentRegistration,
@@ -68,23 +69,47 @@
 	let registeredPlayersData = $state<PlayerListItem[]>([]);
 	let myRegistration = $derived(
 		$currentUser
-			? (registrations.find((r) => r.playerId === $currentUser!.uid) ?? null)
+			? (registrations.find((r) => {
+					if (r.playerId === $currentUser!.uid) return true;
+					const team = r.teamId ? teamsById.get(r.teamId) : undefined;
+					return (
+						!!team &&
+						(team.creator.uid === $currentUser!.uid || team.player2.uid === $currentUser!.uid)
+					);
+				}) ?? null)
 			: null,
 	);
+	// One row per player: a solo registration is one row, a team registration is two (one per
+	// member) both sharing the same `registration` — so approving/viewing either row acts on the
+	// whole team's shared registration, same "both members treated independently" spirit as team
+	// match results.
 	let registeredPlayers = $derived(
-		registrations
-			.map((registration) => {
-				const player = registration.playerId
-					? registeredPlayersData.find((p) => p.uid === registration.playerId)
-					: undefined;
-				return player ? { player, registration } : null;
-			})
-			.filter(Boolean) as RegisteredPlayer[],
+		registrations.flatMap((registration): RegisteredPlayer[] => {
+			if (registration.playerId) {
+				const player = registeredPlayersData.find((p) => p.uid === registration.playerId);
+				return player ? [{ player, registration }] : [];
+			}
+
+			if (registration.teamId) {
+				const team = teamsById.get(registration.teamId);
+				if (!team) return [];
+				return [team.creator.uid, team.player2.uid]
+					.map((uid) => registeredPlayersData.find((p) => p.uid === uid))
+					.filter((player): player is PlayerListItem => !!player)
+					.map((player) => ({ player, registration }));
+			}
+
+			return [];
+		}),
 	);
 	let searchQuery = $state("");
 	let registrationOpen = $state(false);
 	let matchOpen = $state(false);
 	let addPlayerPopupOpen = $state(false);
+	let addTeamPopupOpen = $state(false);
+	let registeredTeamIds = $derived(
+		registrations.map((r) => r.teamId).filter((id): id is string => !!id),
+	);
 	let teamsById = $state<Map<string, Team>>(new Map());
 	let teamDetailsOpen = $state(false);
 	let selectedTeam = $state<Team | null>(null);
@@ -125,23 +150,28 @@
 		}
 	});
 
+	// Shared by the matches-team-ids effect below and loadRegisteredPlayersData (registrations can
+	// reference a team before any match exists yet, e.g. still in Registration state) — only
+	// fetches teams not already in teamsById, so calling this repeatedly is cheap.
+	async function ensureTeamsLoaded(teamIds: string[]) {
+		const missing = teamIds.filter((teamId) => !teamsById.has(teamId));
+		if (missing.length === 0) return;
+
+		const loaded = await Promise.all(missing.map((teamId) => getTeam(teamId)));
+		const next = new Map(teamsById);
+		loaded.forEach((team, i) => {
+			if (team) next.set(missing[i], team);
+		});
+		teamsById = next;
+	}
+
 	$effect(() => {
 		const ids = new Set<string>();
 		for (const m of matches) {
 			if (m.p1TeamId) ids.add(m.p1TeamId);
 			if (m.p2TeamId) ids.add(m.p2TeamId);
 		}
-		const missing = [...ids].filter((teamId) => !teamsById.has(teamId));
-		if (missing.length === 0) return;
-
-		(async () => {
-			const loaded = await Promise.all(missing.map((teamId) => getTeam(teamId)));
-			const next = new Map(teamsById);
-			loaded.forEach((team, i) => {
-				if (team) next.set(missing[i], team);
-			});
-			teamsById = next;
-		})();
+		ensureTeamsLoaded([...ids]);
 	});
 
 	let currentUserParticipates = $derived(
@@ -404,9 +434,21 @@
 
 		// Batch-resolves just this tournament's registrants (not the whole roster — see the
 		// player-list refactor) — re-run whenever match/tournament changes might have moved a
-		// registrant's Elo/tier, so TournamentPlayerTable's columns stay live.
+		// registrant's Elo/tier, so TournamentPlayerTable's columns stay live. Team registrations
+		// contribute both members (see registeredPlayers below, which expands one team
+		// registration into two table rows), so their teams need to be loaded first to know which
+		// uids that even is.
 		async function loadRegisteredPlayersData() {
-			const uids = registrations.map((r) => r.playerId).filter((uid): uid is string => !!uid);
+			const soloUids = registrations.map((r) => r.playerId).filter((uid): uid is string => !!uid);
+			const teamIds = registrations.map((r) => r.teamId).filter((id): id is string => !!id);
+			await ensureTeamsLoaded(teamIds);
+
+			const teamUids = teamIds.flatMap((teamId) => {
+				const team = teamsById.get(teamId);
+				return team ? [team.creator.uid, team.player2.uid] : [];
+			});
+
+			const uids = [...new Set([...soloUids, ...teamUids])];
 			const loaded = uids.length ? await listPlayers(uids) : [];
 			if (!cancelled) registeredPlayersData = loaded;
 		}
@@ -499,6 +541,18 @@
 						>{tournament.type}</span
 					>
 				</p>
+				<p>
+					Тип турнира
+					<span class="value-highlight"
+						>{tournament.registrationType === "team" ? "2x2" : "1x1"}</span
+					>
+				</p>
+				<p>
+					Игровой режим
+					<span class="value-highlight"
+						>{tournament.gameMode === "deadly_assault" ? "Deadly Assault" : "Shiyu Defense"}</span
+					>
+				</p>
 				{#if tournament.overrideEloChange == -1}
 					<p>Стандартная система начислений эло</p>
 				{:else}
@@ -580,11 +634,19 @@
 								href={resolve(`/tournaments/${tournament.id}/edit`)}
 								>Редактировать турнир</a
 							>
-							<button
-								class="btn-common"
-								onclick={() => (addPlayerPopupOpen = true)}
-								>Добавить игрока</button
-							>
+							{#if tournament.registrationType === "team"}
+								<button
+									class="btn-common"
+									onclick={() => (addTeamPopupOpen = true)}
+									>Добавить команду</button
+								>
+							{:else}
+								<button
+									class="btn-common"
+									onclick={() => (addPlayerPopupOpen = true)}
+									>Добавить игрока</button
+								>
+							{/if}
 							{#if isRegistrationOpen(tournament.state)}
 								<button
 									class="btn-common"
@@ -881,6 +943,13 @@
 		{tournament}
 		registeredUids={registeredPlayers.map((p) => p.player.uid)}
 	></TournamentAddPlayerPopup>
+{/if}
+{#if addTeamPopupOpen}
+	<TournamentAddTeamPopup
+		bind:open={addTeamPopupOpen}
+		{tournament}
+		{registeredTeamIds}
+	></TournamentAddTeamPopup>
 {/if}
 <TeamDetailsPopup bind:open={teamDetailsOpen} team={selectedTeam} />
 

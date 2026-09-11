@@ -15,7 +15,11 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
 	headers.set('Content-Type', 'application/json');
 
 	// Firebase ID tokens are the new API's only auth mechanism (JWT bearer) — unlike
-	// httpsCallable, plain fetch doesn't attach this automatically.
+	// httpsCallable, plain fetch doesn't attach this automatically. authStateReady() waits out
+	// Firebase Auth's session restore on first load (auth.currentUser reads null for a moment
+	// even when genuinely logged in); it resolves immediately once that's already settled, so
+	// this costs nothing on every call after the first.
+	await auth.authStateReady();
 	const user = auth.currentUser;
 	if (user) {
 		headers.set('Authorization', `Bearer ${await user.getIdToken()}`);
