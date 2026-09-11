@@ -5,6 +5,7 @@
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TournamentGamePopup from "$lib/components/TournamentMatchPopup.svelte";
 	import TournamentPlayerTable from "$lib/components/TournamentPlayerTable.svelte";
+	import TournamentTeamTable from "$lib/components/TournamentTeamTable.svelte";
 	import TournamentRegisterPopup from "$lib/components/TournamentRegistrationPopup.svelte";
 	import TournamentAddPlayerPopup from "$lib/components/TournamentAddPlayerPopup.svelte";
 	import TournamentAddTeamPopup from "$lib/components/TournamentAddTeamPopup.svelte";
@@ -62,7 +63,8 @@
 	let tournament = $state<Tournament>();
 	let matches = $state<TournamentMatch[]>([]);
 	let userRegistration = $state<TournamentRegistration | null>();
-	let userPlayer = $state<PlayerListItem | null>();
+	let userPlayer1 = $state<PlayerListItem | undefined>();
+	let userPlayer2 = $state<PlayerListItem | undefined>();
 	let registrations = $state<TournamentRegistration[]>([]);
 	// Batch-resolved from registrations' playerIds — this tournament's registrants only, not the
 	// whole roster (see the player-list refactor: no more global players/playersByUid cache).
@@ -79,29 +81,19 @@
 				}) ?? null)
 			: null,
 	);
-	// One row per player: a solo registration is one row, a team registration is two (one per
-	// member) both sharing the same `registration` — so approving/viewing either row acts on the
-	// whole team's shared registration, same "both members treated independently" spirit as team
-	// match results.
+	// Solo registrations only — team registrations render via TournamentTeamTable/registrations
+	// directly instead (one row per team, not per player; see registeredTeamRegistrations below).
 	let registeredPlayers = $derived(
-		registrations.flatMap((registration): RegisteredPlayer[] => {
-			if (registration.playerId) {
-				const player = registeredPlayersData.find((p) => p.uid === registration.playerId);
-				return player ? [{ player, registration }] : [];
-			}
-
-			if (registration.teamId) {
-				const team = teamsById.get(registration.teamId);
-				if (!team) return [];
-				return [team.creator.uid, team.player2.uid]
-					.map((uid) => registeredPlayersData.find((p) => p.uid === uid))
-					.filter((player): player is PlayerListItem => !!player)
-					.map((player) => ({ player, registration }));
-			}
-
-			return [];
-		}),
+		registrations
+			.map((registration) => {
+				const player = registration.playerId
+					? registeredPlayersData.find((p) => p.uid === registration.playerId)
+					: undefined;
+				return player ? { player, registration } : null;
+			})
+			.filter(Boolean) as RegisteredPlayer[],
 	);
+	let registeredTeamRegistrations = $derived(registrations.filter((r) => !!r.teamId));
 	let searchQuery = $state("");
 	let registrationOpen = $state(false);
 	let matchOpen = $state(false);
@@ -224,148 +216,108 @@
 		!!tournament && !isLocked(tournament.state) && !tournament.challongeTournamentId,
 	);
 
-	let cancellingRegistration = $state(false);
-	async function handleCancelRegistration() {
-		if (cancellingRegistration || !tournament) return;
-		if (!confirm("Отменить регистрацию на турнир?")) return;
-		cancellingRegistration = true;
+	// Shared by every admin action button below: optional confirm dialog, a loading flag toggled
+	// around the call, and an alert() on failure — the only thing each handler varies is which flag,
+	// which confirm message (if any), and which API call to make.
+	async function runAction(
+		setLoading: (loading: boolean) => void,
+		action: () => Promise<unknown>,
+		confirmMessage?: string,
+	) {
+		if (confirmMessage && !confirm(confirmMessage)) return;
+		setLoading(true);
 		try {
-			await cancelTournamentRegistration(tournament.id);
+			await action();
 		} catch (error) {
 			alert(error);
 		} finally {
-			cancellingRegistration = false;
+			setLoading(false);
 		}
+	}
+
+	let cancellingRegistration = $state(false);
+	function handleCancelRegistration() {
+		if (cancellingRegistration || !tournament) return;
+		runAction(
+			(v) => (cancellingRegistration = v),
+			() => cancelTournamentRegistration(tournament!.id),
+			"Отменить регистрацию на турнир?",
+		);
 	}
 
 	let closingRegistration = $state(false);
-	async function handleCloseRegistration() {
+	function handleCloseRegistration() {
 		if (closingRegistration || !tournament) return;
-		if (!confirm("Закрыть регистрацию на турнир?")) return;
-		closingRegistration = true;
-		try {
-			await closeTournamentRegistration(tournament.id);
-		} catch (error) {
-			alert(error);
-		} finally {
-			closingRegistration = false;
-		}
+		runAction(
+			(v) => (closingRegistration = v),
+			() => closeTournamentRegistration(tournament!.id),
+			"Закрыть регистрацию на турнир?",
+		);
 	}
 
 	let creatingBracket = $state(false);
-	async function handleCreateBracket() {
+	function handleCreateBracket() {
 		if (creatingBracket || !tournament) return;
-		if (
-			!confirm(
-				"Создать сетку Challonge? После этого список участников менять нельзя.",
-			)
-		)
-			return;
-		creatingBracket = true;
-		try {
-			await createChallongeBracket(tournament.id);
-		} catch (error) {
-			alert(error);
-		} finally {
-			creatingBracket = false;
-		}
+		runAction(
+			(v) => (creatingBracket = v),
+			() => createChallongeBracket(tournament!.id),
+			"Создать сетку Challonge? После этого список участников менять нельзя.",
+		);
 	}
 
 	let startingTournament = $state(false);
-	async function handleStartTournament() {
+	function handleStartTournament() {
 		if (startingTournament) return;
-		startingTournament = true;
-		try {
-			await startChallongeTournament(tournament!.id);
-		} catch (error) {
-			alert(error);
-		} finally {
-			startingTournament = false;
-		}
+		runAction((v) => (startingTournament = v), () => startChallongeTournament(tournament!.id));
 	}
 
 	let updatingGames = $state(false);
-	async function handleUpdateTournamentGames() {
+	function handleUpdateTournamentGames() {
 		if (updatingGames || !tournament) return;
-		updatingGames = true;
-		try {
-			await updateTournamentGames(tournament.id);
-		} catch (error) {
-			alert(error);
-		} finally {
-			updatingGames = false;
-		}
+		runAction((v) => (updatingGames = v), () => updateTournamentGames(tournament!.id));
 	}
 
 	let finishingTournament = $state(false);
-	async function handleFinishTournament() {
+	function handleFinishTournament() {
 		if (finishingTournament || !tournament) return;
-		if (!confirm("Закончить турнир?")) return;
-		finishingTournament = true;
-		try {
-			await finishTournament(tournament.id);
-		} catch (error) {
-			alert(error);
-		} finally {
-			finishingTournament = false;
-		}
+		runAction(
+			(v) => (finishingTournament = v),
+			() => finishTournament(tournament!.id),
+			"Закончить турнир?",
+		);
 	}
 
 	let incrementingSeasonalCount = $state(false);
-	async function handleIncrementSeasonalCount() {
+	function handleIncrementSeasonalCount() {
 		if (incrementingSeasonalCount || !tournament) return;
-		if (
-			!confirm(
-				"Начислить очко сезонных турниров всем подтверждённым участникам?",
-			)
-		)
-			return;
-		incrementingSeasonalCount = true;
-		try {
-			await incrementSeasonalTournamentCount(tournament.id);
-		} catch (error) {
-			alert(error);
-		} finally {
-			incrementingSeasonalCount = false;
-		}
+		runAction(
+			(v) => (incrementingSeasonalCount = v),
+			() => incrementSeasonalTournamentCount(tournament!.id),
+			"Начислить очко сезонных турниров всем подтверждённым участникам?",
+		);
 	}
 
 	let incrementingCount = $state(false);
-	async function handleIncrementCount() {
+	function handleIncrementCount() {
 		if (incrementingCount || !tournament) return;
-		if (
-			!confirm(
-				"Начислить очко обычных турниров всем подтверждённым участникам?",
-			)
-		)
-			return;
-		incrementingCount = true;
-		try {
-			await incrementTournamentCount(tournament.id);
-		} catch (error) {
-			alert(error);
-		} finally {
-			incrementingCount = false;
-		}
+		runAction(
+			(v) => (incrementingCount = v),
+			() => incrementTournamentCount(tournament!.id),
+			"Начислить очко обычных турниров всем подтверждённым участникам?",
+		);
 	}
 
 	let deletingTournament = $state(false);
-	async function handleDeleteTournament() {
+	function handleDeleteTournament() {
 		if (deletingTournament || !tournament) return;
-		if (
-			!confirm(
-				`Удалить турнир "${tournament.name}"? Это действие необратимо.`,
-			)
-		)
-			return;
-		deletingTournament = true;
-		try {
-			await deleteTournament(tournament.id);
-			await goto(resolve("/tournaments"));
-		} catch (error) {
-			alert(error);
-			deletingTournament = false;
-		}
+		runAction(
+			(v) => (deletingTournament = v),
+			async () => {
+				await deleteTournament(tournament!.id);
+				await goto(resolve("/tournaments"));
+			},
+			`Удалить турнир "${tournament.name}"? Это действие необратимо.`,
+		);
 	}
 
 	function getPlayerName(uid: string | null) {
@@ -397,12 +349,33 @@
 		return player === winnerId ? "match-winner" : "match-loser";
 	}
 
-	function openRegistration(uid: string | null) {
+	// Shared by every "view a registration" entry point (self-view button, solo match-popup name
+	// clicks, both tables' "Смотреть" buttons) — resolves the registration's player(s) so the
+	// popup can render either a solo section or both team members' sections.
+	function openRegistrationRecord(registration: TournamentRegistration | null | undefined) {
+		if (!registration) return;
+		userRegistration = registration;
+		if (registration.teamId) {
+			const team = teamsById.get(registration.teamId);
+			userPlayer1 = team ? registeredPlayersData.find((p) => p.uid === team.creator.uid) : undefined;
+			userPlayer2 = team ? registeredPlayersData.find((p) => p.uid === team.player2.uid) : undefined;
+		} else {
+			userPlayer1 = registration.playerId
+				? registeredPlayersData.find((p) => p.uid === registration.playerId)
+				: undefined;
+			userPlayer2 = undefined;
+		}
+		registrationOpen = true;
+	}
+
+	function openRegistrationByPlayerUid(uid: string | null) {
 		if (!uid) return;
-		const found = registeredPlayers.find((p) => p.player.uid === uid);
-		userRegistration = found?.registration;
-		userPlayer = found?.player;
-		if (userRegistration) registrationOpen = true;
+		openRegistrationRecord(registrations.find((r) => r.playerId === uid));
+	}
+
+	function openRegistrationByTeamId(teamId: string | null) {
+		if (!teamId) return;
+		openRegistrationRecord(registrations.find((r) => r.teamId === teamId));
 	}
 
 	function openTeamDetails(teamId: string | null) {
@@ -713,7 +686,7 @@
 					{#if $currentUser && myRegistration}
 						<button
 							class="btn-common"
-							onclick={() => openRegistration($currentUser!.uid)}
+							onclick={() => openRegistrationRecord(myRegistration)}
 							>Моя регистрация</button
 						>
 					{/if}
@@ -852,7 +825,7 @@
 											onclick={() =>
 												match.p1TeamId
 													? openTeamDetails(match.p1TeamId)
-													: openRegistration(match.p1)}
+													: openRegistrationByPlayerUid(match.p1)}
 											>{getMatchSideLabel(
 												match.p1,
 												match.p1TeamId,
@@ -872,7 +845,7 @@
 											onclick={() =>
 												match.p2TeamId
 													? openTeamDetails(match.p2TeamId)
-													: openRegistration(match.p2)}
+													: openRegistrationByPlayerUid(match.p2)}
 											>{getMatchSideLabel(
 												match.p2,
 												match.p2TeamId,
@@ -904,17 +877,30 @@
 			<div
 				class="table-wrapper"
 				use:capDefaultHeight={{
-					trigger: registeredPlayers.length,
+					trigger: tournament.registrationType === "team" ? registeredTeamRegistrations.length : registeredPlayers.length,
 					storageKey: `tournament-table-height-${id}`,
 				}}
 			>
-				<TournamentPlayerTable
-					{tournament}
-					{searchQuery}
-					registrations={registeredPlayers}
-					hideOptions={false}
-					onViewRegistration={openRegistration}
-				/>
+				{#if tournament.registrationType === "team"}
+					<TournamentTeamTable
+						{tournament}
+						{searchQuery}
+						{teamsById}
+						registrations={registeredTeamRegistrations}
+						playersData={registeredPlayersData}
+						hideOptions={false}
+						onViewTeam={openTeamDetails}
+						onViewRegistration={openRegistrationByTeamId}
+					/>
+				{:else}
+					<TournamentPlayerTable
+						{tournament}
+						{searchQuery}
+						registrations={registeredPlayers}
+						hideOptions={false}
+						onViewRegistration={openRegistrationByPlayerUid}
+					/>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -924,7 +910,8 @@
 	<TournamentRegisterPopup
 		bind:open={registrationOpen}
 		{tournament}
-		player={userPlayer}
+		player1={userPlayer1}
+		player2={userPlayer2}
 		reg={userRegistration}
 	></TournamentRegisterPopup>
 {/if}

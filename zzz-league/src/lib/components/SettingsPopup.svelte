@@ -17,7 +17,7 @@
 
 	// svelte-ignore state_referenced_locally
 	let username = $state(user.name);
-	let email = $state(auth.currentUser?.email ?? "");
+	let email = $state("");
 	let currentPassword = $state("");
 	let newPassword = $state("");
 	let confirmPass = $state("");
@@ -25,6 +25,12 @@
 	let savingSettings = $state(false);
 	let unlinkingDiscord = $state(false);
 	let avatarPickerOpen = $state(false);
+
+	$effect(() => {
+		auth.authStateReady().then(() => {
+			email = auth.currentUser?.email ?? "";
+		});
+	});
 
 	function close() {
 		currentPassword = "";

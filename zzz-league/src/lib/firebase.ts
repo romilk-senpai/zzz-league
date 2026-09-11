@@ -6,7 +6,6 @@ import type { Player } from './types'
 
 const firebaseConfig = {
 	apiKey: "AIzaSyAlcnUiLJ1cq7ekCQFi_NOPAQ6UiG92ZqM",
-	databaseURL: "https://zzz-league-default-rtdb.firebaseio.com",
 	projectId: "zzz-league"
 }
 

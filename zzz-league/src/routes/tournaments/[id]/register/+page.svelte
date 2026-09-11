@@ -3,20 +3,24 @@
 	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
 	import SidePanel from "$lib/components/SidePanel.svelte";
+	import TournamentMemberRegistrationFields from "$lib/components/TournamentMemberRegistrationFields.svelte";
 	import { applyForTournament, getTournament, listRegistrations } from "$lib/backend";
-	import { useObjectUrlPreview } from "$lib/imagePreview.svelte.js";
 	import { currentUser, isAdmin } from "$lib/store";
 	import type { Tournament, TournamentRegistration } from "$lib/types";
 	import { isLocked, isRegistrationWindowOpen, playerTierValue } from "$lib/tournamentState";
 	import {
-		bustCache,
+		applyDetailsToMemberForm,
+		emptyMemberRegistrationForm,
+		isMemberRegistrationFormComplete,
+		memberRegistrationFormToInput,
+		memberRegistrationScreenshotFiles,
+	} from "$lib/tournamentRegistrationForm";
+	import {
 		dateDisplayOptions,
 		filesFromImageFile,
 		imageFileFromPasteEvent,
 		isImageTooLarge,
 		MAX_IMAGE_SIZE_MB,
-		openImagePopup,
-		pasteImageFromClipboard,
 	} from "$lib/uiCommon";
 	import { onMount } from "svelte";
 
@@ -27,40 +31,16 @@
 	let myRegistration = $state<TournamentRegistration | null>(null);
 	let regLoaded = $state(false);
 
-	let zzzUid = $state("");
-	let prizeUid = $state("");
-	let prizeAsMoney = $state(false);
-	let darteNickname = $state("");
-	let darteAccount = $state("");
-	let dartePreset = $state("");
-	let regScreenshot = $state("");
-	let rosterScreenshot = $state<FileList | null>(null);
-	let regHoyolabScreenshot = $state("");
-	let hoyolabScreenshot = $state<FileList | null>(null);
+	let form = $state(emptyMemberRegistrationForm());
 	let awareness = $state(false);
 	let status = $state("");
-
-	let rosterScreenshotPreview = useObjectUrlPreview(
-		() => rosterScreenshot?.[0],
-	);
-	let hoyolabScreenshotPreview = useObjectUrlPreview(
-		() => hoyolabScreenshot?.[0],
-	);
 
 	let fieldsInitialized = false;
 	function applyRegistrationData(reg: TournamentRegistration | null) {
 		regLoaded = true;
 		if (!reg || fieldsInitialized) return;
 		fieldsInitialized = true;
-		const details = reg.player1;
-		zzzUid = details.gameUid ?? "";
-		prizeUid = details.prizeUid ?? "";
-		prizeAsMoney = details.prizeAsMoney ?? false;
-		darteNickname = details.darteNickname ?? "";
-		darteAccount = details.dartePresetName ?? "";
-		dartePreset = details.rosterName ?? "";
-		regScreenshot = details.rosterScreenshotUrl ?? "";
-		regHoyolabScreenshot = details.hoyolabScreenshotUrl ?? "";
+		applyDetailsToMemberForm(form, reg.player1);
 	}
 
 	let currentUserTier = $derived($currentUser ? playerTierValue($currentUser) : 0);
@@ -86,10 +66,10 @@
 			if (!file) return;
 
 			const files = filesFromImageFile(file);
-			if (!rosterScreenshot || rosterScreenshot.length === 0) {
-				rosterScreenshot = files;
+			if (!form.rosterScreenshot || form.rosterScreenshot.length === 0) {
+				form.rosterScreenshot = files;
 			} else {
-				hoyolabScreenshot = files;
+				form.hoyolabScreenshot = files;
 			}
 			e.preventDefault();
 		}
@@ -101,29 +81,7 @@
 	function handlePrefillFromLastRegistration() {
 		const last = $currentUser?.lastRegistration;
 		if (!last) return;
-		zzzUid = last.gameUid ?? "";
-		prizeUid = last.prizeUid ?? "";
-		prizeAsMoney = last.prizeAsMoney ?? false;
-		darteNickname = last.darteNickname ?? "";
-		darteAccount = last.dartePresetName ?? "";
-		dartePreset = last.rosterName ?? "";
-		regScreenshot = last.rosterScreenshotUrl ?? "";
-		regHoyolabScreenshot = last.hoyolabScreenshotUrl ?? "";
-	}
-
-	async function handlePasteScreenshot(target: "roster" | "hoyolab") {
-		try {
-			const files = await pasteImageFromClipboard();
-			if (!files) {
-				alert("В буфере обмена нет изображения");
-				return;
-			}
-			if (target === "roster") {
-				rosterScreenshot = files;
-			} else {
-				hoyolabScreenshot = files;
-			}
-		} catch (error) {}
+		applyDetailsToMemberForm(form, last);
 	}
 
 	let isRegistering = $state(false);
@@ -135,32 +93,12 @@
 			return;
 		}
 
-		const hasRosterScreenshot =
-			(rosterScreenshot && rosterScreenshot.length > 0) || regScreenshot;
-		const hasHoyolabScreenshot =
-			(hoyolabScreenshot && hoyolabScreenshot.length > 0) ||
-			regHoyolabScreenshot;
-
-		if (
-			!zzzUid ||
-			(!prizeAsMoney && !prizeUid) ||
-			!darteNickname ||
-			!darteAccount ||
-			!dartePreset ||
-			!hasRosterScreenshot ||
-			!hasHoyolabScreenshot
-		) {
+		if (!isMemberRegistrationFormComplete(form)) {
 			status = "Заполните все поля";
 			return;
 		}
 
-		const screenshotFile = rosterScreenshot?.[0] ?? null;
-		const hoyolabScreenshotFile = hoyolabScreenshot?.[0] ?? null;
-
-		if (
-			(screenshotFile && isImageTooLarge(screenshotFile)) ||
-			(hoyolabScreenshotFile && isImageTooLarge(hoyolabScreenshotFile))
-		) {
+		if (memberRegistrationScreenshotFiles(form).some(isImageTooLarge)) {
 			status = `Файл слишком большой, максимум ${MAX_IMAGE_SIZE_MB}МБ`;
 			return;
 		}
@@ -169,16 +107,7 @@
 
 		isRegistering = true;
 		try {
-			await applyForTournament(tournament.id, $currentUser.uid, {
-				gameUid: zzzUid,
-				prizeUid,
-				prizeAsMoney,
-				darteNickname,
-				darteAccount,
-				dartePreset,
-				rosterScreenshot: screenshotFile,
-				hoyolabScreenshot: hoyolabScreenshotFile,
-			});
+			await applyForTournament(tournament.id, $currentUser.uid, memberRegistrationFormToInput(form));
 			await goto(resolve(`/tournaments/${tournament.id}`));
 		} catch (error: any) {
 			status = error.message;
@@ -253,133 +182,8 @@
 						>Заполнить из прошлой регистрации</button
 					>
 				{/if}
-				<div class="form-row-wide">
-					<label for="reg-zzz-uid">Игровой UID</label>
-					<input
-						id="reg-zzz-uid"
-						type="text"
-						bind:value={zzzUid}
-						placeholder="Игровой UID"
-					/>
-				</div>
-				<div class="form-row-wide">
-					<label for="reg-prize-as-money">Взять призовые деньгами</label>
-					<input
-						id="reg-prize-as-money"
-						type="checkbox"
-						bind:checked={prizeAsMoney}
-					/>
-				</div>
-				{#if !prizeAsMoney}
-					<div class="form-row-wide">
-						<label for="reg-prize-uid">UID для призовых</label>
-						<input
-							id="reg-prize-uid"
-							type="text"
-							bind:value={prizeUid}
-							placeholder="UID для призовых"
-						/>
-					</div>
-				{/if}
-				<div class="form-row-wide">
-					<label for="reg-darte-nickname">Ник на Darte</label>
-					<input
-						id="reg-darte-nickname"
-						type="text"
-						bind:value={darteNickname}
-						placeholder="Ник на Darte"
-					/>
-				</div>
-				<div class="form-row-wide">
-					<label for="reg-darte-account">Название пресета на Darte</label>
-					<input
-						id="reg-darte-account"
-						type="text"
-						bind:value={darteAccount}
-						placeholder="Название пресета на Darte"
-					/>
-				</div>
-				<div class="form-row-wide">
-					<label for="reg-darte-preset">Название ростера</label>
-					<input
-						id="reg-darte-preset"
-						type="text"
-						bind:value={dartePreset}
-						placeholder="Название ростера"
-					/>
-				</div>
 
-				<hr style="width: 100%" />
-
-				<div class="form-row-wide">
-					<label for="reg-roster-screenshot">Скриншот ростера</label>
-					<input
-						id="reg-roster-screenshot"
-						type="file"
-						accept="image/*"
-						bind:files={rosterScreenshot}
-					/>
-					<button
-						type="button"
-						class="btn-common paste-btn"
-						onclick={() => handlePasteScreenshot("roster")}
-						>Вставить из буфера</button
-					>
-				</div>
-				{#if regScreenshot}
-					<button
-						class="img-btn"
-						onclick={() => openImagePopup(regScreenshot)}
-					>
-						<img src={bustCache(regScreenshot)} alt="" />
-					</button>
-					<p class="notice">Оставьте пустым, чтобы не менять скриншот</p>
-				{/if}
-				{#if rosterScreenshotPreview.url}
-					<button
-						class="img-btn"
-						onclick={() => openImagePopup(rosterScreenshotPreview.url!)}
-					>
-						<img src={rosterScreenshotPreview.url} alt="" />
-					</button>
-				{/if}
-
-				<hr style="width: 100%" />
-
-				<div class="form-row-wide">
-					<label for="reg-hoyolab-screenshot"
-						>Скриншот персонажей в Hoyolab</label
-					>
-					<input
-						id="reg-hoyolab-screenshot"
-						type="file"
-						accept="image/*"
-						bind:files={hoyolabScreenshot}
-					/>
-					<button
-						type="button"
-						class="btn-common paste-btn"
-						onclick={() => handlePasteScreenshot("hoyolab")}
-						>Вставить из буфера</button
-					>
-				</div>
-				{#if regHoyolabScreenshot}
-					<button
-						class="img-btn"
-						onclick={() => openImagePopup(regHoyolabScreenshot)}
-					>
-						<img src={bustCache(regHoyolabScreenshot)} alt="" />
-					</button>
-					<p class="notice">Оставьте пустым, чтобы не менять скриншот</p>
-				{/if}
-				{#if hoyolabScreenshotPreview.url}
-					<button
-						class="img-btn"
-						onclick={() => openImagePopup(hoyolabScreenshotPreview.url!)}
-					>
-						<img src={hoyolabScreenshotPreview.url} alt="" />
-					</button>
-				{/if}
+				<TournamentMemberRegistrationFields idPrefix="reg" {form} />
 
 				<hr style="width: 100%" />
 

@@ -4,10 +4,11 @@
 	import { page } from "$app/state";
 	import { getTournament, updateTournament } from "$lib/backend";
 	import SidePanel from "$lib/components/SidePanel.svelte";
+	import TournamentFormFields from "$lib/components/TournamentFormFields.svelte";
 	import { isAdmin } from "$lib/store";
 	import { isLocked } from "$lib/tournamentState";
 	import type { TournamentGameMode, TournamentRegistrationKind } from "$lib/types";
-	import { renderMarkdown } from "$lib/uiCommon";
+	import { parseAndValidateTournamentForm, toDateTimeLocal } from "$lib/tournamentForm";
 	import { onMount } from "svelte";
 
 	const id = $derived(page.params.id!);
@@ -18,9 +19,8 @@
 
 	let name = $state("");
 	let description = $state("");
-	let descriptionPreview = $derived(renderMarkdown(description));
 	// Registration type and game mode are fixed at creation — carried through unchanged, not
-	// user-editable here.
+	// user-editable here (TournamentFormFields hides their selects when editableTypeAndMode=false).
 	let registrationType = $state<TournamentRegistrationKind>("solo");
 	let gameMode = $state<TournamentGameMode>("shiyu_defense");
 
@@ -44,11 +44,6 @@
 
 	let status = $state("");
 	let savingTournament = $state(false);
-
-	function toDateTimeLocal(date: Date): string {
-		const pad = (n: number) => String(n).padStart(2, "0");
-		return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-	}
 
 	onMount(async () => {
 		try {
@@ -100,37 +95,18 @@
 	});
 
 	async function handleSaveTournament() {
-		if (
-			!name ||
-			!registrationStartDate ||
-			!registrationEndDate ||
-			!tournamentStartDate ||
-			!tournamentEndDate ||
-			!tournamentType
-		) {
-			status = "Заполните все поля";
-			return;
-		}
-
-		const regStart = new Date(registrationStartDate).getTime();
-		const regEnd = new Date(registrationEndDate).getTime();
-		const tourStart = new Date(tournamentStartDate).getTime();
-		const tourEnd = new Date(tournamentEndDate).getTime();
-
-		if (regEnd <= regStart) {
-			status = "Конец регистрации должен быть позже начала";
-			return;
-		}
-		if (tourStart <= regEnd) {
-			status = "Турнир должен начаться после регистрации";
-			return;
-		}
-		if (tourEnd <= tourStart) {
-			status = "Конец турнира должен быть позже начала";
-			return;
-		}
-		if (overrideEloEnabled && overrideEloValue <= 0) {
-			status = "Фиксированное эло должно быть больше 0";
+		const result = parseAndValidateTournamentForm({
+			name,
+			registrationStartDate,
+			registrationEndDate,
+			tournamentStartDate,
+			tournamentEndDate,
+			tournamentType,
+			overrideEloEnabled,
+			overrideEloValue,
+		});
+		if (result.error !== null) {
+			status = result.error;
 			return;
 		}
 
@@ -142,10 +118,10 @@
 				description,
 				registrationType,
 				gameMode,
-				registrationStartDate: regStart,
-				registrationEndDate: regEnd,
-				tournamentStartDate: tourStart,
-				tournamentEndDate: tourEnd,
+				registrationStartDate: result.regStart,
+				registrationEndDate: result.regEnd,
+				tournamentStartDate: result.tourStart,
+				tournamentEndDate: result.tourEnd,
 				minCost,
 				maxCost,
 				minCharacters,
@@ -181,164 +157,30 @@
 			{:else if loadError}
 				<p class="notice">{loadError}</p>
 			{:else if editable}
-				<div class="form-row-wide">
-					<label for="f-name">Название</label>
-					<input id="f-name" type="text" bind:value={name} />
-				</div>
-				<div class="form-row-wide">
-					<label for="f-description">Описание</label>
-					<textarea id="f-description" rows="4" bind:value={description}
-					></textarea>
-				</div>
-				{#if description.trim()}
-					<div class="form-row-wide preview-row">
-						<span>Превью</span>
-						<div class="description-preview">
-							{@html descriptionPreview}
-						</div>
-					</div>
-				{/if}
-				<div class="form-row-wide">
-					<label for="f-type">Тип турнира</label>
-					<select id="f-type" bind:value={tournamentType}>
-						<option value="single elimination">Single elimination</option>
-						<option value="double elimination">Double elimination</option>
-					</select>
-				</div>
-				<div class="form-row-wide">
-					<label for="f-break-ties">
-						Break ties with placement matches
-					</label>
-					<input
-						id="f-break-ties"
-						type="checkbox"
-						bind:checked={breakTiesEnabled}
-					/>
-				</div>
-				{#if breakTiesEnabled}
-					<div class="form-row-wide">
-						<label for="f-break-ties-place"
-							>Break ties through this place</label
-						>
-						<input
-							id="f-break-ties-place"
-							type="number"
-							min="1"
-							bind:value={breakTiesPlace}
-						/>
-					</div>
-				{/if}
-				<div class="form-row-wide">
-					<label for="f-elo-enabled">Фиксированное эло за победу/поражение</label>
-					<input
-						id="f-elo-enabled"
-						type="checkbox"
-						bind:checked={overrideEloEnabled}
-					/>
-				</div>
-				{#if overrideEloEnabled}
-					<div class="form-row-wide">
-						<label for="f-elo-value">Значение эло</label>
-						<input
-							id="f-elo-value"
-							type="number"
-							min="1"
-							bind:value={overrideEloValue}
-						/>
-					</div>
-				{/if}
-				<div class="form-row-wide">
-					<label for="f-min-tier">Мин. тир игроков</label>
-					<select id="f-min-tier" bind:value={minTier}>
-						<option value="0">NEWBIE</option>
-						<option value="100">MID TIER</option>
-						<option value="1000">HIGH TIER</option>
-					</select>
-				</div>
-				<div class="form-row-wide">
-					<label for="f-max-tier">Макс. тир игроков</label>
-					<select id="f-max-tier" bind:value={maxTier}>
-						<option value="0">NEWBIE</option>
-						<option value="100">MID TIER</option>
-						<option value="1000">HIGH TIER</option>
-					</select>
-				</div>
-				<div class="form-row-wide">
-					<label for="f-min-cost">Мин. кост</label>
-					<input id="f-min-cost" type="number" bind:value={minCost} />
-				</div>
-				<div class="form-row-wide">
-					<label for="f-max-cost">Макс. кост</label>
-					<input id="f-max-cost" type="number" bind:value={maxCost} />
-				</div>
-				<div class="form-row-wide">
-					<label for="f-min-characters">Мин. персонажей</label>
-					<input
-						id="f-min-characters"
-						type="number"
-						bind:value={minCharacters}
-					/>
-				</div>
-				<div class="form-row-wide">
-					<label for="f-discord-role">Называние дискорд роли</label>
-					<input
-						id="f-discord-role"
-						type="text"
-						bind:value={discordRoleName}
-						placeholder="Название роли"
-					/>
-				</div>
-				<div class="form-row-wide">
-					<label for="f-discord-channel">Название дискорд канала</label>
-					<input
-						id="f-discord-channel"
-						type="text"
-						bind:value={discordChannelName}
-						placeholder="Название канала"
-					/>
-				</div>
-				<div class="form-row-wide">
-					<label for="f-visible">Публичный</label>
-					<input id="f-visible" type="checkbox" bind:checked={visible} />
-				</div>
-
-				<hr style="width: 100%" />
-
-				<div class="form-row-wide">
-					<label for="f-reg-start">Начало регистрации</label>
-					<input
-						id="f-reg-start"
-						type="datetime-local"
-						bind:value={registrationStartDate}
-					/>
-				</div>
-				<div class="form-row-wide">
-					<label for="f-reg-end">Конец регистрации</label>
-					<input
-						id="f-reg-end"
-						type="datetime-local"
-						bind:value={registrationEndDate}
-					/>
-				</div>
-
-				<hr style="width: 100%" />
-
-				<div class="form-row-wide">
-					<label for="f-tour-start">Начало турнира</label>
-					<input
-						id="f-tour-start"
-						type="datetime-local"
-						bind:value={tournamentStartDate}
-					/>
-				</div>
-				<div class="form-row-wide">
-					<label for="f-tour-end">Конец турнира</label>
-					<input
-						id="f-tour-end"
-						type="datetime-local"
-						bind:value={tournamentEndDate}
-					/>
-				</div>
+				<TournamentFormFields
+					bind:name
+					bind:description
+					bind:registrationType
+					bind:gameMode
+					bind:tournamentType
+					bind:breakTiesEnabled
+					bind:breakTiesPlace
+					bind:overrideEloEnabled
+					bind:overrideEloValue
+					bind:minTier
+					bind:maxTier
+					bind:minCost
+					bind:maxCost
+					bind:minCharacters
+					bind:discordRoleName
+					bind:discordChannelName
+					bind:visible
+					bind:registrationStartDate
+					bind:registrationEndDate
+					bind:tournamentStartDate
+					bind:tournamentEndDate
+					editableTypeAndMode={false}
+				/>
 
 				{#if status}<p class="status error">{status}</p>{/if}
 
@@ -355,32 +197,3 @@
 		{/if}
 	</div>
 </div>
-
-<style>
-	.preview-row {
-		align-items: flex-start;
-	}
-
-	.preview-row span {
-		flex: 0 0 200px;
-		color: #888;
-	}
-
-	.description-preview {
-		width: 100%;
-		border: 1px dashed #444;
-		border-radius: 8px;
-		padding: 8px 10px;
-		color: #ccc;
-	}
-
-	.description-preview :global(a) {
-		color: var(--gold);
-		text-decoration: underline;
-	}
-
-	.description-preview :global(p) {
-		margin: 0;
-		line-height: 21px;
-	}
-</style>

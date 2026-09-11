@@ -3,25 +3,19 @@
 	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
 	import SidePanel from "$lib/components/SidePanel.svelte";
-	import {
-		applyForTeamTournament,
-		getTournament,
-		listMyTeams,
-		listRegistrations,
-		type RegistrationFormInput,
-	} from "$lib/backend";
-	import { useObjectUrlPreview } from "$lib/imagePreview.svelte.js";
+	import TournamentMemberRegistrationFields from "$lib/components/TournamentMemberRegistrationFields.svelte";
+	import { applyForTeamTournament, getTournament, listMyTeams, listRegistrations } from "$lib/backend";
 	import { currentUser, isAdmin } from "$lib/store";
 	import type { Team, Tournament, TournamentRegistration } from "$lib/types";
 	import { isLocked, isRegistrationWindowOpen } from "$lib/tournamentState";
 	import {
-		bustCache,
-		dateDisplayOptions,
-		isImageTooLarge,
-		MAX_IMAGE_SIZE_MB,
-		openImagePopup,
-		pasteImageFromClipboard,
-	} from "$lib/uiCommon";
+		applyDetailsToMemberForm,
+		emptyMemberRegistrationForm,
+		isMemberRegistrationFormComplete,
+		memberRegistrationFormToInput,
+		memberRegistrationScreenshotFiles,
+	} from "$lib/tournamentRegistrationForm";
+	import { dateDisplayOptions, isImageTooLarge, MAX_IMAGE_SIZE_MB } from "$lib/uiCommon";
 	import { onMount } from "svelte";
 
 	const id = $derived(page.params.id);
@@ -31,47 +25,18 @@
 	let myTeams = $state<Team[]>([]);
 	let teamsLoaded = $state(false);
 	let selectedTeamId = $state("");
+	// Set once we know one of myTeams already has a registration here — the picker then locks to
+	// it instead of allowing a switch, since picking a *different* team is exactly how a player
+	// ends up registered under two teams for the same tournament.
+	let lockedTeamId = $state<string | null>(null);
 	let myRegistration = $state<TournamentRegistration | null>(null);
 	let regLoaded = $state(false);
 	let awareness = $state(false);
 	let status = $state("");
 	let isRegistering = $state(false);
 
-	type MemberForm = {
-		gameUid: string;
-		prizeUid: string;
-		prizeAsMoney: boolean;
-		darteNickname: string;
-		darteAccount: string;
-		dartePreset: string;
-		existingRosterUrl: string;
-		existingHoyolabUrl: string;
-		rosterScreenshot: FileList | null;
-		hoyolabScreenshot: FileList | null;
-	};
-
-	function emptyForm(): MemberForm {
-		return {
-			gameUid: "",
-			prizeUid: "",
-			prizeAsMoney: false,
-			darteNickname: "",
-			darteAccount: "",
-			dartePreset: "",
-			existingRosterUrl: "",
-			existingHoyolabUrl: "",
-			rosterScreenshot: null,
-			hoyolabScreenshot: null,
-		};
-	}
-
-	let player1Form = $state(emptyForm());
-	let player2Form = $state(emptyForm());
-
-	let player1RosterPreview = useObjectUrlPreview(() => player1Form.rosterScreenshot?.[0]);
-	let player1HoyolabPreview = useObjectUrlPreview(() => player1Form.hoyolabScreenshot?.[0]);
-	let player2RosterPreview = useObjectUrlPreview(() => player2Form.rosterScreenshot?.[0]);
-	let player2HoyolabPreview = useObjectUrlPreview(() => player2Form.hoyolabScreenshot?.[0]);
+	let player1Form = $state(emptyMemberRegistrationForm());
+	let player2Form = $state(emptyMemberRegistrationForm());
 
 	let selectedTeam = $derived(myTeams.find((t) => t.id === selectedTeamId) ?? null);
 
@@ -85,59 +50,6 @@
 			),
 	);
 
-	function applyDetailsToForm(form: MemberForm, details: TournamentRegistration["player1"] | null) {
-		if (!details) return;
-		form.gameUid = details.gameUid ?? "";
-		form.prizeUid = details.prizeUid ?? "";
-		form.prizeAsMoney = details.prizeAsMoney ?? false;
-		form.darteNickname = details.darteNickname ?? "";
-		form.darteAccount = details.dartePresetName ?? "";
-		form.dartePreset = details.rosterName ?? "";
-		form.existingRosterUrl = details.rosterScreenshotUrl ?? "";
-		form.existingHoyolabUrl = details.hoyolabScreenshotUrl ?? "";
-	}
-
-	async function handlePasteScreenshot(form: MemberForm, target: "roster" | "hoyolab") {
-		try {
-			const files = await pasteImageFromClipboard();
-			if (!files) {
-				alert("В буфере обмена нет изображения");
-				return;
-			}
-			if (target === "roster") form.rosterScreenshot = files;
-			else form.hoyolabScreenshot = files;
-		} catch {
-			// clipboard read can throw (permissions, non-image content) — nothing to recover here
-		}
-	}
-
-	function isFormComplete(form: MemberForm): boolean {
-		const hasRoster = (form.rosterScreenshot && form.rosterScreenshot.length > 0) || !!form.existingRosterUrl;
-		const hasHoyolab = (form.hoyolabScreenshot && form.hoyolabScreenshot.length > 0) || !!form.existingHoyolabUrl;
-		return !!(
-			form.gameUid &&
-			(form.prizeAsMoney || form.prizeUid) &&
-			form.darteNickname &&
-			form.darteAccount &&
-			form.dartePreset &&
-			hasRoster &&
-			hasHoyolab
-		);
-	}
-
-	function toInput(form: MemberForm): RegistrationFormInput {
-		return {
-			gameUid: form.gameUid,
-			prizeUid: form.prizeUid,
-			prizeAsMoney: form.prizeAsMoney,
-			darteNickname: form.darteNickname,
-			darteAccount: form.darteAccount,
-			dartePreset: form.dartePreset,
-			rosterScreenshot: form.rosterScreenshot?.[0] ?? null,
-			hoyolabScreenshot: form.hoyolabScreenshot?.[0] ?? null,
-		};
-	}
-
 	async function handleRegister() {
 		if (isRegistering || !tournament || !selectedTeam) return;
 
@@ -146,17 +58,15 @@
 			return;
 		}
 
-		if (!isFormComplete(player1Form) || !isFormComplete(player2Form)) {
+		if (!isMemberRegistrationFormComplete(player1Form) || !isMemberRegistrationFormComplete(player2Form)) {
 			status = "Заполните все поля для обоих игроков";
 			return;
 		}
 
 		const files = [
-			player1Form.rosterScreenshot?.[0],
-			player1Form.hoyolabScreenshot?.[0],
-			player2Form.rosterScreenshot?.[0],
-			player2Form.hoyolabScreenshot?.[0],
-		].filter((f): f is File => !!f);
+			...memberRegistrationScreenshotFiles(player1Form),
+			...memberRegistrationScreenshotFiles(player2Form),
+		];
 		if (files.some(isImageTooLarge)) {
 			status = `Файл слишком большой, максимум ${MAX_IMAGE_SIZE_MB}МБ`;
 			return;
@@ -164,7 +74,12 @@
 
 		isRegistering = true;
 		try {
-			await applyForTeamTournament(tournament.id, selectedTeam.id, toInput(player1Form), toInput(player2Form));
+			await applyForTeamTournament(
+				tournament.id,
+				selectedTeam.id,
+				memberRegistrationFormToInput(player1Form),
+				memberRegistrationFormToInput(player2Form),
+			);
 			await goto(resolve(`/tournaments/${tournament.id}`));
 		} catch (error: any) {
 			status = error.message;
@@ -204,11 +119,25 @@
 
 		let cancelled = false;
 		teamsLoaded = false;
-		listMyTeams(uid).then((teams) => {
+		listMyTeams(uid).then(async (teams) => {
 			if (cancelled) return;
 			myTeams = teams;
+
+			const tournamentId = id;
+			if (tournamentId && teams.length > 0) {
+				const regs = await listRegistrations(tournamentId);
+				if (cancelled) return;
+				lockedTeamId = teams.find((t) => regs.some((r) => r.teamId === t.id))?.id ?? null;
+			} else {
+				lockedTeamId = null;
+			}
+
 			teamsLoaded = true;
-			if (teams.length === 1) selectedTeamId = teams[0].id;
+			if (lockedTeamId) {
+				selectedTeamId = lockedTeamId;
+			} else if (teams.length === 1) {
+				selectedTeamId = teams[0].id;
+			}
 		});
 
 		return () => {
@@ -222,8 +151,8 @@
 	$effect(() => {
 		const teamId = selectedTeamId;
 		const tournamentId = id;
-		player1Form = emptyForm();
-		player2Form = emptyForm();
+		player1Form = emptyMemberRegistrationForm();
+		player2Form = emptyMemberRegistrationForm();
 
 		if (!teamId || !tournamentId) {
 			myRegistration = null;
@@ -237,8 +166,8 @@
 			if (cancelled) return;
 			const mine = registrations.find((r) => r.teamId === teamId) ?? null;
 			myRegistration = mine;
-			applyDetailsToForm(player1Form, mine?.player1 ?? null);
-			applyDetailsToForm(player2Form, mine?.player2 ?? null);
+			applyDetailsToMemberForm(player1Form, mine?.player1 ?? null);
+			applyDetailsToMemberForm(player2Form, mine?.player2 ?? null);
 			regLoaded = true;
 		});
 
@@ -247,80 +176,6 @@
 		};
 	});
 </script>
-
-{#snippet memberFields(
-	idPrefix: string,
-	label: string,
-	form: MemberForm,
-	rosterPreviewUrl: string | null,
-	hoyolabPreviewUrl: string | null,
-)}
-	<h3>{label}</h3>
-	<div class="form-row-wide">
-		<label for="{idPrefix}-zzz-uid">Игровой UID</label>
-		<input id="{idPrefix}-zzz-uid" type="text" bind:value={form.gameUid} placeholder="Игровой UID" />
-	</div>
-	<div class="form-row-wide">
-		<label for="{idPrefix}-prize-as-money">Взять призовые деньгами</label>
-		<input id="{idPrefix}-prize-as-money" type="checkbox" bind:checked={form.prizeAsMoney} />
-	</div>
-	{#if !form.prizeAsMoney}
-		<div class="form-row-wide">
-			<label for="{idPrefix}-prize-uid">UID для призовых</label>
-			<input id="{idPrefix}-prize-uid" type="text" bind:value={form.prizeUid} placeholder="UID для призовых" />
-		</div>
-	{/if}
-	<div class="form-row-wide">
-		<label for="{idPrefix}-darte-nickname">Ник на Darte</label>
-		<input id="{idPrefix}-darte-nickname" type="text" bind:value={form.darteNickname} placeholder="Ник на Darte" />
-	</div>
-	<div class="form-row-wide">
-		<label for="{idPrefix}-darte-account">Название пресета на Darte</label>
-		<input id="{idPrefix}-darte-account" type="text" bind:value={form.darteAccount} placeholder="Название пресета на Darte" />
-	</div>
-	<div class="form-row-wide">
-		<label for="{idPrefix}-darte-preset">Название ростера</label>
-		<input id="{idPrefix}-darte-preset" type="text" bind:value={form.dartePreset} placeholder="Название ростера" />
-	</div>
-
-	<div class="form-row-wide">
-		<label for="{idPrefix}-roster-screenshot">Скриншот ростера</label>
-		<input id="{idPrefix}-roster-screenshot" type="file" accept="image/*" bind:files={form.rosterScreenshot} />
-		<button type="button" class="btn-common paste-btn" onclick={() => handlePasteScreenshot(form, "roster")}
-			>Вставить из буфера</button
-		>
-	</div>
-	{#if form.existingRosterUrl}
-		<button class="img-btn" onclick={() => openImagePopup(form.existingRosterUrl)}>
-			<img src={bustCache(form.existingRosterUrl)} alt="" />
-		</button>
-		<p class="notice">Оставьте пустым, чтобы не менять скриншот</p>
-	{/if}
-	{#if rosterPreviewUrl}
-		<button class="img-btn" onclick={() => openImagePopup(rosterPreviewUrl)}>
-			<img src={rosterPreviewUrl} alt="" />
-		</button>
-	{/if}
-
-	<div class="form-row-wide">
-		<label for="{idPrefix}-hoyolab-screenshot">Скриншот персонажей в Hoyolab</label>
-		<input id="{idPrefix}-hoyolab-screenshot" type="file" accept="image/*" bind:files={form.hoyolabScreenshot} />
-		<button type="button" class="btn-common paste-btn" onclick={() => handlePasteScreenshot(form, "hoyolab")}
-			>Вставить из буфера</button
-		>
-	</div>
-	{#if form.existingHoyolabUrl}
-		<button class="img-btn" onclick={() => openImagePopup(form.existingHoyolabUrl)}>
-			<img src={bustCache(form.existingHoyolabUrl)} alt="" />
-		</button>
-		<p class="notice">Оставьте пустым, чтобы не менять скриншот</p>
-	{/if}
-	{#if hoyolabPreviewUrl}
-		<button class="img-btn" onclick={() => openImagePopup(hoyolabPreviewUrl)}>
-			<img src={hoyolabPreviewUrl} alt="" />
-		</button>
-	{/if}
-{/snippet}
 
 <div class="layout">
 	<SidePanel></SidePanel>
@@ -346,32 +201,34 @@
 			{:else}
 				<div class="form-row-wide">
 					<label for="team-select">Команда</label>
-					<select id="team-select" bind:value={selectedTeamId}>
-						<option value="">Выберите команду</option>
-						{#each myTeams as team (team.id)}
-							<option value={team.id}>{team.name} ({team.creator.name} & {team.player2.name})</option>
-						{/each}
-					</select>
+					{#if lockedTeamId}
+						<p id="team-select" class="value-highlight">
+							{selectedTeam?.name} ({selectedTeam?.creator.name} & {selectedTeam?.player2.name})
+						</p>
+					{:else}
+						<select id="team-select" bind:value={selectedTeamId}>
+							<option value="">Выберите команду</option>
+							{#each myTeams as team (team.id)}
+								<option value={team.id}>{team.name} ({team.creator.name} & {team.player2.name})</option>
+							{/each}
+						</select>
+					{/if}
 				</div>
 
 				{#if selectedTeam && regLoaded}
 					<hr style="width: 100%" />
-					{@render memberFields(
-						"p1",
-						`Игрок 1 (${selectedTeam.creator.name})`,
-						player1Form,
-						player1RosterPreview.url,
-						player1HoyolabPreview.url,
-					)}
+					<TournamentMemberRegistrationFields
+						idPrefix="p1"
+						label={`Игрок 1 (${selectedTeam.creator.name})`}
+						form={player1Form}
+					/>
 
 					<hr style="width: 100%" />
-					{@render memberFields(
-						"p2",
-						`Игрок 2 (${selectedTeam.player2.name})`,
-						player2Form,
-						player2RosterPreview.url,
-						player2HoyolabPreview.url,
-					)}
+					<TournamentMemberRegistrationFields
+						idPrefix="p2"
+						label={`Игрок 2 (${selectedTeam.player2.name})`}
+						form={player2Form}
+					/>
 
 					<hr style="width: 100%" />
 
