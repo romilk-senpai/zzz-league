@@ -73,12 +73,16 @@
 		const coveredIds = new Set([...existingIds, ...newAgentIds]);
 		const availableAgentOptions = allAgentOptions.filter((a) => !coveredIds.has(a.id));
 
+		const allOverrideRows = [...overrideRows, ...newRows];
+		const overridesPendingScore = maxScore(allOverrideRows.flatMap((o) => o.contribs));
+
 		return {
 			...w,
 			avatar: getWeaponAvatar(w.engineId),
 			baseAll,
 			baseScore,
-			overrideRows: [...overrideRows, ...newRows],
+			overrideRows: allOverrideRows,
+			overridesPendingScore,
 			availableAgentOptions,
 		};
 	}
@@ -333,6 +337,13 @@
 									>
 										<span class="group-toggle-caret" class:collapsed>▾</span>
 										{row.overrideRows.length}
+										{#if collapsed && row.overridesPendingScore !== null}
+											<span
+												class="contrib-alert small"
+												style="background:{contributionColor(row.overridesPendingScore)}"
+												title="Внутри есть предложения по изменению стоимости"
+											>!</span>
+										{/if}
 									</button>
 								{/if}
 							</div>
