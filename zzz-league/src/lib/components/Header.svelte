@@ -27,6 +27,7 @@
 		<a class="nav-link" href={resolve("/tournaments")}>Архив турниров</a>
 		<a class="nav-link" href={resolve("/teams")}>Команды</a>
 		<a class="nav-link" href={resolve("/history")}>История матчей</a>
+		<a class="nav-link" href={resolve("/costs")}>Коммунити кост</a>
 	</nav>
 	<div class="social-links">
 		{#each links as link (link.label)}
