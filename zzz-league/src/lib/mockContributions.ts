@@ -1,6 +1,13 @@
-import { get, writable } from "svelte/store";
+import { writable } from "svelte/store";
 
 export type ReviewVote = "positive" | "neutral" | "negative";
+
+export interface ReviewComment {
+	id: string;
+	authorName: string;
+	text: string;
+	createdAt: string;
+}
 
 export interface ContributionReview {
 	id: string;
@@ -8,13 +15,18 @@ export interface ContributionReview {
 	vote: ReviewVote;
 	comment: string;
 	createdAt: string;
+	comments: ReviewComment[];
 }
 
 export type ContributionStatus = "pending" | "approved" | "rejected";
 
 export interface Contribution {
 	id: string;
-	agentId: string;
+	/** Set for an agent (character) cost contribution. */
+	agentId?: string;
+	/** Set for a W-engine contribution — either its base cost (overrideAgentId unset) or a specific agent's override cost. */
+	engineId?: string;
+	overrideAgentId?: string;
 	authorName: string;
 	message: string;
 	proposedCosts: number[];
@@ -29,8 +41,17 @@ function makeId(prefix: string): string {
 	return `${prefix}-${nextId}`;
 }
 
-function review(reviewerName: string, vote: ReviewVote, comment: string): ContributionReview {
-	return { id: makeId("review"), reviewerName, vote, comment, createdAt: new Date().toISOString() };
+function review(
+	reviewerName: string,
+	vote: ReviewVote,
+	comment: string,
+	comments: ReviewComment[] = [],
+): ContributionReview {
+	return { id: makeId("review"), reviewerName, vote, comment, createdAt: new Date().toISOString(), comments };
+}
+
+function reviewComment(authorName: string, text: string): ReviewComment {
+	return { id: makeId("rc"), authorName, text, createdAt: new Date().toISOString() };
 }
 
 // Demo data only — covers every visual state the review flow can be in:
@@ -46,7 +67,10 @@ const initialContributions: Contribution[] = [
 		status: "pending",
 		createdAt: "2026-09-08T10:00:00.000Z",
 		reviews: [
-			review("Hollow_Diver", "positive", "Согласен, M2 явно занижен."),
+			review("Hollow_Diver", "positive", "Согласен, M2 явно занижен.", [
+				reviewComment("Kirito_ZZZ", "На каких турнирах смотрел?"),
+				reviewComment("Hollow_Diver", "На Shiyu Cup S3, финалы."),
+			]),
 			review("MoonlitRaven", "positive", "Подтверждаю по опыту турниров."),
 			review("Zaibatsu_Fan", "positive", "+1, играл против — реально сильно."),
 			review("TVShowHost", "positive", "Да, стоит поднять."),
@@ -88,7 +112,11 @@ const initialContributions: Contribution[] = [
 			review("Hollow_Diver", "positive", "Есть смысл."),
 			review("Nightcrawler88", "positive", "Да, поддерживаю."),
 			review("TVShowHost", "positive", "Согласен с ростом M4."),
-			review("MoonlitRaven", "negative", "Не согласен, M4 и так редко берут."),
+			review("MoonlitRaven", "negative", "Не согласен, M4 и так редко берут.", [
+				reviewComment("ShiroNeko", "На высоком уровне берут почти всегда."),
+				reviewComment("MoonlitRaven", "На высоком — да, но это не средний случай."),
+				reviewComment("TVShowHost", "Тут скорее вопрос баланса лиг, а не факта пикрейта."),
+			]),
 			review("Zaibatsu_Fan", "negative", "Слишком дорого будет."),
 		],
 	},
@@ -176,13 +204,63 @@ const initialContributions: Contribution[] = [
 		createdAt: "2026-09-11T20:00:00.000Z",
 		reviews: [],
 	},
+
+	// W-engine contributions — same states as above, just scoped to an engine
+	// (base cost) or an engine+agent pair (per-agent override).
+	{
+		id: "c-engine-steel-cushion-base",
+		engineId: "14102",
+		authorName: "EmberWatcher",
+		message: "R4-R5 растут слишком резко относительно R1-R3, стоит сгладить.",
+		proposedCosts: [10, 12, 15, 16, 18, 0],
+		status: "pending",
+		createdAt: "2026-09-10T12:00:00.000Z",
+		reviews: [
+			review("Hollow_Diver", "positive", "Согласен, скачок на R4 странный."),
+			review("Zaibatsu_Fan", "positive", "+1."),
+		],
+	},
+	{
+		id: "c-engine-tusks-of-fury-new-agent",
+		engineId: "14107",
+		overrideAgentId: "ben-bigger",
+		authorName: "SilverRook",
+		message: "У Бена тоже неплохая синергия с этим движком, предлагаю добавить отдельную стоимость.",
+		proposedCosts: [15, 17, 9999, 9999, 9999],
+		status: "pending",
+		createdAt: "2026-09-12T09:30:00.000Z",
+		reviews: [],
+	},
+	{
+		id: "c-engine-weeping-cradle-base",
+		engineId: "14121",
+		authorName: "Kirito_ZZZ",
+		message: "Базовая стоимость R1 занижена.",
+		proposedCosts: [8, 7, 10, 12, 15, 5],
+		status: "approved",
+		createdAt: "2026-09-02T10:00:00.000Z",
+		reviews: [
+			review("Hollow_Diver", "positive", "Согласен."),
+			review("MoonlitRaven", "positive", "Да, справедливо."),
+		],
+	},
+	{
+		id: "c-engine-blazing-laurel-qingyi",
+		engineId: "14116",
+		overrideAgentId: "qingyi",
+		authorName: "RandomChallenger",
+		message: "Предлагаю снизить стоимость для Цинъи, синергия не настолько сильная.",
+		proposedCosts: [10, 12, 9999, 9999, 9999],
+		status: "rejected",
+		createdAt: "2026-08-29T15:00:00.000Z",
+		reviews: [
+			review("Hollow_Diver", "negative", "Не согласен, синергия сильная."),
+			review("Zaibatsu_Fan", "negative", "Отклонить."),
+		],
+	},
 ];
 
 export const contributions = writable<Contribution[]>(initialContributions);
-
-export function contributionsFor(agentId: string): Contribution[] {
-	return get(contributions).filter((c) => c.agentId === agentId);
-}
 
 // 0 (red) -> 1 (green). No reviews at all is 0. Pure positive reviews need 5
 // of them to reach 1. Any negative/neutral reviews dilute the ratio, so a
@@ -215,6 +293,28 @@ export function addReview(contributionId: string, vote: ReviewVote, comment: str
 	);
 }
 
+export function addReviewComment(
+	contributionId: string,
+	reviewId: string,
+	authorName: string,
+	text: string,
+): void {
+	contributions.update((list) =>
+		list.map((c) =>
+			c.id !== contributionId
+				? c
+				: {
+						...c,
+						reviews: c.reviews.map((r) =>
+							r.id === reviewId
+								? { ...r, comments: [...r.comments, reviewComment(authorName, text)] }
+								: r,
+						),
+					},
+		),
+	);
+}
+
 export function setStatus(contributionId: string, status: ContributionStatus): void {
 	contributions.update((list) => list.map((c) => (c.id === contributionId ? { ...c, status } : c)));
 }
@@ -230,6 +330,29 @@ export function createContribution(
 		{
 			id: makeId("c"),
 			agentId,
+			authorName,
+			message,
+			proposedCosts,
+			status: "pending",
+			createdAt: new Date().toISOString(),
+			reviews: [],
+		},
+	]);
+}
+
+export function createEngineContribution(
+	engineId: string,
+	overrideAgentId: string | undefined,
+	authorName: string,
+	message: string,
+	proposedCosts: number[],
+): void {
+	contributions.update((list) => [
+		...list,
+		{
+			id: makeId("c"),
+			engineId,
+			overrideAgentId,
 			authorName,
 			message,
 			proposedCosts,

@@ -1,33 +1,63 @@
 <script lang="ts">
 	import { mindscapeLabels } from "$lib/costData";
-	import { createContribution } from "$lib/mockContributions";
+	import { createContribution, createEngineContribution } from "$lib/mockContributions";
 	import { currentUser } from "$lib/store";
+
+	type Mode = "agent" | "engine-base" | "engine-agent";
 
 	let {
 		open = $bindable(false),
+		mode = "agent" as Mode,
 		agentId = "",
 		agentName = "",
+		engineId = "",
+		weaponName = "",
 		currentCosts = [] as number[],
+		rankLabels = mindscapeLabels,
+		agentOptions = [] as { id: string; name: string }[],
 	}: {
 		open?: boolean;
+		mode?: Mode;
 		agentId?: string;
 		agentName?: string;
+		engineId?: string;
+		weaponName?: string;
 		currentCosts?: number[];
+		rankLabels?: string[];
+		agentOptions?: { id: string; name: string }[];
 	} = $props();
 
 	let costs = $state<number[]>([]);
 	let message = $state("");
+	let selectedAgentId = $state("");
 
 	$effect(() => {
 		if (open) {
 			costs = [...currentCosts];
 			message = "";
+			selectedAgentId = agentId || agentOptions[0]?.id || "";
 		}
 	});
 
+	const title = $derived(
+		mode === "agent"
+			? `Предложить изменение — ${agentName}`
+			: mode === "engine-base"
+				? `Предложить изменение базовой стоимости — ${weaponName}`
+				: `Предложить стоимость для агента — ${weaponName}`,
+	);
+
 	function submit() {
 		const authorName = $currentUser?.name ?? "Вы";
-		createContribution(agentId, authorName, message.trim() || "Без комментария", costs);
+		const finalMessage = message.trim() || "Без комментария";
+		if (mode === "agent") {
+			createContribution(agentId, authorName, finalMessage, costs);
+		} else if (mode === "engine-base") {
+			createEngineContribution(engineId, undefined, authorName, finalMessage, costs);
+		} else {
+			if (!selectedAgentId) return;
+			createEngineContribution(engineId, selectedAgentId, authorName, finalMessage, costs);
+		}
 		open = false;
 	}
 </script>
@@ -39,11 +69,21 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card proposal-card" onclick={(e) => e.stopPropagation()}>
-			<h2>Предложить изменение — {agentName}</h2>
+			<h2>{title}</h2>
+			{#if mode === "engine-agent" && agentOptions.length > 0 && !agentId}
+				<div class="cost-input-row">
+					<label for="agent-picker">Персонаж</label>
+					<select id="agent-picker" bind:value={selectedAgentId}>
+						{#each agentOptions as a (a.id)}
+							<option value={a.id}>{a.name}</option>
+						{/each}
+					</select>
+				</div>
+			{/if}
 			<div class="cost-inputs">
-				{#each mindscapeLabels as label, i (label)}
+				{#each rankLabels as label, i (i)}
 					<div class="cost-input-row">
-						<label for="cost-input-{i}">{label}</label>
+						<label for="cost-input-{i}">{label || `#${i + 1}`}</label>
 						<input id="cost-input-{i}" type="number" bind:value={costs[i]} />
 					</div>
 				{/each}
@@ -80,7 +120,8 @@
 		color: #888;
 	}
 
-	.cost-input-row input {
+	.cost-input-row input,
+	.cost-input-row select {
 		padding: 6px;
 	}
 </style>

@@ -60,13 +60,13 @@
 
 	const approvedLog = $derived(
 		[...$contributions]
-			.filter((c) => c.status === "approved")
+			.filter((c): c is Contribution & { agentId: string } => !!c.agentId && c.status === "approved")
 			.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
 	);
 
 	const rejectedLog = $derived(
 		[...$contributions]
-			.filter((c) => c.status === "rejected")
+			.filter((c): c is Contribution & { agentId: string } => !!c.agentId && c.status === "rejected")
 			.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
 	);
 
@@ -122,6 +122,7 @@
 	}
 
 	function openLogEntry(c: Contribution) {
+		if (!c.agentId) return;
 		const info = agentInfo(c.agentId);
 		selectedContributionId = c.id;
 		reviewAgentName = info.name;

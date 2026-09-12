@@ -2,6 +2,7 @@
 	import { mindscapeLabels } from "$lib/costData";
 	import {
 		addReview,
+		addReviewComment,
 		contributionColor,
 		contributionScore,
 		setStatus,
@@ -15,22 +16,53 @@
 		contribution = null as Contribution | null,
 		agentName = "",
 		currentCosts = [] as number[],
+		rankLabels = mindscapeLabels,
 	}: {
 		open?: boolean;
 		contribution?: Contribution | null;
 		agentName?: string;
 		currentCosts?: number[];
+		rankLabels?: string[];
 	} = $props();
 
 	let vote = $state<ReviewVote>("positive");
 	let comment = $state("");
+	let expandedComments = $state<Set<string>>(new Set());
+	let expandedDiscussions = $state<Set<string>>(new Set());
+	let discussionDrafts = $state<Record<string, string>>({});
 
 	$effect(() => {
 		if (open) {
 			vote = "positive";
 			comment = "";
+			expandedComments = new Set();
+			expandedDiscussions = new Set();
+			discussionDrafts = {};
 		}
 	});
+
+	function toggleComment(id: string) {
+		const next = new Set(expandedComments);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		expandedComments = next;
+	}
+
+	function toggleDiscussion(id: string) {
+		const next = new Set(expandedDiscussions);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		expandedDiscussions = next;
+	}
+
+	function submitDiscussionComment(reviewId: string) {
+		if (!contribution) return;
+		const text = (discussionDrafts[reviewId] ?? "").trim();
+		if (!text) return;
+		const authorName = $currentUser?.name ?? "Вы";
+		addReviewComment(contribution.id, reviewId, authorName, text);
+		discussionDrafts[reviewId] = "";
+	}
 
 	let canModerate = $derived($isAdmin || $isModerator);
 
@@ -84,10 +116,10 @@
 
 			<p class="contribution-message">{contribution.message}</p>
 
-			<div class="diff-grid">
+			<div class="diff-grid" style="grid-template-columns: 90px repeat({rankLabels.length}, 1fr);">
 				<div></div>
-				{#each mindscapeLabels as m (m)}
-					<div class="diff-label">{m}</div>
+				{#each rankLabels as m, i (i)}
+					<div class="diff-label">{m || `#${i + 1}`}</div>
 				{/each}
 				<div class="diff-row-label">Сейчас</div>
 				{#each currentCosts as v, i (i)}
@@ -105,10 +137,59 @@
 			{:else}
 				<div class="review-list">
 					{#each contribution.reviews as r (r.id)}
+						{@const commentExpanded = expandedComments.has(r.id)}
+						{@const discussionExpanded = expandedDiscussions.has(r.id)}
 						<div class="review-item">
-							<span class="review-vote vote-{r.vote}">{voteLabels[r.vote]}</span>
-							<span class="review-author">{r.reviewerName}</span>
-							{#if r.comment}<span class="review-comment">{r.comment}</span>{/if}
+							<div class="review-header">
+								<span class="review-vote vote-{r.vote}">{voteLabels[r.vote]}</span>
+								<span class="review-author">{r.reviewerName}</span>
+								{#if r.comment}
+									<button
+										type="button"
+										class="review-comment-line"
+										class:expanded={commentExpanded}
+										onclick={() => toggleComment(r.id)}
+									>
+										{r.comment}
+									</button>
+								{/if}
+							</div>
+
+							<button
+								type="button"
+								class="discussion-toggle"
+								onclick={() => toggleDiscussion(r.id)}
+							>
+								💬 {r.comments.length ? `Обсуждение (${r.comments.length})` : "Обсудить"}
+								<span class="discussion-caret" class:expanded={discussionExpanded}>▸</span>
+							</button>
+
+							{#if discussionExpanded}
+								<div class="discussion">
+									{#if r.comments.length === 0}
+										<p class="notice discussion-empty">Пока нет комментариев.</p>
+									{:else}
+										<div class="discussion-list">
+											{#each r.comments as rc (rc.id)}
+												<div class="discussion-comment">
+													<span class="discussion-author">{rc.authorName}</span>
+													<span class="discussion-text">{rc.text}</span>
+												</div>
+											{/each}
+										</div>
+									{/if}
+									<div class="discussion-add">
+										<input
+											placeholder="Написать комментарий..."
+											value={discussionDrafts[r.id] ?? ""}
+											oninput={(e) => (discussionDrafts[r.id] = e.currentTarget.value)}
+										/>
+										<button type="button" onclick={() => submitDiscussionComment(r.id)}
+											>Отправить</button
+										>
+									</div>
+								</div>
+							{/if}
 						</div>
 					{/each}
 				</div>
@@ -148,6 +229,8 @@
 	.review-card {
 		width: 560px;
 		max-width: 90vw;
+		max-height: 65vh;
+		overflow-y: auto;
 	}
 
 	.status-row {
@@ -227,19 +310,26 @@
 	}
 
 	.review-item {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-		align-items: center;
 		background: #222;
 		border-radius: 6px;
-		padding: 8px 10px;
 		font-size: 13px;
+		padding: 8px 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.review-header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
 	}
 
 	.review-vote {
 		font-weight: 600;
 		white-space: nowrap;
+		flex-shrink: 0;
 	}
 
 	.vote-positive {
@@ -256,11 +346,113 @@
 
 	.review-author {
 		color: #aaa;
+		flex-shrink: 0;
 	}
 
-	.review-comment {
+	.review-comment-line {
+		all: unset;
+		box-sizing: border-box;
+		cursor: pointer;
 		color: #ccc;
+		flex: 1 1 120px;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.review-comment-line.expanded {
+		white-space: normal;
 		flex-basis: 100%;
+	}
+
+	.discussion-toggle {
+		all: unset;
+		box-sizing: border-box;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		align-self: flex-start;
+		cursor: pointer;
+		color: #888;
+		font-size: 11px;
+	}
+
+	.discussion-toggle:hover {
+		color: #ccc;
+	}
+
+	.discussion-caret {
+		transition: transform 0.15s;
+	}
+
+	.discussion-caret.expanded {
+		transform: rotate(90deg);
+	}
+
+	.discussion {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 8px;
+		background: #1a1a1a;
+		border-radius: 6px;
+	}
+
+	.discussion-empty {
+		margin: 0;
+	}
+
+	.discussion-list {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		max-height: 160px;
+		overflow-y: auto;
+	}
+
+	.discussion-comment {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		font-size: 12px;
+	}
+
+	.discussion-author {
+		color: #aaa;
+		font-weight: 600;
+		flex-shrink: 0;
+	}
+
+	.discussion-text {
+		color: #ccc;
+	}
+
+	.discussion-add {
+		display: flex;
+		gap: 6px;
+	}
+
+	.discussion-add input {
+		flex: 1;
+		min-width: 0;
+		padding: 6px 8px;
+		font-size: 12px;
+	}
+
+	.discussion-add button {
+		all: unset;
+		box-sizing: border-box;
+		cursor: pointer;
+		padding: 6px 10px;
+		background: #333;
+		border-radius: 6px;
+		font-size: 12px;
+		white-space: nowrap;
+	}
+
+	.discussion-add button:hover {
+		background: #444;
 	}
 
 	.add-review {
