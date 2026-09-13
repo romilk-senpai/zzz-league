@@ -12,6 +12,14 @@ import { auth } from './firebase';
 
 let connection: signalR.HubConnection | null = null;
 
+// Tournament-scoped groups the app currently wants to be in. The list group (see
+// onTournamentChanged etc.) is auto-rejoined for free after a reconnect because it's joined
+// server-side on every connect (TournamentHub.OnConnectedAsync) — but a tournament-scoped
+// JoinTournament call is client-invoked, tied to the old connection id, and silently lost on
+// reconnect otherwise. Tracked here (not per-caller) so any future caller gets the same
+// rejoin-on-reconnect behavior for free.
+const joinedTournamentIds = new Set<string>();
+
 function getConnection(): signalR.HubConnection {
 	if (connection) return connection;
 
@@ -29,6 +37,16 @@ function getConnection(): signalR.HubConnection {
 		})
 		.withAutomaticReconnect()
 		.build();
+
+	connection.onreconnected(async () => {
+		for (const tournamentId of joinedTournamentIds) {
+			try {
+				await connection!.invoke('JoinTournament', tournamentId);
+			} catch (error) {
+				console.error('Failed to rejoin tournament group after reconnect', tournamentId, error);
+			}
+		}
+	});
 
 	return connection;
 }
@@ -49,6 +67,9 @@ export async function disconnect(): Promise<void> {
 	if (connection && connection.state !== signalR.HubConnectionState.Disconnected) {
 		await connection.stop();
 	}
+	// A stopped connection won't fire onreconnected, but clear this anyway so a later logout/login
+	// cycle's fresh connect doesn't carry over stale group membership from the previous session.
+	joinedTournamentIds.clear();
 }
 
 function isConnected(): boolean {
@@ -91,12 +112,17 @@ export async function joinTournamentGroup(tournamentId: string): Promise<void> {
 	if (!auth.currentUser) return;
 	const conn = getConnection();
 	await connectIfAuthenticated();
+	// Tracked regardless of whether we're connected right now (e.g. mid-reconnect) — a pending
+	// connect/reconnect will pick this up, either via the initial join below once connected, or
+	// via the onreconnected rejoin loop above.
+	joinedTournamentIds.add(tournamentId);
 	if (conn.state === signalR.HubConnectionState.Connected) {
 		await conn.invoke('JoinTournament', tournamentId);
 	}
 }
 
 export async function leaveTournamentGroup(tournamentId: string): Promise<void> {
+	joinedTournamentIds.delete(tournamentId);
 	if (isConnected()) {
 		await connection!.invoke('LeaveTournament', tournamentId);
 	}
