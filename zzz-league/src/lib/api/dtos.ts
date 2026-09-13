@@ -2,6 +2,7 @@
 // contract with ZenlessLeague.Api. Frontend domain types live in ../types; the per-domain files
 // in this directory (players.ts, tournaments.ts, ...) convert between the two.
 import type { PlayerRole, TournamentGameMode, TournamentRegistrationKind } from '../types';
+import type { Specialty } from '../costData';
 
 export interface LastRegistrationCacheDto {
 	gameUid: string;
@@ -181,6 +182,76 @@ export interface ArchiveDto {
 	seasonName: string;
 	createdAt: string;
 	players: ArchivedPlayerSnapshotDto[];
+}
+
+export interface AgentCostDto {
+	agentId: string;
+	name: string;
+	specialty: Specialty;
+	rarity: number;
+	costs: number[];
+}
+
+export interface EngineAgentOverrideDto {
+	agentId: string;
+	costs: number[];
+}
+
+export interface EngineCostDto {
+	engineId: string;
+	name: string;
+	specialty: Specialty;
+	rarity: number;
+	baseCosts: number[];
+	agentOverrides: EngineAgentOverrideDto[];
+}
+
+export type ReviewVote = 'positive' | 'neutral' | 'negative';
+export type ContributionStatus = 'pending' | 'approved' | 'rejected';
+
+export interface ReviewCommentDto {
+	id: string;
+	authorName: string;
+	text: string;
+	createdAt: string;
+}
+
+export interface ReviewDto {
+	id: string;
+	reviewerName: string;
+	vote: ReviewVote;
+	comment: string;
+	createdAt: string;
+	updatedAt: string;
+	comments: ReviewCommentDto[];
+}
+
+export interface ContributionListItemDto {
+	id: string;
+	agentId: string | null;
+	engineId: string | null;
+	overrideAgentId: string | null;
+	authorName: string;
+	message: string;
+	proposedCosts: number[];
+	status: ContributionStatus;
+	createdAt: string;
+	reviewCount: number;
+	score: number;
+}
+
+export interface ContributionDetailDto {
+	id: string;
+	agentId: string | null;
+	engineId: string | null;
+	overrideAgentId: string | null;
+	authorName: string;
+	message: string;
+	proposedCosts: number[];
+	status: ContributionStatus;
+	createdAt: string;
+	score: number;
+	reviews: ReviewDto[];
 }
 
 // ISO string -> epoch millis — the only date representation used anywhere past this boundary.

@@ -1,21 +1,21 @@
 <script lang="ts">
-	import { contributionColor, contributionScore, type Contribution } from "$lib/mockContributions";
+	import { contributionColor, type ContributionListItem } from "$lib/contributions";
 
 	let {
 		open = $bindable(false),
 		agentName = "",
-		items = [] as Contribution[],
+		items = [] as ContributionListItem[],
 		onSelect,
 		onPropose,
 	}: {
 		open?: boolean;
 		agentName?: string;
-		items?: Contribution[];
-		onSelect: (contribution: Contribution) => void;
+		items?: ContributionListItem[];
+		onSelect: (contribution: ContributionListItem) => void;
 		onPropose: () => void;
 	} = $props();
 
-	function statusLabel(c: Contribution): string {
+	function statusLabel(c: ContributionListItem): string {
 		if (c.status === "approved") return "Принято";
 		if (c.status === "rejected") return "Отклонено";
 		return "На рассмотрении";
@@ -40,9 +40,7 @@
 								class="menu-dot"
 								class:approved={c.status === "approved"}
 								class:rejected={c.status === "rejected"}
-								style={c.status === "pending"
-									? `background:${contributionColor(contributionScore(c.reviews))}`
-									: ""}
+								style={c.status === "pending" ? `background:${contributionColor(c.score)}` : ""}
 							></span>
 							<span class="menu-item-body">
 								<span class="menu-item-title">{c.authorName} — {statusLabel(c)}</span>

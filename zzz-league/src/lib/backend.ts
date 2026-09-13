@@ -6,3 +6,4 @@ export * from './api/matches';
 export * from './api/history';
 export * from './api/seasons';
 export * from './api/teams';
+export * from './api/communityCosts';

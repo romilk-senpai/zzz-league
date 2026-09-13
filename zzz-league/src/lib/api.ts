@@ -1,8 +1,9 @@
 import { auth } from './firebase';
 
-// Local dev only for now — ZenlessLeague.Api isn't deployed anywhere yet.
-// Will need to become environment-specific once it is (see zzz-league-server's migration plan).
-export const API_BASE_URL = 'http://localhost:5158';
+// Build-time override via Vite's standard `VITE_`-prefixed env vars (set `VITE_API_BASE_URL` in
+// `.env`/`.env.production` locally, or as a build-time env var in CI) — falls back to the local
+// dev API port so an unconfigured checkout still works unchanged.
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5158';
 
 export class ApiError extends Error {
 	constructor(public status: number, message: string) {

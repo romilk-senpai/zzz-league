@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { mindscapeLabels } from "$lib/costData";
-	import { createContribution, createEngineContribution } from "$lib/mockContributions";
+	import { createContribution, createEngineContribution } from "$lib/contributions";
 	import { currentUser } from "$lib/store";
 
 	type Mode = "agent" | "engine-base" | "engine-agent";
@@ -30,12 +30,16 @@
 	let costs = $state<number[]>([]);
 	let message = $state("");
 	let selectedAgentId = $state("");
+	let submitting = $state(false);
+	let status = $state("");
 
 	$effect(() => {
 		if (open) {
 			costs = [...currentCosts];
 			message = "";
 			selectedAgentId = agentId || agentOptions[0]?.id || "";
+			submitting = false;
+			status = "";
 		}
 	});
 
@@ -47,18 +51,27 @@
 				: `Предложить стоимость для агента — ${weaponName}`,
 	);
 
-	function submit() {
-		const authorName = $currentUser?.name ?? "Вы";
+	async function submit() {
+		if (submitting || !$currentUser) return;
 		const finalMessage = message.trim() || "Без комментария";
-		if (mode === "agent") {
-			createContribution(agentId, authorName, finalMessage, costs);
-		} else if (mode === "engine-base") {
-			createEngineContribution(engineId, undefined, authorName, finalMessage, costs);
-		} else {
-			if (!selectedAgentId) return;
-			createEngineContribution(engineId, selectedAgentId, authorName, finalMessage, costs);
+		if (mode === "engine-agent" && !selectedAgentId) return;
+
+		submitting = true;
+		status = "";
+		try {
+			if (mode === "agent") {
+				await createContribution(agentId, finalMessage, costs);
+			} else if (mode === "engine-base") {
+				await createEngineContribution(engineId, undefined, finalMessage, costs);
+			} else {
+				await createEngineContribution(engineId, selectedAgentId, finalMessage, costs);
+			}
+			open = false;
+		} catch (error: any) {
+			status = error.message;
+		} finally {
+			submitting = false;
 		}
-		open = false;
 	}
 </script>
 
@@ -89,8 +102,15 @@
 				{/each}
 			</div>
 			<textarea rows="3" placeholder="Почему стоит изменить стоимость?" bind:value={message}></textarea>
+			{#if !$currentUser}
+				<p class="notice">Войдите, чтобы предложить изменение.</p>
+			{:else if status}
+				<p class="notice error">{status}</p>
+			{/if}
 			<div class="btn-row">
-				<button class="btn-common btn-play" onclick={submit}>Отправить предложение</button>
+				<button class="btn-common btn-play" onclick={submit} disabled={submitting || !$currentUser}>
+					{submitting ? "Отправка…" : "Отправить предложение"}
+				</button>
 				<button class="btn-common" onclick={() => (open = false)}>Отмена</button>
 			</div>
 		</div>
@@ -101,6 +121,10 @@
 	.proposal-card {
 		width: 480px;
 		max-width: 90vw;
+	}
+
+	.notice.error {
+		color: var(--loss);
 	}
 
 	.cost-inputs {

@@ -8,10 +8,9 @@
 	} from "$lib/costData";
 	import {
 		contributionColor,
-		contributionScore,
 		contributions,
-		type Contribution,
-	} from "$lib/mockContributions";
+		type ContributionListItem,
+	} from "$lib/contributions";
 	import ContributionMenu from "./ContributionMenu.svelte";
 	import ContributionProposalPopup from "./ContributionProposalPopup.svelte";
 	import ContributionReviewPopup from "./ContributionReviewPopup.svelte";
@@ -21,14 +20,12 @@
 	const activeInfo = $derived(specialties.find((s) => s.id === activeSpecialty)!);
 
 	const rows = $derived(
-		agentCosts
+		$agentCosts
 			.filter((a) => a.specialty === activeSpecialty)
 			.map((a) => {
 				const agentContribs = $contributions.filter((c) => c.agentId === a.agentId);
 				const pending = agentContribs.filter((c) => c.status === "pending");
-				const pendingScore = pending.length
-					? Math.max(...pending.map((c) => contributionScore(c.reviews)))
-					: null;
+				const pendingScore = pending.length ? Math.max(...pending.map((c) => c.score)) : null;
 				return {
 					...a,
 					avatar: getAgentAvatar(a.agentId),
@@ -42,7 +39,7 @@
 	);
 
 	function agentInfo(agentId: string) {
-		const data = agentCosts.find((a) => a.agentId === agentId);
+		const data = $agentCosts.find((a) => a.agentId === agentId);
 		const avatar = getAgentAvatar(agentId);
 		return { name: data?.name ?? avatar?.name ?? agentId, avatarSrc: avatar?.src, costs: data?.costs ?? [] };
 	}
@@ -50,8 +47,8 @@
 	const pendingCountBySpecialty = $derived.by(() => {
 		const counts: Partial<Record<Specialty, number>> = {};
 		for (const c of $contributions) {
-			if (c.status !== "pending") continue;
-			const agent = agentCosts.find((a) => a.agentId === c.agentId);
+			if (c.status !== "pending" || !c.agentId) continue;
+			const agent = $agentCosts.find((a) => a.agentId === c.agentId);
 			if (!agent) continue;
 			counts[agent.specialty] = (counts[agent.specialty] ?? 0) + 1;
 		}
@@ -60,21 +57,21 @@
 
 	const approvedLog = $derived(
 		[...$contributions]
-			.filter((c): c is Contribution & { agentId: string } => !!c.agentId && c.status === "approved")
-			.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+			.filter((c): c is ContributionListItem & { agentId: string } => !!c.agentId && c.status === "approved")
+			.sort((a, b) => b.createdAt - a.createdAt),
 	);
 
 	const rejectedLog = $derived(
 		[...$contributions]
-			.filter((c): c is Contribution & { agentId: string } => !!c.agentId && c.status === "rejected")
-			.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+			.filter((c): c is ContributionListItem & { agentId: string } => !!c.agentId && c.status === "rejected")
+			.sort((a, b) => b.createdAt - a.createdAt),
 	);
 
 	let menuOpen = $state(false);
 	let menuAgentId = $state("");
 	let menuAgentName = $state("");
 	let menuCosts = $state<number[]>([]);
-	let menuItems = $state<Contribution[]>([]);
+	let menuItems = $state<ContributionListItem[]>([]);
 
 	let proposalOpen = $state(false);
 	let proposalAgentId = $state("");
@@ -85,10 +82,6 @@
 	let reviewAgentName = $state("");
 	let reviewCosts = $state<number[]>([]);
 	let selectedContributionId = $state<string | null>(null);
-
-	const selectedContribution = $derived(
-		$contributions.find((c) => c.id === selectedContributionId) ?? null,
-	);
 
 	function openFlow(row: (typeof rows)[number]) {
 		if (row.contribs.length === 0) {
@@ -105,7 +98,7 @@
 		menuOpen = true;
 	}
 
-	function handleMenuSelect(c: Contribution) {
+	function handleMenuSelect(c: ContributionListItem) {
 		menuOpen = false;
 		selectedContributionId = c.id;
 		reviewAgentName = menuAgentName;
@@ -121,7 +114,7 @@
 		proposalOpen = true;
 	}
 
-	function openLogEntry(c: Contribution) {
+	function openLogEntry(c: ContributionListItem) {
 		if (!c.agentId) return;
 		const info = agentInfo(c.agentId);
 		selectedContributionId = c.id;
@@ -245,7 +238,7 @@
 
 <ContributionReviewPopup
 	bind:open={reviewOpen}
-	contribution={selectedContribution}
+	contributionId={selectedContributionId}
 	agentName={reviewAgentName}
 	currentCosts={reviewCosts}
 />

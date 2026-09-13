@@ -1,44 +1,61 @@
 <script lang="ts">
+	import type { ReviewVote } from "$lib/api/dtos";
 	import { mindscapeLabels } from "$lib/costData";
 	import {
-		addReview,
-		addReviewComment,
+		approveContribution,
 		contributionColor,
-		contributionScore,
-		setStatus,
-		type Contribution,
-		type ReviewVote,
-	} from "$lib/mockContributions";
+		getContribution,
+		rejectContribution,
+		submitReview as apiSubmitReview,
+		submitReviewComment,
+		type ContributionDetail,
+	} from "$lib/contributions";
 	import { currentUser, isAdmin, isModerator } from "$lib/store";
 
 	let {
 		open = $bindable(false),
-		contribution = null as Contribution | null,
+		contributionId = null as string | null,
 		agentName = "",
 		currentCosts = [] as number[],
 		rankLabels = mindscapeLabels,
 	}: {
 		open?: boolean;
-		contribution?: Contribution | null;
+		contributionId?: string | null;
 		agentName?: string;
 		currentCosts?: number[];
 		rankLabels?: string[];
 	} = $props();
 
+	let contribution = $state<ContributionDetail | null>(null);
 	let vote = $state<ReviewVote>("positive");
 	let comment = $state("");
+	let submittingReview = $state(false);
+	let resolving = $state(false);
+	let errorMessage = $state("");
 	let expandedComments = $state<Set<string>>(new Set());
 	let expandedDiscussions = $state<Set<string>>(new Set());
 	let discussionDrafts = $state<Record<string, string>>({});
 
+	// Best-effort "is this my review" match for the pre-fill/edit UX below — ReviewDto only
+	// carries a display name, not a stable reviewer id, but this is cosmetic: the server always
+	// resolves the real reviewer from the caller's own JWT on submit regardless of what's shown.
+	const myReview = $derived(contribution?.reviews.find((r) => r.reviewerName === $currentUser?.name) ?? null);
+
 	$effect(() => {
-		if (open) {
-			vote = "positive";
-			comment = "";
-			expandedComments = new Set();
-			expandedDiscussions = new Set();
-			discussionDrafts = {};
-		}
+		if (!open || !contributionId) return;
+		contribution = null;
+		errorMessage = "";
+		expandedComments = new Set();
+		expandedDiscussions = new Set();
+		discussionDrafts = {};
+		const id = contributionId;
+		getContribution(id).then((detail) => {
+			if (id !== contributionId) return; // stale response from a since-changed selection
+			contribution = detail;
+			const mine = detail?.reviews.find((r) => r.reviewerName === $currentUser?.name) ?? null;
+			vote = mine?.vote ?? "positive";
+			comment = mine?.comment ?? "";
+		});
 	});
 
 	function toggleComment(id: string) {
@@ -55,13 +72,16 @@
 		expandedDiscussions = next;
 	}
 
-	function submitDiscussionComment(reviewId: string) {
+	async function submitDiscussionComment(reviewId: string) {
 		if (!contribution) return;
 		const text = (discussionDrafts[reviewId] ?? "").trim();
 		if (!text) return;
-		const authorName = $currentUser?.name ?? "Вы";
-		addReviewComment(contribution.id, reviewId, authorName, text);
 		discussionDrafts[reviewId] = "";
+		try {
+			contribution = await submitReviewComment(contribution.id, reviewId, text);
+		} catch (error: any) {
+			errorMessage = error.message;
+		}
 	}
 
 	let canModerate = $derived($isAdmin || $isModerator);
@@ -72,35 +92,62 @@
 		negative: "👎 Минус",
 	};
 
-	const statusLabels: Record<Contribution["status"], string> = {
+	const statusLabels: Record<ContributionDetail["status"], string> = {
 		pending: "На рассмотрении",
 		approved: "Принято",
 		rejected: "Отклонено",
 	};
 
-	function submitReview() {
-		if (!contribution) return;
-		const reviewerName = $currentUser?.name ?? "Вы";
-		addReview(contribution.id, vote, comment.trim(), reviewerName);
-		comment = "";
+	async function submitReview() {
+		if (!contribution || submittingReview) return;
+		submittingReview = true;
+		errorMessage = "";
+		try {
+			contribution = await apiSubmitReview(contribution.id, vote, comment.trim());
+		} catch (error: any) {
+			errorMessage = error.message;
+		} finally {
+			submittingReview = false;
+		}
 	}
 
-	function approve() {
-		if (contribution) setStatus(contribution.id, "approved");
+	async function approve() {
+		if (!contribution || resolving) return;
+		resolving = true;
+		errorMessage = "";
+		try {
+			contribution = await approveContribution(contribution.id);
+		} catch (error: any) {
+			errorMessage = error.message;
+		} finally {
+			resolving = false;
+		}
 	}
 
-	function reject() {
-		if (contribution) setStatus(contribution.id, "rejected");
+	async function reject() {
+		if (!contribution || resolving) return;
+		resolving = true;
+		errorMessage = "";
+		try {
+			contribution = await rejectContribution(contribution.id);
+		} catch (error: any) {
+			errorMessage = error.message;
+		} finally {
+			resolving = false;
+		}
 	}
 </script>
 
-{#if open && contribution}
+{#if open}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="popup" onclick={() => (open = false)}>
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card review-card" onclick={(e) => e.stopPropagation()}>
+			{#if !contribution}
+				<p class="notice">Загрузка…</p>
+			{:else}
 			<h2>{agentName} — предложение от {contribution.authorName}</h2>
 
 			<div class="status-row">
@@ -108,7 +155,7 @@
 				{#if contribution.status === "pending"}
 					<span
 						class="score-dot"
-						style="background:{contributionColor(contributionScore(contribution.reviews))}"
+						style="background:{contributionColor(contribution.score)}"
 						title="Прогресс к одобрению сообществом"
 					></span>
 				{/if}
@@ -184,9 +231,11 @@
 											value={discussionDrafts[r.id] ?? ""}
 											oninput={(e) => (discussionDrafts[r.id] = e.currentTarget.value)}
 										/>
-										<button type="button" onclick={() => submitDiscussionComment(r.id)}
-											>Отправить</button
-										>
+										{#if $currentUser}
+											<button type="button" onclick={() => submitDiscussionComment(r.id)}
+												>Отправить</button
+											>
+										{/if}
 									</div>
 								</div>
 							{/if}
@@ -195,6 +244,7 @@
 				</div>
 			{/if}
 
+			{#if $currentUser}
 			<div class="add-review">
 				<div class="vote-choice">
 					<button type="button" class:selected={vote === "positive"} onclick={() => (vote = "positive")}
@@ -208,19 +258,28 @@
 					>
 				</div>
 				<textarea rows="2" placeholder="Комментарий к отзыву" bind:value={comment}></textarea>
-				<button class="btn-common" onclick={submitReview}>Добавить отзыв</button>
+				{#if errorMessage}
+					<p class="notice error">{errorMessage}</p>
+				{/if}
+				<button class="btn-common" onclick={submitReview} disabled={submittingReview}>
+					{submittingReview ? "Отправка…" : myReview ? "Обновить отзыв" : "Добавить отзыв"}
+				</button>
 			</div>
+			{:else}
+				<p class="notice">Войдите, чтобы оставить отзыв.</p>
+			{/if}
 
-			{#if canModerate}
+			{#if canModerate && contribution.status === "pending"}
 				<div class="btn-row">
-					<button class="btn-common btn-play" onclick={approve}>Принять</button>
-					<button class="btn-common btn-reject" onclick={reject}>Отклонить</button>
+					<button class="btn-common btn-play" onclick={approve} disabled={resolving}>Принять</button>
+					<button class="btn-common btn-reject" onclick={reject} disabled={resolving}>Отклонить</button>
 				</div>
 			{/if}
 
 			<div class="btn-row">
 				<button class="btn-common" onclick={() => (open = false)}>Закрыть</button>
 			</div>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -269,6 +328,10 @@
 
 	.contribution-message {
 		color: #ccc;
+	}
+
+	.notice.error {
+		color: var(--loss);
 	}
 
 	.diff-grid {

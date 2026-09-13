@@ -2,8 +2,8 @@
 	import { agentCosts, specialties, type Specialty } from "$lib/costData";
 	import { getAgentAvatar } from "$lib/agentAvatars";
 	import { getWeaponAvatar } from "$lib/weaponAvatars";
-	import { engineBaseRankLabels, engineRankLabels, weaponCosts } from "$lib/weaponData";
-	import { contributionColor, contributionScore, contributions, type Contribution } from "$lib/mockContributions";
+	import { engineBaseRankLabels, engineRankLabels, weaponCosts, type WeaponCost } from "$lib/weaponData";
+	import { contributionColor, contributions, type ContributionListItem } from "$lib/contributions";
 	import ContributionMenu from "./ContributionMenu.svelte";
 	import ContributionProposalPopup from "./ContributionProposalPopup.svelte";
 	import ContributionReviewPopup from "./ContributionReviewPopup.svelte";
@@ -12,33 +12,35 @@
 
 	const activeInfo = $derived(specialties.find((s) => s.id === activeSpecialty)!);
 
-	const allAgentOptions = agentCosts
-		.map((a) => ({ id: a.agentId, name: a.name ?? getAgentAvatar(a.agentId)?.name ?? a.agentId }))
-		.sort((a, b) => a.name.localeCompare(b.name));
+	const allAgentOptions = $derived(
+		$agentCosts
+			.map((a) => ({ id: a.agentId, name: a.name ?? getAgentAvatar(a.agentId)?.name ?? a.agentId }))
+			.sort((a, b) => a.name.localeCompare(b.name)),
+	);
 
 	function agentDisplay(agentId: string) {
 		const avatar = getAgentAvatar(agentId);
-		const found = agentCosts.find((a) => a.agentId === agentId);
+		const found = $agentCosts.find((a) => a.agentId === agentId);
 		return { name: found?.name ?? avatar?.name ?? agentId, avatarSrc: avatar?.src };
 	}
 
-	function maxScore(list: Contribution[]): number | null {
+	function maxScore(list: ContributionListItem[]): number | null {
 		const pending = list.filter((c) => c.status === "pending");
-		return pending.length ? Math.max(...pending.map((c) => contributionScore(c.reviews))) : null;
+		return pending.length ? Math.max(...pending.map((c) => c.score)) : null;
 	}
 
 	const pendingCountBySpecialty = $derived.by(() => {
 		const counts: Partial<Record<Specialty, number>> = {};
 		for (const c of $contributions) {
 			if (c.status !== "pending" || !c.engineId) continue;
-			const w = weaponCosts.find((w) => w.engineId === c.engineId);
+			const w = $weaponCosts.find((w) => w.engineId === c.engineId);
 			if (!w) continue;
 			counts[w.specialty] = (counts[w.specialty] ?? 0) + 1;
 		}
 		return counts;
 	});
 
-	function buildRow(w: (typeof weaponCosts)[number]) {
+	function buildRow(w: WeaponCost) {
 		const baseAll = $contributions.filter((c) => c.engineId === w.engineId && !c.overrideAgentId);
 		const baseScore = maxScore(baseAll);
 
@@ -60,7 +62,7 @@
 		const newAgentIds = [...new Set(newAgentContribs.map((c) => c.overrideAgentId!))];
 		const newRows = newAgentIds.map((agentId) => {
 			const contribs = $contributions.filter((c) => c.engineId === w.engineId && c.overrideAgentId === agentId);
-			const latest = [...contribs].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+			const latest = [...contribs].sort((a, b) => b.createdAt - a.createdAt)[0];
 			return {
 				agentId,
 				costs: latest.proposedCosts,
@@ -87,7 +89,7 @@
 		};
 	}
 
-	const allWeaponRows = $derived(weaponCosts.map(buildRow));
+	const allWeaponRows = $derived($weaponCosts.map(buildRow));
 
 	const rows = $derived(
 		allWeaponRows
@@ -119,7 +121,7 @@
 
 	let menuOpen = $state(false);
 	let menuTitle = $state("");
-	let menuItems = $state<Contribution[]>([]);
+	let menuItems = $state<ContributionListItem[]>([]);
 	let menuContext = $state<{
 		engineId: string;
 		weaponName: string;
@@ -143,10 +145,6 @@
 	let reviewRankLabels = $state<string[]>(engineRankLabels);
 	let reviewCurrentCosts = $state<number[]>([]);
 	let selectedContributionId = $state<string | null>(null);
-
-	const selectedContribution = $derived(
-		$contributions.find((c) => c.id === selectedContributionId) ?? null,
-	);
 
 	function openBaseFlow(row: (typeof rows)[number]) {
 		if (row.baseAll.length === 0) {
@@ -208,7 +206,7 @@
 		proposalOpen = true;
 	}
 
-	function handleMenuSelect(c: Contribution) {
+	function handleMenuSelect(c: ContributionListItem) {
 		menuOpen = false;
 		if (!menuContext) return;
 		selectedContributionId = c.id;
@@ -236,21 +234,21 @@
 	const approvedLog = $derived(
 		[...$contributions]
 			.filter((c) => c.engineId && c.status === "approved")
-			.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+			.sort((a, b) => b.createdAt - a.createdAt),
 	);
 
 	const rejectedLog = $derived(
 		[...$contributions]
 			.filter((c) => c.engineId && c.status === "rejected")
-			.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+			.sort((a, b) => b.createdAt - a.createdAt),
 	);
 
 	function weaponDisplay(engineId: string) {
-		const w = weaponCosts.find((w) => w.engineId === engineId);
+		const w = $weaponCosts.find((w) => w.engineId === engineId);
 		return { name: w?.name ?? engineId, avatarSrc: getWeaponAvatar(engineId)?.src, weapon: w };
 	}
 
-	function openLogEntry(c: Contribution) {
+	function openLogEntry(c: ContributionListItem) {
 		if (!c.engineId) return;
 		const { weapon } = weaponDisplay(c.engineId);
 		if (!weapon) return;
@@ -461,7 +459,7 @@
 
 <ContributionReviewPopup
 	bind:open={reviewOpen}
-	contribution={selectedContribution}
+	contributionId={selectedContributionId}
 	agentName={reviewTitle}
 	currentCosts={reviewCurrentCosts}
 	rankLabels={reviewRankLabels}
