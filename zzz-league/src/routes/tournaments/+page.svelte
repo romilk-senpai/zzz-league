@@ -27,11 +27,11 @@
 	<SidePanel></SidePanel>
 
 	<div class="card main-content">
-		<h2>Архив турниров</h2>
+		<h2 class="archive-title">Архив турниров</h2>
 		{#if sortedTournaments.length > 0}
-			<div class="tournament-container">
+			<div class="archive-grid">
 				{#each sortedTournaments as tournament}
-					<TournamentCard {tournament} {now} />
+					<TournamentCard {tournament} {now} compact />
 				{/each}
 			</div>
 		{:else}
@@ -41,7 +41,23 @@
 </div>
 
 <style>
+	.main-content {
+		padding: 24px 28px;
+		gap: 20px;
+	}
+
+	.archive-title {
+		font-size: 19px;
+		padding-bottom: 16px;
+	}
+
+	.archive-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 14px;
+	}
+
 	.empty-label {
-		color: #888;
+		color: var(--text-dim);
 	}
 </style>

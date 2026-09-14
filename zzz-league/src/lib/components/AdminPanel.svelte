@@ -226,117 +226,153 @@
 
 <div class="card admin-card">
 	<h2>Control Panel</h2>
-	<a class="btn-common" href={resolve("/tournaments/create")}>Создать турнир</a
-	>
-	<button type="button" class="btn-common" onclick={handleFinalizeTournament}
-		>✅ Применить итоги</button
-	>
-	<hr style="width: 100%;" />
-	<button class="btn-common" onclick={handleSetTimer}
-		>⏳ Установить таймер</button
-	>
-	<button class="btn-common" onclick={handleAddPlayer}
-		>Добавить игрока
+
+	<div class="stack">
+		<a class="btn-common" href={resolve("/tournaments/create")}>
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+			Создать турнир</a
+		>
+		<button type="button" class="btn-common btn-success" onclick={handleFinalizeTournament}>
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+			Применить итоги
+		</button>
+	</div>
+
+	<div class="divider"></div>
+
+	<div class="grid-2">
+		<button class="btn-common btn-sm" onclick={handleSetTimer} title="Установить таймер">
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+			Таймер
+		</button>
+		<button class="btn-common btn-sm" onclick={handleAddPlayer} title="Добавить игрока">
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+			Игрока
+		</button>
+	</div>
+
+	<div class="divider"></div>
+
+	<div class="section-label">Запись матча</div>
+
+	<div class="stack">
+		<input
+			type="text"
+			class="search-input"
+			placeholder="Поиск Игрока 1..."
+			bind:value={searchQueryP1}
+		/>
+		<select bind:value={selectedPlayer1}>
+			{#each filteredPlayers1 as player}
+				<option value={player}>{player.name}</option>
+			{/each}
+		</select>
+
+		<input
+			type="text"
+			class="search-input"
+			placeholder="Поиск Игрока 2..."
+			bind:value={searchQueryP2}
+			style="margin-top: 4px;"
+		/>
+		<select bind:value={selectedPlayer2}>
+			{#each filteredPlayers2 as player}
+				<option value={player}>{player.name}</option>
+			{/each}
+		</select>
+
+		<button class="btn-common btn-sm" onclick={showForecast} style="margin-top: 2px;">
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+			Прогноз ELO
+		</button>
+
+		{#if showingForecast}
+			{@const f = forecast!}
+			<div class="forecast-box">
+				<div>
+					{f.p1.player.name}:
+					<span class="gain">{f.p1.w}</span> /
+					<span class="loss">{f.p1.l}</span>
+				</div>
+
+				<div>
+					{f.p2.player.name}:
+					<span class="gain">{f.p2.w}</span> /
+					<span class="loss">{f.p2.l}</span>
+				</div>
+			</div>
+		{/if}
+
+		<select bind:value={winningPlayer} style="margin-top: 2px;">
+			<option value="1">Победа Игрока 1</option>
+			<option value="0">Победа Игрока 2</option>
+		</select>
+		<button type="button" class="btn-common btn-play" onclick={handleRegisterMatch} style="margin-top: 2px;">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+			Записать матч
+		</button>
+		<button type="button" class="btn-common btn-danger-ghost btn-sm" onclick={handleRegisterTechLoss}>
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5"/></svg>
+			Техлуз
+		</button>
+	</div>
+
+	<div class="divider"></div>
+
+	<button type="button" class="btn-common btn-danger-ghost btn-sm" onclick={handleResetSeason}>
+		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+		Сброс сезона
 	</button>
-
-	<hr style="width: 100%" />
-
-	<input
-		type="text"
-		class="search-input"
-		placeholder="Поиск Игрока 1..."
-		bind:value={searchQueryP1}
-	/>
-	<select bind:value={selectedPlayer1}>
-		{#each filteredPlayers1 as player}
-			<option value={player}>{player.name}</option>
-		{/each}
-	</select>
-
-	<input
-		type="text"
-		class="search-input"
-		placeholder="Поиск Игрока 2..."
-		bind:value={searchQueryP2}
-	/>
-	<select bind:value={selectedPlayer2}>
-		{#each filteredPlayers2 as player}
-			<option value={player}>{player.name}</option>
-		{/each}
-	</select>
-
-	<button class="btn-common btn-forecast" onclick={showForecast}
-		>📈 Прогноз ELO</button
-	>
-	{#if showingForecast}
-		{@const f = forecast!}
-		<div class="forecast-box">
-			<div>
-				{f.p1.player.name}:
-				<span class="gain">{f.p1.w}</span> /
-				<span class="loss">{f.p1.l}</span>
-			</div>
-
-			<div>
-				{f.p2.player.name}:
-				<span class="gain">{f.p2.w}</span> /
-				<span class="loss">{f.p2.l}</span>
-			</div>
-		</div>
-	{/if}
-
-	<select bind:value={winningPlayer}>
-		<option value="1">Победа Игрока 1</option>
-		<option value="0">Победа Игрока 2</option>
-	</select>
-	<button
-		type="button"
-		class="btn-common btn-play"
-		onclick={handleRegisterMatch}>⚔️ Записать матч</button
-	>
-	<button type="button" class="btn-common" onclick={handleRegisterTechLoss}
-		>🚫 Техлуз</button
-	>
-	<hr style="width: 100%;" />
-	<button type="button" class="btn-common" onclick={handleResetSeason}
-		>📦 Сброс сезона</button
-	>
 </div>
 
 <style>
 	.admin-card {
 		display: flex;
 		flex-direction: column;
+		gap: 0;
+	}
+
+	.admin-card :global(h2) {
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--text-dim);
+		border: none;
+		padding: 0;
+		margin-bottom: 14px;
+	}
+
+	.stack {
+		display: flex;
+		flex-direction: column;
 		gap: 8px;
 	}
+
+	.grid-2 {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 8px;
+	}
+
+	.divider {
+		height: 1px;
+		background: var(--border-soft);
+		margin: 14px 0;
+	}
+
+	.section-label {
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--text-dim);
+		margin-bottom: 10px;
+	}
+
 
 	.forecast-box {
-		background: #000;
-		padding: 15px;
-		border-radius: 8px;
-		border: 1px dashed #444;
-		margin: 15px 0;
+		background: var(--bg-elevated);
+		padding: 12px 14px;
+		border-radius: var(--r-md);
+		border: 1px dashed var(--border);
+		font-size: 12.5px;
 		line-height: 1.6;
-	}
-
-	.btn-forecast {
-		background: var(--gold);
-		color: #000;
-		border: none;
-		padding: 14px;
-		border-radius: 8px;
-		font-weight: bold;
-		cursor: pointer;
-		width: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 8px;
-		transition: 0.2s;
-		box-shadow: 0 4px 15px rgba(255, 204, 0, 0.2);
-	}
-
-	.btn-forecast:hover {
-		background: #ffdb4d;
 	}
 </style>

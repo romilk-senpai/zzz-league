@@ -7,15 +7,10 @@
 	import type { Team } from "$lib/types";
 	import { bustCache } from "$lib/uiCommon";
 
-	// Defensive, even though listMyTeams() should only ever return teams the caller belongs to —
-	// mirrors TeamDetailsPopup's membership-or-admin check so the edit button can't show for a
-	// team the viewer isn't actually part of.
-	function canEdit(team: Team): boolean {
-		return (
-			$isAdmin ||
-			team.creator.uid === $currentUser?.uid ||
-			team.player2.uid === $currentUser?.uid
-		);
+	function teamInitials(name: string): string {
+		const words = name.trim().split(/\s+/).filter(Boolean);
+		if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+		return name.slice(0, 2).toUpperCase();
 	}
 
 	let teams = $state<Team[]>([]);
@@ -75,10 +70,12 @@
 	<SidePanel></SidePanel>
 
 	<div class="card main-content">
-		<h2>Мои команды</h2>
-		<button class="btn-common btn-play create-btn" onclick={openCreate}
-			>+ Создать команду</button
-		>
+		<div class="page-header">
+			<h2 class="page-title">Мои команды</h2>
+			<button class="btn-common btn-play create-btn" onclick={openCreate}
+				>+ Создать команду</button
+			>
+		</div>
 
 		{#if !$currentUser}
 			<p class="notice">Войдите, чтобы увидеть свои команды.</p>
@@ -93,21 +90,32 @@
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div class="team-row" onclick={() => openDetails(team)}>
 						{#if team.photoUrl}
-							<img class="team-logo" src={bustCache(team.photoUrl)} alt="" />
+							<img
+								class="team-logo"
+								src={bustCache(team.photoUrl)}
+								alt=""
+							/>
+						{:else}
+							<span class="team-logo placeholder"
+								>{teamInitials(team.name)}</span
+							>
 						{/if}
 						<span class="team-name">{team.name}</span>
 						<span class="team-players"
 							>{team.creator.name} & {team.player2.name}</span
 						>
-						{#if canEdit(team)}
-							<button
-								class="btn-common edit-btn"
-								onclick={(e) => {
-									e.stopPropagation();
-									openEdit(team);
-								}}>Изменить</button
-							>
-						{/if}
+						<svg
+							class="chevron"
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							><polyline points="9 18 15 12 9 6" /></svg
+						>
 					</div>
 				{/each}
 			</div>
@@ -115,62 +123,106 @@
 	</div>
 </div>
 
-<TeamDetailsPopup bind:open={detailsOpen} team={selectedTeam} onEdit={openEdit} onDeleted={handleDeleted} />
+<TeamDetailsPopup
+	bind:open={detailsOpen}
+	team={selectedTeam}
+	onEdit={openEdit}
+	onDeleted={handleDeleted}
+/>
 <TeamFormPopup bind:open={formOpen} team={editingTeam} onSaved={handleSaved} />
 
 <style>
+	.main-content {
+		padding: 24px 28px;
+		gap: 16px;
+	}
+
+	.page-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding-bottom: 16px;
+		border-bottom: 1px solid var(--border-soft);
+	}
+
+	.page-title {
+		font-size: 19px;
+		border: none;
+		padding: 0;
+		margin: 0;
+	}
+
 	.create-btn {
 		width: auto;
-		padding: 10px 20px;
-		margin-bottom: 16px;
+		height: 32px;
+		font-size: 11.5px;
+		padding: 0 14px;
 	}
 
 	.team-list {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 6px;
 		width: 100%;
 	}
 
 	.team-row {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 10px 14px;
-		background: #222;
-		border-radius: 8px;
-		border: 1px solid #333;
+		gap: 11px;
+		height: 40px;
+		padding: 0 12px;
+		background: var(--surface-2);
+		border: 1px solid var(--border-soft);
+		border-radius: var(--r-sm);
 		cursor: pointer;
+		transition: border-color 0.12s ease;
 	}
 
 	.team-row:hover {
-		border-color: #555;
+		border-color: var(--gold-border);
 	}
 
 	.team-logo {
-		width: 32px;
-		height: 32px;
+		width: 26px;
+		height: 26px;
 		object-fit: cover;
-		border-radius: 6px;
+		border-radius: 5px;
 		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 700;
+		font-size: 10px;
+	}
+
+	.team-logo.placeholder {
+		background: var(--surface-hover);
+		color: var(--text-muted);
 	}
 
 	.team-name {
-		font-weight: bold;
+		font-weight: 700;
+		font-size: 12.5px;
 		flex-shrink: 0;
-	}
-
-	.team-players {
-		flex: 1;
-		color: #ccc;
+		width: 130px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
-	.edit-btn {
-		width: auto;
-		padding: 6px 12px;
+	.team-players {
+		flex: 1;
+		color: var(--text-muted);
+		font-size: 12px;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.chevron {
+		color: var(--text-dim);
 		flex-shrink: 0;
 	}
 </style>

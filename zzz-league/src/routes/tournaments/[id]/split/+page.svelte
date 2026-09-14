@@ -221,11 +221,11 @@
 			<h2>Разделить на сетки</h2>
 			<p class="notice">Загрузка...</p>
 		{:else if loadError}
-			<h2>Разделить на сетки</h2>
+			<h2 class="page-title">Разделить на сетки</h2>
 			<p class="notice">{loadError}</p>
 		{:else}
-			<h2>
-				Разделить турнир "{tournament?.name}" на сетки? Отменить нельзя.)
+			<h2 class="page-title">
+				Разделить турнир «{tournament?.name}» на сетки — отменить нельзя
 			</h2>
 
 			{#if !canSplit}
@@ -233,30 +233,31 @@
 					Недостаточно одобренных игроков для разделения (нужно минимум 4,
 					сейчас {approvedPlayers.length}).
 				</p>
-				<div class="btn-row">
+				<div class="btn-row narrow">
 					<a class="btn-common" href={resolve(`/tournaments/${id}`)}
 						>Назад</a
 					>
 				</div>
 			{:else}
-				<div class="form-row">
-					<label for="division-count">Количество сеток</label>
-					<input
-						id="division-count"
-						type="number"
-						min="2"
-						max={maxDivisionCount}
-						bind:value={divisionCount}
-						onblur={clampDivisionCount}
-					/>
-				</div>
-				<p class="hint">Максимум сеток: {maxDivisionCount}</p>
-				<p class="hint">
-					Всего распределено: {approvedPlayers.length - pool.length} / {approvedPlayers.length}
-				</p>
-
 				<div class="split-toolbar">
-					<button class="btn-common" onclick={shufflePlayers}>
+					<div class="field-group">
+						<label for="division-count">Количество сеток</label>
+						<input
+							id="division-count"
+							class="count-field"
+							type="number"
+							min="2"
+							max={maxDivisionCount}
+							bind:value={divisionCount}
+							onblur={clampDivisionCount}
+						/>
+					</div>
+					<p class="hint">Максимум сеток: {maxDivisionCount}</p>
+					<p class="hint">
+						Распределено: {approvedPlayers.length - pool.length} / {approvedPlayers.length}
+					</p>
+					<button class="btn-common shuffle-btn" onclick={shufflePlayers}>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
 						Перемешать
 					</button>
 				</div>
@@ -288,6 +289,7 @@
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
 							class="split-column"
+							class:division-full={isDivisionFull(i)}
 							ondragover={(e) => {
 								if (canDropOnDivision(i)) e.preventDefault();
 							}}
@@ -296,10 +298,11 @@
 							<h3 class:division-full={isDivisionFull(i)}>
 								Сетка {i + 1}
 							</h3>
-							<div class="form-row">
+							<div class="field-group">
 								<label for="division-size-{i}">Игроков</label>
 								<input
 									id="division-size-{i}"
+									class="size-field"
 									type="number"
 									min="2"
 									bind:value={divisionSizes[i]}
@@ -332,7 +335,7 @@
 				</p>
 
 				{#if status}<p class="status error">{status}</p>{/if}
-				<div class="btn-row">
+				<div class="btn-row narrow">
 					<button
 						class="btn-common btn-play"
 						class:btn-loading={isSplitting}
@@ -348,9 +351,45 @@
 </div>
 
 <style>
+	.main-content {
+		padding: 24px 28px;
+		gap: 18px;
+	}
+
+	.page-title {
+		font-size: 19px;
+		padding-bottom: 16px;
+	}
+
+	.field-group {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.field-group label {
+		font-size: 11.5px;
+		color: var(--text-dim);
+		font-weight: 600;
+	}
+
+	.count-field {
+		width: 80px;
+	}
+
+	.size-field {
+		width: 60px;
+	}
+
 	.split-toolbar {
 		display: flex;
-		gap: 8px;
+		align-items: flex-end;
+		gap: 24px;
+		flex-wrap: wrap;
+	}
+
+	.shuffle-btn {
+		margin-left: auto;
 	}
 
 	.split-columns {
@@ -362,18 +401,35 @@
 
 	.split-column {
 		flex: 1 1 200px;
-		min-width: 180px;
-		border: 1px solid #333;
-		border-radius: 8px;
-		padding: 10px;
+		min-width: 190px;
+		border: 1px solid var(--border-soft);
+		border-radius: var(--r-md);
+		padding: 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
 	}
 
 	.split-column h3 {
-		margin: 0 0 8px 0;
+		font-size: 13px;
+		font-weight: 700;
+		color: var(--text-muted);
+		margin: 0;
+		border: none;
+		padding: 0;
+		display: block;
 	}
 
 	.division-full {
-		color: var(--green);
+		border-color: var(--success);
+	}
+
+	h3.division-full {
+		color: var(--success);
+	}
+
+	p.division-full {
+		color: var(--success);
 	}
 
 	.pool-column {
@@ -388,9 +444,12 @@
 	}
 
 	.player-card {
-		padding: 6px 10px;
-		border-radius: 6px;
-		background: rgba(255, 255, 255, 0.05);
+		padding: 8px 10px;
+		border-radius: var(--r-sm);
+		background: var(--surface-2);
+		border: 1px solid var(--border-soft);
+		font-size: 12.5px;
+		font-weight: 500;
 		cursor: grab;
 	}
 
@@ -399,8 +458,12 @@
 	}
 
 	.hint {
-		color: #888;
-		font-size: 13px;
+		color: var(--text-dim);
+		font-size: 11.5px;
 		margin: 0;
+	}
+
+	.btn-row.narrow {
+		max-width: 420px;
 	}
 </style>

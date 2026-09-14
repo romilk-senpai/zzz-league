@@ -2,6 +2,8 @@
 	import { goto } from "$app/navigation";
 	import { resolve } from "$app/paths";
 	import { page } from "$app/state";
+	import { getAgentAvatar } from "$lib/agentAvatars";
+	import avatarPlaceholder from "$lib/assets/avatar-placeholder.webp";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TournamentGamePopup from "$lib/components/TournamentMatchPopup.svelte";
 	import TournamentPlayerTable from "$lib/components/TournamentPlayerTable.svelte";
@@ -212,8 +214,32 @@
 				now,
 			),
 	);
+	// Presentational only — recombines the mutually-exclusive state checks above (per
+	// tournamentState.ts, `state` is a single enum value) into one status pill instead of a stack
+	// of separate paragraphs.
+	let statusPill = $derived.by(() => {
+		if (!tournament) return null;
+		if (registrationWindowOpen) return { text: "Идёт регистрация", cls: "pill-success" };
+		if (isRegistrationClosed(tournament.state))
+			return { text: "Регистрация закрыта", cls: "pill-neutral" };
+		if (isBracketCreated(tournament.state))
+			return { text: "Сетка создана, ожидает начала", cls: "pill-info" };
+		if (tournament.state === TOURNAMENT_STATE.STARTED)
+			return { text: "Турнир идёт", cls: "pill-gold" };
+		if (tournament.state === TOURNAMENT_STATE.COMPLETE)
+			return { text: "Турнир окончен", cls: "pill-neutral" };
+		return null;
+	});
 	let canCancelRegistration = $derived(
 		!!tournament && !isLocked(tournament.state) && !tournament.challongeTournamentId,
+	);
+	// Presentational — mirrors the three conditions gating the individual buttons inside
+	// .actions-user, so the wrapper (and its divider) only renders when it will have content.
+	let hasUserActions = $derived(
+		!!$currentUser &&
+			!!tournament &&
+			((registrationWindowOpen && (tournament.registrationType === "team" || tierEligible)) ||
+				!!myRegistration),
 	);
 
 	// Shared by every admin action button below: optional confirm dialog, a loading flag toggled
@@ -336,6 +362,15 @@
 
 	function getMatchSideLabel(uid: string | null, teamId: string | null) {
 		return teamId ? getTeamLabel(teamId) : getPlayerName(uid);
+	}
+
+	// Team side: the team's own uploaded photo (no per-member agent avatar to pick between).
+	// Solo side: the registrant's chosen agent avatar, same lookup Leaderboard/ProfilePopup use.
+	function getMatchSideAvatarSrc(uid: string | null, teamId: string | null) {
+		if (teamId) return teamsById.get(teamId)?.photoUrl ?? undefined;
+		if (!uid) return undefined;
+		const player = registeredPlayersData.find((p) => p.uid === uid);
+		return player ? getAgentAvatar(player.avatar)?.src : undefined;
 	}
 
 	function getPlayerClass(
@@ -482,224 +517,213 @@
 		{#if tournament && !canView}
 			<p class="notice">Недостаточно прав для просмотра этой страницы.</p>
 		{:else if tournament}
-			<h2>{tournament.name}</h2>
-			<div class="description-container">
-				{#if tournament.divisionIndex}
-					<p>Сетка {tournament.divisionIndex}</p>
-				{/if}
-				<div class="description-text">
-					{@html renderMarkdown(tournament.description ?? "")}
-				</div>
-				<p>
-					Рамки коста
-					<span class="value-highlight"
-						>{tournament.minCost}-{tournament.maxCost}</span
-					>
-				</p>
-				<p>
-					Мин. персонажей
-					<span class="value-highlight">{tournament.minCharacters}</span>
-				</p>
-				{#snippet tierBadge(tier: number)}
-					{#if tier === 0}
-						<span class="tier-badge t-newbie">NEWBIE</span>
-					{:else if tier === 100}
-						<span class="tier-badge t-mid">MID TIER</span>
-					{:else if tier === 1000}
-						<span class="tier-badge t-high">HIGH TIER</span>
+			<div class="tournament-header">
+				<div class="tournament-title-row">
+					<h2>{tournament.name}</h2>
+					{#snippet tierBadge(tier: number)}
+						{#if tier === 0}
+							<span class="tier-badge t-newbie">NEWBIE</span>
+						{:else if tier === 100}
+							<span class="tier-badge t-mid">MID TIER</span>
+						{:else if tier === 1000}
+							<span class="tier-badge t-high">HIGH TIER</span>
+						{/if}
+					{/snippet}
+					{#if tournament.minTier === tournament.maxTier}
+						{@render tierBadge(tournament.minTier)}
+					{:else}
+						{@render tierBadge(tournament.minTier)}<span class="tier-range-sep">–</span
+						>{@render tierBadge(tournament.maxTier)}
 					{/if}
-				{/snippet}
-				<p>
-					Турнир по системе <span class="value-highlight"
-						>{tournament.type}</span
-					>
-				</p>
-				<p>
-					Тип турнира
-					<span class="value-highlight"
-						>{tournament.registrationType === "team" ? "2x2" : "1x1"}</span
-					>
-				</p>
-				<p>
-					Игровой режим
-					<span class="value-highlight"
-						>{tournament.gameMode === "deadly_assault" ? "Deadly Assault" : "Shiyu Defense"}</span
-					>
-				</p>
-				{#if tournament.overrideEloChange == -1}
-					<p>Стандартная система начислений эло</p>
-				{:else}
-					<p>
-						За победу поражение начисляется фиксированное эло
-						<span class="value-highlight"
-							>{tournament.overrideEloChange}</span
+					{#if statusPill}
+						<span class="pill {statusPill.cls}">{statusPill.text}</span>
+					{/if}
+				</div>
+
+				{#if tournament.divisionIndex}
+					<p class="division-note">Сетка {tournament.divisionIndex}</p>
+				{/if}
+
+				{#if tournament.description}
+					<div class="description-text">
+						{@html renderMarkdown(tournament.description)}
+					</div>
+				{/if}
+
+				<div class="spec-grid">
+					<div class="spec">
+						<span class="spec-label">Тип турнира</span>
+						<span class="spec-value"
+							>{tournament.registrationType === "team" ? "2x2" : "1x1"}</span
 						>
-					</p>
-				{/if}
-				{#if tournament.minTier === tournament.maxTier}
-					<p>Ранг {@render tierBadge(tournament.minTier)}</p>
-				{:else}
-					<p>
-						Ранги с {@render tierBadge(tournament.minTier)} по {@render tierBadge(
-							tournament.maxTier,
-						)}
-					</p>
-				{/if}
-				<p>
-					Регистрация на турнир с
-					<span class="value-highlight"
+					</div>
+					<div class="spec">
+						<span class="spec-label">Игровой режим</span>
+						<span class="spec-value"
+							>{tournament.gameMode === "deadly_assault"
+								? "Deadly Assault"
+								: "Shiyu Defense"}</span
+						>
+					</div>
+					<div class="spec">
+						<span class="spec-label">Система</span>
+						<span class="spec-value">{tournament.type}</span>
+					</div>
+					<div class="spec">
+						<span class="spec-label">Рамки коста</span>
+						<span class="spec-value">{tournament.minCost}–{tournament.maxCost}</span>
+					</div>
+					<div class="spec">
+						<span class="spec-label">Мин. персонажей</span>
+						<span class="spec-value">{tournament.minCharacters}</span>
+					</div>
+					<div class="spec">
+						<span class="spec-label">Эло за победу/поражение</span>
+						<span class="spec-value"
+							>{tournament.overrideEloChange == -1
+								? "Стандартное"
+								: tournament.overrideEloChange}</span
+						>
+					</div>
+				</div>
+
+				<div class="date-grid">
+					<span class="date-label">Регистрация</span>
+					<span class="date-value"
 						>{new Date(tournament.registrationStartDate).toLocaleString(
 							"ru",
 							dateDisplayOptions,
-						)}</span
-					>
-					по
-					<span class="value-highlight"
-						>{new Date(tournament.registrationEndDate).toLocaleString(
+						)} – {new Date(tournament.registrationEndDate).toLocaleString(
 							"ru",
 							dateDisplayOptions,
 						)}</span
 					>
-				</p>
-				<p>
-					Турнир проходит с
-					<span class="value-highlight"
+					<span class="date-label">Турнир</span>
+					<span class="date-value"
 						>{new Date(tournament.tournamentStartDate).toLocaleString(
 							"ru",
 							dateDisplayOptions,
-						)}</span
-					>
-					по
-					<span class="value-highlight"
-						>{new Date(tournament.tournamentEndDate).toLocaleString(
+						)} – {new Date(tournament.tournamentEndDate).toLocaleString(
 							"ru",
 							dateDisplayOptions,
 						)}</span
 					>
-				</p>
-
-				{#if isRegistrationClosed(tournament.state)}
-					<p>Регистрация закрыта</p>
-				{/if}
-				{#if registrationWindowOpen}
-					<p>Идёт регистрация</p>
-				{/if}
-				{#if isBracketCreated(tournament.state)}
-					<p>Сетка создана, ожидает начала</p>
-				{/if}
-				{#if tournament.state === TOURNAMENT_STATE.STARTED}
-					<p>Турнир идёт</p>
-				{/if}
-				{#if tournament.state === TOURNAMENT_STATE.COMPLETE}
-					<p>Турнир окончен</p>
-				{/if}
-
-				<div class="tournament-button-container">
-					{#if $isAdmin}
-						<button
-							class="btn-common danger"
-							class:btn-loading={deletingTournament}
-							onclick={handleDeleteTournament}>Удалить турнир</button
-						>
-						{#if !isLocked(tournament.state)}
-							<a
-								class="btn-common"
-								href={resolve(`/tournaments/${tournament.id}/edit`)}
-								>Редактировать турнир</a
-							>
-							{#if tournament.registrationType === "team"}
-								<button
-									class="btn-common"
-									onclick={() => (addTeamPopupOpen = true)}
-									>Добавить команду</button
-								>
-							{:else}
-								<button
-									class="btn-common"
-									onclick={() => (addPlayerPopupOpen = true)}
-									>Добавить игрока</button
-								>
-							{/if}
-							{#if isRegistrationOpen(tournament.state)}
-								<button
-									class="btn-common"
-									class:btn-loading={closingRegistration}
-									onclick={handleCloseRegistration}
-									>Закрыть регистрацию</button
-								>
-							{/if}
-							{#if !tournament.divisionGroupId}
-								<a
-									class="btn-common"
-									href={resolve(`/tournaments/${tournament.id}/split`)}
-									>Разделить на сетки</a
-								>
-							{/if}
-							<button
-								class="btn-common btn-play"
-								class:btn-loading={creatingBracket}
-								onclick={handleCreateBracket}
-								>Создать сетку Challonge</button
-							>
-						{/if}
-						{#if isBracketCreated(tournament.state)}
-							<a
-								class="btn-common"
-								href={tournament.challongeTournamentUrl}
-								target="_blank"
-								rel="noopener noreferrer">Открыть в Challonge</a
-							>
-							<button
-								class="btn-common btn-play"
-								class:btn-loading={startingTournament}
-								onclick={handleStartTournament}>Начать турнир</button
-							>
-						{/if}
-						{#if tournament.state === TOURNAMENT_STATE.STARTED}
-							<button
-								class="btn-common btn-play"
-								class:btn-loading={updatingGames}
-								onclick={handleUpdateTournamentGames}
-								>Принудительно обновить игры</button
-							>
-						{/if}
-						{#if tournament.state === TOURNAMENT_STATE.AWAITING_REVIEW}
-							<button
-								class="btn-common btn-play"
-								class:btn-loading={finishingTournament}
-								onclick={handleFinishTournament}
-								>Закончить турнир</button
-							>
-						{/if}
-					{/if}
-					{#if $currentUser && registrationWindowOpen && (tournament.registrationType === "team" || tierEligible)}
-						<a
-							class="btn-common btn-play"
-							href={resolve(
-								tournament.registrationType === "team"
-									? `/tournaments/${tournament.id}/register-team`
-									: `/tournaments/${tournament.id}/register`,
-							)}
-							>{#if myRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</a
-						>
-					{/if}
-					{#if $currentUser && myRegistration}
-						<button
-							class="btn-common"
-							onclick={() => openRegistrationRecord(myRegistration)}
-							>Моя регистрация</button
-						>
-					{/if}
-					{#if $currentUser && myRegistration && canCancelRegistration}
-						<button
-							class="btn-common danger"
-							class:btn-loading={cancellingRegistration}
-							onclick={handleCancelRegistration}
-							>Отменить регистрацию</button
-						>
-					{/if}
 				</div>
 			</div>
+
+			{#if $isAdmin || hasUserActions}
+				<div class="tournament-actions">
+					{#if $isAdmin}
+						<div class="actions-admin">
+							<button
+								class="btn-common btn-danger-ghost"
+								class:btn-loading={deletingTournament}
+								onclick={handleDeleteTournament}>Удалить турнир</button
+							>
+							{#if !isLocked(tournament.state)}
+								<a
+									class="btn-common"
+									href={resolve(`/tournaments/${tournament.id}/edit`)}
+									>Редактировать турнир</a
+								>
+								{#if tournament.registrationType === "team"}
+									<button
+										class="btn-common"
+										onclick={() => (addTeamPopupOpen = true)}
+										>Добавить команду</button
+									>
+								{:else}
+									<button
+										class="btn-common"
+										onclick={() => (addPlayerPopupOpen = true)}
+										>Добавить игрока</button
+									>
+								{/if}
+								{#if isRegistrationOpen(tournament.state)}
+									<button
+										class="btn-common"
+										class:btn-loading={closingRegistration}
+										onclick={handleCloseRegistration}
+										>Закрыть регистрацию</button
+									>
+								{/if}
+								{#if !tournament.divisionGroupId}
+									<a
+										class="btn-common"
+										href={resolve(`/tournaments/${tournament.id}/split`)}
+										>Разделить на сетки</a
+									>
+								{/if}
+								<button
+									class="btn-common btn-play"
+									class:btn-loading={creatingBracket}
+									onclick={handleCreateBracket}
+									>Создать сетку Challonge</button
+								>
+							{/if}
+							{#if isBracketCreated(tournament.state)}
+								<a
+									class="btn-common"
+									href={tournament.challongeTournamentUrl}
+									target="_blank"
+									rel="noopener noreferrer">Открыть в Challonge</a
+								>
+								<button
+									class="btn-common btn-play"
+									class:btn-loading={startingTournament}
+									onclick={handleStartTournament}>Начать турнир</button
+								>
+							{/if}
+							{#if tournament.state === TOURNAMENT_STATE.STARTED}
+								<button
+									class="btn-common btn-play"
+									class:btn-loading={updatingGames}
+									onclick={handleUpdateTournamentGames}
+									>Принудительно обновить игры</button
+								>
+							{/if}
+							{#if tournament.state === TOURNAMENT_STATE.AWAITING_REVIEW}
+								<button
+									class="btn-common btn-play"
+									class:btn-loading={finishingTournament}
+									onclick={handleFinishTournament}
+									>Закончить турнир</button
+								>
+							{/if}
+						</div>
+					{/if}
+					{#if hasUserActions}
+						<div class="actions-user">
+							{#if registrationWindowOpen && (tournament.registrationType === "team" || tierEligible)}
+								<a
+									class="btn-common btn-play"
+									href={resolve(
+										tournament.registrationType === "team"
+											? `/tournaments/${tournament.id}/register-team`
+											: `/tournaments/${tournament.id}/register`,
+									)}
+									>{#if myRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</a
+								>
+							{/if}
+							{#if myRegistration}
+								<button
+									class="btn-common"
+									onclick={() => openRegistrationRecord(myRegistration)}
+									>Моя регистрация</button
+								>
+							{/if}
+							{#if myRegistration && canCancelRegistration}
+								<button
+									class="btn-common btn-danger-ghost"
+									class:btn-loading={cancellingRegistration}
+									onclick={handleCancelRegistration}
+									>Отменить регистрацию</button
+								>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{/if}
 
 			{#if tournament.winnerId}
 				<h2 class="winner-label">
@@ -726,8 +750,8 @@
 						<svg
 							class="collapse-arrow"
 							class:collapsed={!bracketExpanded}
-							width="28"
-							height="28"
+							width="16"
+							height="16"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
@@ -776,8 +800,8 @@
 						<svg
 							class="collapse-arrow"
 							class:collapsed={!matchesExpanded}
-							width="28"
-							height="28"
+							width="16"
+							height="16"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
@@ -792,12 +816,44 @@
 				{#if matchesExpanded}
 					<div class="match-filters">
 						<label class="match-filter-toggle">
-							<input type="checkbox" bind:checked={showCompleted} />
+							<span class="cb-wrap">
+								<input type="checkbox" bind:checked={showCompleted} class="cb-input" />
+								{#if showCompleted}
+									<svg
+										class="cb-check"
+										width="10"
+										height="10"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="3.2"
+										stroke-linecap="round"
+										stroke-linejoin="round"><polyline points="20 6 9 17 4 12"
+										/></svg
+									>
+								{/if}
+							</span>
 							<p>Показать завершённые матчи</p>
 						</label>
 						{#if currentUserParticipates}
 							<label class="match-filter-toggle">
-								<input type="checkbox" bind:checked={showOnlyMine} />
+								<span class="cb-wrap">
+									<input type="checkbox" bind:checked={showOnlyMine} class="cb-input" />
+									{#if showOnlyMine}
+										<svg
+											class="cb-check"
+											width="10"
+											height="10"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="3.2"
+											stroke-linecap="round"
+											stroke-linejoin="round"><polyline points="20 6 9 17 4 12"
+											/></svg
+										>
+									{/if}
+								</span>
 								<p>Показать только мои матчи</p>
 							</label>
 						{/if}
@@ -809,55 +865,87 @@
 					</div>
 					<div class="match-list">
 						{#each filteredMatches as match}
-							<div class="match-item">
-								<div class="match-item-content">
-									<div class="match-players">
-										<!-- svelte-ignore a11y_click_events_have_key_events -->
-										<!-- svelte-ignore a11y_no_static_element_interactions -->
-										<span
-											class="match-player-name match-player-left hover-emphasis {getPlayerClass(
-												match.p1 ?? match.p1TeamId,
-												match.winnerId ?? match.winnerTeamId,
-												match.techLossUid ?? match.techLossTeamId,
-											)} {match.p1 === $currentUser?.uid
-												? 'match-player-self'
-												: ''}"
-											onclick={() =>
-												match.p1TeamId
-													? openTeamDetails(match.p1TeamId)
-													: openRegistrationByPlayerUid(match.p1)}
-											>{getMatchSideLabel(
-												match.p1,
-												match.p1TeamId,
-											)}</span
-										>
-										<span class="match-vs">vs</span>
-										<!-- svelte-ignore a11y_click_events_have_key_events -->
-										<!-- svelte-ignore a11y_no_static_element_interactions -->
-										<span
-											class="match-player-name match-player-right hover-emphasis {getPlayerClass(
-												match.p2 ?? match.p2TeamId,
-												match.winnerId ?? match.winnerTeamId,
-												match.techLossUid ?? match.techLossTeamId,
-											)} {match.p2 === $currentUser?.uid
-												? 'match-player-self'
-												: ''}"
-											onclick={() =>
-												match.p2TeamId
-													? openTeamDetails(match.p2TeamId)
-													: openRegistrationByPlayerUid(match.p2)}
-											>{getMatchSideLabel(
-												match.p2,
-												match.p2TeamId,
-											)}</span
-										>
-									</div>
+							{@const p1Class = getPlayerClass(
+								match.p1 ?? match.p1TeamId,
+								match.winnerId ?? match.winnerTeamId,
+								match.techLossUid ?? match.techLossTeamId,
+							)}
+							{@const p2Class = getPlayerClass(
+								match.p2 ?? match.p2TeamId,
+								match.winnerId ?? match.winnerTeamId,
+								match.techLossUid ?? match.techLossTeamId,
+							)}
+							{@const hasResult =
+								!!(match.winnerId || match.winnerTeamId) &&
+								!!match.resultP1 &&
+								!!match.resultP2}
+							{@const p1Avatar = getMatchSideAvatarSrc(match.p1, match.p1TeamId)}
+							{@const p2Avatar = getMatchSideAvatarSrc(match.p2, match.p2TeamId)}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div class="match-item" onclick={() => openMatch(match)}>
+								<div class="match-side">
+									<span
+										class="match-avatar {p1Class}"
+										style="background-image: {p1Avatar
+											? `url(${p1Avatar})`
+											: `url(${avatarPlaceholder})`}"
+									></span>
+									<!-- svelte-ignore a11y_click_events_have_key_events -->
+									<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<span
+										class="match-player-name hover-emphasis {p1Class} {match.p1 === $currentUser?.uid
+											? 'match-player-self'
+											: ''}"
+										onclick={(e) => {
+											e.stopPropagation();
+											match.p1TeamId
+												? openTeamDetails(match.p1TeamId)
+												: openRegistrationByPlayerUid(match.p1);
+										}}
+										>{getMatchSideLabel(
+											match.p1,
+											match.p1TeamId,
+										)}</span
+									>
 								</div>
-
-								<button
-									onclick={() => openMatch(match)}
-									class="btn-common btn-match">Игра</button
-								>
+								{#if hasResult}
+									<span class="match-score-pair">
+										<span class="match-score {p1Class === 'match-winner' ? 'match-score-win' : ''}"
+											>{match.resultP1}</span
+										><span class="match-vs">—</span><span
+											class="match-score {p2Class === 'match-winner' ? 'match-score-win' : ''}"
+											>{match.resultP2}</span
+										>
+									</span>
+								{:else}
+									<span class="match-vs">vs</span>
+								{/if}
+								<div class="match-side match-side-right">
+									<!-- svelte-ignore a11y_click_events_have_key_events -->
+									<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<span
+										class="match-player-name hover-emphasis {p2Class} {match.p2 === $currentUser?.uid
+											? 'match-player-self'
+											: ''}"
+										onclick={(e) => {
+											e.stopPropagation();
+											match.p2TeamId
+												? openTeamDetails(match.p2TeamId)
+												: openRegistrationByPlayerUid(match.p2);
+										}}
+										>{getMatchSideLabel(
+											match.p2,
+											match.p2TeamId,
+										)}</span
+									>
+									<span
+										class="match-avatar {p2Class}"
+										style="background-image: {p2Avatar
+											? `url(${p2Avatar})`
+											: `url(${avatarPlaceholder})`}"
+									></span>
+								</div>
 							</div>
 						{:else}
 							<span class="no-matches">Матчи не найдены</span>
@@ -878,6 +966,9 @@
 				class="table-wrapper"
 				use:capDefaultHeight={{
 					trigger: tournament.registrationType === "team" ? registeredTeamRegistrations.length : registeredPlayers.length,
+					// header (33.5px) + 12 full rows (51px each) — keeps the capped height from
+					// ever stopping mid-row (matches the leaderboard's table-wrapper sizing).
+					maxHeight: 33.5 + 12 * 51,
 					storageKey: `tournament-table-height-${id}`,
 				}}
 			>
@@ -960,37 +1051,106 @@
 	.match-item {
 		display: flex;
 		align-items: center;
-		gap: 16px;
-		margin: 0 auto;
+		gap: 14px;
+		padding: 10px 16px;
+		background: var(--surface-2);
+		border: 1px solid var(--border-soft);
+		border-radius: var(--r-md);
+		cursor: pointer;
+		transition: 0.15s;
+	}
+
+	.match-item:hover {
+		border-color: var(--gold-border);
 	}
 
 	.no-matches {
 		display: block;
 		text-align: center;
-		font-size: 20px;
-		color: #888;
+		font-size: 15px;
+		color: var(--text-dim);
 		padding: 0;
 	}
 
-	.match-players {
-		width: 440px;
+	.match-side {
+		display: flex;
+		align-items: center;
+		gap: 9px;
+		flex: 1;
+		min-width: 0;
 	}
 
+	.match-side-right {
+		flex-direction: row-reverse;
+	}
+
+	.match-avatar {
+		flex-shrink: 0;
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		background-color: var(--surface-hover);
+		background-size: cover;
+		background-position: center;
+		border: 1.5px solid var(--border);
+	}
+
+	.match-avatar.match-winner {
+		border-color: var(--success);
+	}
+
+	.match-avatar.match-loser {
+		border-color: var(--danger);
+	}
+
+	.match-avatar.match-techloss {
+		border-color: var(--text-dim);
+	}
+
+	/* mockup's .match-side-name inherits the body's 13.5px/normal weight — the shared global
+	   .match-player-name (16px/700) is sized for TournamentMatchPopup's bigger header context. */
 	.match-player-name {
 		cursor: pointer;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 13.5px;
+		font-weight: 600;
 	}
 
 	.match-player-name.match-player-self {
-		color: #5cbddd;
+		color: var(--info);
+	}
+
+	.match-score-pair {
+		display: flex;
+		align-items: baseline;
+		gap: 6px;
+		flex-shrink: 0;
+	}
+
+	.match-item .match-vs {
+		flex-shrink: 0;
+	}
+
+	.match-score {
+		font-size: 13px;
+		font-weight: 800;
+		font-variant-numeric: tabular-nums;
+		color: var(--text-dim);
+	}
+
+	.match-score-win {
+		color: var(--success);
 	}
 
 	.match-filters {
 		display: flex;
 		justify-content: flex-end;
+		align-items: center;
 		gap: 20px;
 		width: 100%;
-		border-bottom: 1px solid #333;
-		padding-bottom: 10px;
 		margin-bottom: 16px;
 	}
 
@@ -999,27 +1159,34 @@
 	}
 
 	.collapsible-header {
-		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 		cursor: pointer;
 		user-select: none;
+		padding-bottom: 10px;
+		border-bottom: 1px solid var(--border-soft);
+	}
+
+	.collapsible-header h2 {
+		border: none;
+		padding: 0;
+		margin: 0;
 	}
 
 	.collapse-arrow-wrapper {
-		position: absolute;
-		top: 0;
-		right: 0;
-		bottom: 10px;
 		display: flex;
 		align-items: center;
 		gap: 8px;
 	}
 
 	.collapse-label {
-		color: #888;
-		font-size: 14px;
+		color: var(--text-dim);
+		font-size: 12px;
 	}
 
 	.collapse-arrow {
+		color: var(--text-dim);
 		transition: transform 0.15s ease;
 	}
 
@@ -1030,63 +1197,185 @@
 	.match-filter-toggle {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 7px;
 		cursor: pointer;
-		color: #ccc;
-	}
-
-	.match-filter-toggle input {
-		padding: 0;
+		font-size: 12px;
+		color: var(--text-muted);
 	}
 
 	.match-filter-toggle p {
-		/* font-size: 16px; */
 		white-space: nowrap;
 	}
 
-	.match-item-content {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.btn-match {
-		width: 72px;
-		height: 28px;
-		padding: 0;
-	}
-
-	.tbd {
-		color: #888;
-	}
-
-	.description-container {
-		display: flex;
-		flex-direction: column;
+	.cb-wrap {
 		position: relative;
-		border-bottom: 1px solid #333;
-		padding-right: 210px;
-		padding-bottom: 16px;
+		display: inline-flex;
+		flex-shrink: 0;
+		width: 15px;
+		height: 15px;
 	}
 
-	.tournament-button-container {
-		width: auto;
+	.cb-input {
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		box-sizing: border-box;
+		flex: 0 0 15px;
+		min-width: 15px;
+		max-width: 15px;
+		width: 15px;
+		height: 15px;
+		margin: 0;
+		padding: 0;
+		border-radius: 4px;
+		border: 1px solid var(--border);
+		background: var(--bg-elevated);
+		cursor: pointer;
+	}
+
+	.cb-input:checked {
+		background: var(--gold);
+		border-color: var(--gold);
+	}
+
+	.cb-check {
 		position: absolute;
-		bottom: 16px;
-		right: 0;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		color: oklch(0.2 0.03 80);
+		pointer-events: none;
+	}
+
+	.tournament-header {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 14px;
+		padding-bottom: 18px;
+		border-bottom: 1px solid var(--border-soft);
 	}
 
-	.tournament-button-container .btn-common {
-		text-align: center;
-		padding: 8px 14px;
+	.tournament-title-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
 	}
 
-	.description-container p {
+	.tournament-title-row h2 {
+		font-size: 20px;
+		border: none;
+		padding: 0;
 		margin: 0;
-		line-height: 21px;
+	}
+
+	.tier-range-sep {
+		color: var(--text-dim);
+	}
+
+	.pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 3px 9px;
+		border-radius: 999px;
+		font-size: 10px;
+		font-weight: 700;
+	}
+
+	.pill-success {
+		background: var(--success-dim);
+		color: var(--success);
+	}
+
+	.pill-info {
+		background: var(--info-dim);
+		color: var(--info);
+	}
+
+	.pill-gold {
+		background: var(--gold-dim);
+		color: var(--gold);
+	}
+
+	.pill-neutral {
+		background: var(--surface-2);
+		color: var(--text-dim);
+	}
+
+	.division-note {
+		color: var(--text-dim);
+		font-size: 12px;
+		margin: 0;
+	}
+
+	.spec-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 14px 20px;
+	}
+
+	.spec {
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+		min-width: 0;
+	}
+
+	.spec-label {
+		font-size: 10px;
+		font-weight: 700;
+		color: var(--text-dim);
+	}
+
+	.spec-value {
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.date-grid {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		column-gap: 14px;
+		row-gap: 6px;
+		font-size: 12px;
+		width: fit-content;
+	}
+
+	.date-label {
+		color: var(--text-dim);
+	}
+
+	.date-value {
+		color: var(--text-muted);
+	}
+
+	.tournament-actions {
+		display: flex;
+		align-items: flex-start;
+		gap: 28px;
+		flex-wrap: wrap;
+		padding-bottom: 20px;
+		border-bottom: 1px solid var(--border-soft);
+	}
+
+	.actions-admin {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(150px, 1fr));
+		gap: 8px;
+	}
+
+	.actions-user {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		margin-left: auto;
+	}
+
+	.actions-admin + .actions-user {
+		padding-left: 28px;
+		border-left: 1px solid var(--border-soft);
 	}
 
 	.description-text :global(a) {

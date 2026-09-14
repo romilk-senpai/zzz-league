@@ -1,24 +1,44 @@
 <script lang="ts">
+	import { untrack } from "svelte";
 	import { resolve } from "$app/paths";
-	import { deleteHistoryEntry, listHistoryByPlayerPage, listHistoryPage, listPlayers } from "$lib/backend";
-	import { isAdmin } from "$lib/store";
-	import type { HistoryCursor, HistoryEntry, PlayerListItem } from "$lib/types";
 	import {
-		dateDisplayOptions,
-		openImagePopup,
-		openProfilePopup,
-	} from "$lib/uiCommon";
+		deleteHistoryEntry,
+		getTeam,
+		getTournament,
+		listHistoryByPlayerPage,
+		listHistoryPage,
+		listMatches,
+		listPlayers,
+		listRegistrations,
+	} from "$lib/backend";
+	import TournamentMatchPopup from "$lib/components/TournamentMatchPopup.svelte";
+	import { isAdmin } from "$lib/store";
+	import type {
+		HistoryCursor,
+		HistoryEntry,
+		PlayerListItem,
+		RegisteredPlayer,
+		Team,
+		Tournament,
+		TournamentMatch,
+	} from "$lib/types";
+	import { dateDisplayOptions, openProfilePopup } from "$lib/uiCommon";
 
 	let { viewerId = undefined }: { viewerId?: string } = $props();
 
-	const PAGE_SIZE = 50;
+	const PAGE_SIZE = 25;
 
-	let entries = $state<HistoryEntry[]>([]);
-	let cursor = $state<HistoryCursor | null>(null);
-	let hasMore = $state(true);
+	// The API only supports keyset ("seek") pagination — no offset/page-number or total-count
+	// query — so a real Prev/Next pager has to cache each page it has already fetched (by index)
+	// plus the cursor that leads INTO each page, rather than being able to jump to an arbitrary
+	// page number. Going back re-displays a cached page instead of re-fetching it.
+	let pageIndex = $state(0);
+	let pageCache = $state<HistoryEntry[][]>([]);
+	let cursorForPage = $state<(HistoryCursor | null)[]>([null]);
+	let hasMoreAfterPage = $state<boolean[]>([]);
 	let loading = $state(true);
-	let loadingMore = $state(false);
-	let sentinel = $state<HTMLDivElement | undefined>();
+
+	let entries = $derived(pageCache[pageIndex] ?? []);
 
 	// Resolved lazily as entries load — batch-fetch just the uids that appear on loaded pages,
 	// instead of relying on a preloaded global player list.
@@ -77,6 +97,67 @@
 		}
 	}
 
+	// History entries link to a real TournamentMatch (tournamentMatchId) — clicking a row loads
+	// everything TournamentMatchPopup needs (tournament, the match itself, registered players,
+	// teams) on demand, since HistoryList itself only ever resolves the two participants' names.
+	let matchPopupOpen = $state(false);
+	let matchPopupTournament = $state<Tournament>();
+	let matchPopupMatch = $state<TournamentMatch>();
+	let matchPopupRegisteredPlayers = $state<RegisteredPlayer[]>([]);
+	let matchPopupTeamsById = $state<Map<string, Team>>(new Map());
+	let loadingMatchEntryId = $state<string | null>(null);
+
+	async function openMatchFromEntry(entry: HistoryEntry) {
+		if (!entry.tournamentId || !entry.tournamentMatchId || loadingMatchEntryId)
+			return;
+		loadingMatchEntryId = entry.id;
+		try {
+			const [tournament, matches, registrations] = await Promise.all([
+				getTournament(entry.tournamentId),
+				listMatches(entry.tournamentId),
+				listRegistrations(entry.tournamentId),
+			]);
+			const match = matches.find((m) => m.id === entry.tournamentMatchId);
+			if (!tournament || !match) return;
+
+			const teamIds = registrations
+				.map((r) => r.teamId)
+				.filter((id): id is string => !!id);
+			const teamsById = new Map<string, Team>();
+			(await Promise.all(teamIds.map((teamId) => getTeam(teamId)))).forEach(
+				(team, i) => {
+					if (team) teamsById.set(teamIds[i], team);
+				},
+			);
+
+			const soloUids = registrations
+				.map((r) => r.playerId)
+				.filter((uid): uid is string => !!uid);
+			const teamUids = teamIds.flatMap((teamId) => {
+				const team = teamsById.get(teamId);
+				return team ? [team.creator.uid, team.player2.uid] : [];
+			});
+			const players = await listPlayers([...new Set([...soloUids, ...teamUids])]);
+
+			matchPopupRegisteredPlayers = registrations
+				.map((registration) => {
+					const player = registration.playerId
+						? players.find((p) => p.uid === registration.playerId)
+						: undefined;
+					return player ? { player, registration } : null;
+				})
+				.filter(Boolean) as RegisteredPlayer[];
+			matchPopupTeamsById = teamsById;
+			matchPopupTournament = tournament;
+			matchPopupMatch = match;
+			matchPopupOpen = true;
+		} catch (error) {
+			alert(error);
+		} finally {
+			loadingMatchEntryId = null;
+		}
+	}
+
 	let generation = 0;
 
 	function fetchPage(currentViewerId: string | undefined, pageCursor: HistoryCursor | null) {
@@ -85,66 +166,46 @@
 			: listHistoryPage(pageCursor, PAGE_SIZE);
 	}
 
-	async function loadMore() {
-		// `loading` guards against the IntersectionObserver firing its initial "already
-		// intersecting" callback before the first page has even resolved (the sentinel renders
-		// immediately since `hasMore` starts true) — without it, that fires a duplicate page-1
-		// fetch racing the initial load.
-		if (!hasMore || loadingMore || loading) return;
+	async function loadPage(index: number) {
+		if (index < 0) return;
+		if (pageCache[index]) {
+			pageIndex = index;
+			return;
+		}
+
 		const myGeneration = generation;
-		loadingMore = true;
+		loading = true;
 		try {
-			const page = await fetchPage(viewerId, cursor);
+			const page = await fetchPage(viewerId, cursorForPage[index] ?? null);
 			if (myGeneration !== generation) return;
-			entries = [...entries, ...page.entries];
-			hasMore = page.hasMore;
+
+			pageCache[index] = page.entries;
+			hasMoreAfterPage[index] = page.hasMore;
+			if (page.hasMore && page.entries.length) {
+				const lastEntry = page.entries[page.entries.length - 1];
+				cursorForPage[index + 1] = { timestamp: lastEntry.timestamp, id: lastEntry.id };
+			}
 			resolvePlayersFor(page.entries);
-			cursor = page.entries.length
-				? { timestamp: page.entries[page.entries.length - 1].timestamp, id: page.entries[page.entries.length - 1].id }
-				: cursor;
+			pageIndex = index;
 		} finally {
-			if (myGeneration === generation) loadingMore = false;
+			if (myGeneration === generation) loading = false;
 		}
 	}
 
 	$effect(() => {
-		const currentViewerId = viewerId;
-		generation++;
-		const myGeneration = generation;
-		loading = true;
-		entries = [];
-		cursor = null;
-		hasMore = true;
-
-		fetchPage(currentViewerId, null)
-			.then((page) => {
-				if (myGeneration !== generation) return;
-				entries = page.entries;
-				hasMore = page.hasMore;
-				resolvePlayersFor(page.entries);
-				cursor = page.entries.length
-					? { timestamp: page.entries[page.entries.length - 1].timestamp, id: page.entries[page.entries.length - 1].id }
-					: null;
-			})
-			.finally(() => {
-				if (myGeneration === generation) loading = false;
-			});
-	});
-
-	$effect(() => {
-		if (!sentinel) return;
-
-		const observer = new IntersectionObserver(
-			(observerEntries) => {
-				if (observerEntries[0].isIntersecting) {
-					loadMore();
-				}
-			},
-			{ rootMargin: "200px" },
-		);
-		observer.observe(sentinel);
-
-		return () => observer.disconnect();
+		viewerId;
+		// `loadPage`'s pre-await code reads pageCache/cursorForPage/generation — inside a bare
+		// effect body those reads would register as dependencies, and loadPage's own later writes
+		// to pageCache would then re-trigger this very effect (infinite reset-and-refetch loop).
+		// `untrack` keeps this effect's only real dependency as `viewerId`.
+		untrack(() => {
+			generation++;
+			pageIndex = 0;
+			pageCache = [];
+			cursorForPage = [null];
+			hasMoreAfterPage = [];
+			loadPage(0);
+		});
 	});
 </script>
 
@@ -162,212 +223,315 @@
 		{@const leftResult = isLeft ? entry.resultP1 : entry.resultP2}
 		{@const rightResult = isLeft ? entry.resultP2 : entry.resultP1}
 
-		<div class="match-item {viewerId ? `border-${changeClass(leftChange)}` : ''}">
-			<div class="match-row">
-				<div class="history-match-players">
-					<span class={changeClass(leftChange)}>
-						({leftChange > 0 ? "+" : ""}{leftChange})
-					</span>
+		{@const canOpenMatch = !!entry.tournamentId && !!entry.tournamentMatchId}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="h-item {viewerId ? changeClass(leftChange) : ''}"
+			class:clickable={canOpenMatch}
+			class:btn-loading={loadingMatchEntryId === entry.id}
+			onclick={() => canOpenMatch && openMatchFromEntry(entry)}
+		>
+			<div class="h-players">
+				<span class="h-delta {changeClass(leftChange)}"
+					>{leftChange > 0 ? "+" : ""}{leftChange}</span
+				>
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<span
+					class="h-name"
+					onclick={(e) => {
+						e.stopPropagation();
+						openPlayer(left);
+					}}
+				>
+					{getPlayerName(left)}
+				</span>
+				{#if right}
+					<span class="h-vs">vs</span>
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<span
-						class="history-match-player-name match-opponent"
-						onclick={() => openPlayer(left)}
+						class="h-name"
+						class:opponent={!!viewerId}
+						onclick={(e) => {
+							e.stopPropagation();
+							openPlayer(right!);
+						}}
 					>
-						{getPlayerName(left)}
+						{getPlayerName(right)}
 					</span>
-					{#if right}
-						<span class="history-match-player-name">vs</span>
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<span
-							class="history-match-player-name match-opponent"
-							onclick={() => openPlayer(right!)}
-						>
-							{getPlayerName(right)}
-						</span>
-						<span class={changeClass(rightChange!)}>
-							({rightChange! > 0 ? "+" : ""}{rightChange})
-						</span>
-					{:else if viewerId}
-						<span class="history-match-player-name match-adjustment"
-							>Корректировка ELO</span
-						>
-					{:else}
-						<span class="history-match-player-name match-adjustment"
-							>— Корректировка ELO</span
-						>
-					{/if}
-				</div>
-				<div class="match-meta">
-					{#if entry.tournamentId}
-						<a
-							class="match-tournament-link"
-							href={resolve(`/tournaments/${entry.tournamentId}`)}
-						>
-							{entry.tournamentName ?? "Турнир"}
-						</a>
-					{/if}
-					{#if entry.kind === "tech_loss"}
-						<span class="history-match-techloss">Техлуз</span>
-					{/if}
-					<span>{formatDate(entry.timestamp)}</span>
-					{#if $isAdmin}
-						<button
-							class="icon-btn danger"
-							onclick={() => handleDelete(entry.id)}
-						>
-							✕
-						</button>
-					{/if}
-				</div>
+					<span class="h-delta {changeClass(rightChange!)}"
+						>{rightChange! > 0 ? "+" : ""}{rightChange}</span
+					>
+				{:else if viewerId}
+					<span class="h-vs adjustment">Корректировка ELO</span>
+				{:else}
+					<span class="h-vs adjustment">— Корректировка ELO</span>
+				{/if}
 			</div>
-
-			{#if entry.resultP1 && entry.resultP2}
-				<div class="match-result">
-					<span>{leftResult}</span>
-					<span class="history-match-vs">—</span>
-					<span>{rightResult}</span>
-					{#if entry.resultScreenshotUrl}
-						<button
-							class="btn-common history-img-btn"
-							onclick={() => openImagePopup(entry.resultScreenshotUrl!)}
-						>
-							Скриншот результатов
-						</button>
-					{/if}
-				</div>
-			{/if}
+			<div class="h-score-wrap">
+				{#if entry.resultP1 && entry.resultP2}
+					<span class="h-score">{leftResult}–{rightResult}</span>
+				{:else if entry.kind === "tech_loss" || right}
+					<span class="h-score techloss">Техлуз</span>
+				{/if}
+			</div>
+			<div class="h-meta">
+				{#if entry.tournamentId}
+					<a
+						class="h-tournament"
+						href={resolve(`/tournaments/${entry.tournamentId}`)}
+						onclick={(e) => e.stopPropagation()}
+					>
+						{entry.tournamentName ?? "Турнир"}
+					</a>
+				{:else}
+					<span></span>
+				{/if}
+				<span class="h-date">{formatDate(entry.timestamp)}</span>
+				{#if $isAdmin}
+					<button
+						class="h-icon-btn danger"
+						title="Удалить"
+						onclick={(e) => {
+							e.stopPropagation();
+							handleDelete(entry.id);
+						}}
+					>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+					</button>
+				{:else}
+					<span></span>
+				{/if}
+			</div>
 		</div>
 	{:else}
 		<span>{loading ? "Загрузка..." : "Игр пока нет"}</span>
 	{/each}
 </div>
 
-{#if hasMore}
-	<div class="load-sentinel" bind:this={sentinel}>
-		{#if loadingMore}
-			<span class="load-more-status">Загрузка...</span>
-		{/if}
+{#if pageIndex > 0 || hasMoreAfterPage[pageIndex]}
+	<div class="pager">
+		<button
+			class="btn-common pager-btn"
+			disabled={pageIndex === 0 || loading}
+			onclick={() => loadPage(pageIndex - 1)}
+			>← Назад</button
+		>
+		<span class="pager-label">Страница {pageIndex + 1}</span>
+		<button
+			class="btn-common pager-btn"
+			disabled={!hasMoreAfterPage[pageIndex] || loading}
+			onclick={() => loadPage(pageIndex + 1)}
+			>Вперед →</button
+		>
 	</div>
 {/if}
 
+{#if matchPopupOpen}
+	<TournamentMatchPopup
+		bind:open={matchPopupOpen}
+		tournament={matchPopupTournament}
+		match={matchPopupMatch}
+		registeredPlayers={matchPopupRegisteredPlayers}
+		teamsById={matchPopupTeamsById}
+	></TournamentMatchPopup>
+{/if}
+
 <style>
-	.match-item {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		padding: 10px 14px;
-		border-radius: 8px;
-		border-left: 8px solid transparent;
-		border-color: #555;
-		background: rgba(255, 255, 255, 0.03);
+	.match-list {
+		gap: 4px;
 	}
 
-	.match-item.border-gain {
-		border-color: var(--green);
-	}
-
-	.match-item.border-loss {
-		border-color: var(--loss);
-	}
-
-	.match-item.border-neutral {
-		border-color: #555;
-	}
-
-	.match-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-	}
-
-	.history-match-players {
+	.h-item {
+		--btn-fg: var(--text);
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 14px;
+		height: 38px;
+		padding: 0 12px;
+		border-radius: var(--r-sm);
+		border-left: 3px solid var(--border);
+		background: var(--surface-2);
+		font-size: 12.5px;
+		transition: background 0.15s;
 	}
 
-	.history-match-player-name {
-		font-weight: bold;
+	.h-item.gain {
+		border-left-color: var(--success);
 	}
 
-	.match-opponent {
+	.h-item.loss {
+		border-left-color: var(--danger);
+	}
+
+	.h-item.clickable {
 		cursor: pointer;
 	}
 
-	.match-opponent:hover {
-		text-decoration: underline;
+	.h-item.clickable:hover {
+		background: var(--surface-hover);
 	}
 
-	.match-meta {
+	.h-players {
 		display: flex;
-		flex-direction: row;
-		align-items: flex-end;
-		gap: 16px;
-		color: #888;
+		align-items: center;
+		gap: 7px;
+		font-weight: 600;
+		flex: 1;
+		min-width: 0;
 	}
 
-	.gain {
-		color: var(--green);
+	.h-name {
+		cursor: pointer;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
-	.loss {
-		color: var(--loss);
-	}
-
-	.neutral {
-		color: #888;
-	}
-
-	.history-match-techloss {
-		color: var(--loss);
-	}
-
-	.match-tournament-link {
-		color: var(--gold);
-	}
-
-	.match-tournament-link:hover {
+	.h-name:hover {
 		text-decoration: underline;
 	}
 
-	.match-adjustment {
-		color: #888;
+	.h-name.opponent {
+		color: var(--text-dim);
+		font-weight: 500;
+	}
+
+	.h-vs {
+		color: var(--text-dim);
+		font-weight: 500;
+		font-size: 11px;
+		flex-shrink: 0;
+	}
+
+	.h-vs.adjustment {
 		font-weight: normal;
+	}
+
+	.h-delta {
+		font-size: 10px;
+		font-weight: 800;
+		padding: 1px 5px;
+		border-radius: 4px;
+		flex-shrink: 0;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.h-delta.gain {
+		color: var(--success);
+		background: var(--success-dim);
+	}
+
+	.h-delta.loss {
+		color: var(--danger);
+		background: var(--danger-dim);
+	}
+
+	.h-delta.neutral {
+		color: var(--text-dim);
+		background: var(--surface-hover);
+	}
+
+	.h-score-wrap {
+		flex: 1;
+		display: flex;
+		justify-content: center;
+		min-width: 0;
+	}
+
+	.h-meta {
+		display: grid;
+		grid-template-columns: 170px 96px 24px;
+		align-items: center;
+		gap: 12px;
+		flex-shrink: 0;
+	}
+
+	.h-score {
+		font-size: 11.5px;
+		font-weight: 700;
+		color: var(--text-muted);
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+
+	.h-score.techloss {
+		color: var(--danger);
+	}
+
+	.h-tournament {
+		font-size: 11px;
+		color: var(--text-dim);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.h-tournament:hover {
+		text-decoration: underline;
+	}
+
+	.h-date {
+		font-size: 11px;
+		color: var(--text-dim);
+		white-space: nowrap;
+		text-align: right;
+	}
+
+	.h-icon-btn {
+		width: 24px;
+		height: 24px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: var(--r-sm);
+		background: none;
+		border: none;
+		padding: 0;
+		color: var(--text-dim);
+		flex-shrink: 0;
+		cursor: pointer;
+		justify-self: center;
+	}
+
+	.h-icon-btn:hover {
+		background: var(--surface-hover);
+		color: var(--text);
+	}
+
+	.h-icon-btn.danger:hover {
+		color: var(--danger);
+		background: var(--danger-dim);
 	}
 
 	.legacy-divider {
 		text-align: center;
-		color: #888;
-		padding: 8px 0;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+		color: var(--text-dim);
+		font-size: 11px;
+		padding: 4px 0;
+		border-bottom: 1px solid var(--border-soft);
 	}
 
-	.match-result {
+	.pager {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		color: #ccc;
-	}
-
-	.history-match-vs {
-		color: #666;
-	}
-
-	.history-img-btn {
-		margin-left: auto;
-		padding: 6px 12px;
-		width: auto;
-	}
-
-	.load-sentinel {
-		display: flex;
 		justify-content: center;
-		padding: 16px 0;
+		gap: 16px;
+		padding: 16px 0 4px;
 	}
 
-	.load-more-status {
-		color: #888;
+	.pager-btn {
+		height: 32px;
+		font-size: 11.5px;
+		padding: 0 14px;
+	}
+
+	.pager-label {
+		font-size: 12px;
+		color: var(--text-dim);
+		font-weight: 600;
 	}
 </style>

@@ -33,22 +33,34 @@
 			>
 				<span
 					class="avatar-wrap"
-					style="background-image: url({avatarPlaceholder})"
+					style="background-image: {avatar ? 'none' : `url(${avatarPlaceholder})`}"
 				>
 					{#if avatar}
 						<img class="user-avatar" src={avatar.src} alt={avatar.name} />
 					{/if}
 				</span>
-				<h2>{$currentUser.name}</h2>
+				<span class="user-name">{$currentUser.name}</span>
 			</button>
-			<button class="btn-common" onclick={openSettingsPopup}
-				>Настройки</button
-			>
-			<a class="btn-common" href={resolve("/teams/mine")}>Мои команды</a>
-			<a class="btn-common" href={resolve(`/history/${$currentUser.uid}`)}>
-				Моя история
-			</a>
-			<button class="btn-common" onclick={() => signOut(auth)}>Выход</button>
+			<div class="divider"></div>
+			<div class="nav-list">
+				<button class="nav-item" onclick={openSettingsPopup}>
+					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+					Настройки
+				</button>
+				<a class="nav-item" href={resolve("/teams/mine")}>
+					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+					Мои команды
+				</a>
+				<a class="nav-item" href={resolve(`/history/${$currentUser.uid}`)}>
+					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+					Моя история
+				</a>
+			</div>
+			<div class="divider"></div>
+			<button class="nav-item nav-item-danger" onclick={() => signOut(auth)}>
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+				Выход
+			</button>
 		</div>
 	{/if}
 
@@ -118,19 +130,25 @@
 </div>
 
 <style>
+	.side-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 18px;
+	}
+
 	.user-label {
 		display: flex;
 		align-items: center;
-		gap: 18px;
+		gap: 11px;
 		width: 100%;
-		margin-bottom: 8px;
 	}
 
-	.user-label h2 {
+	.user-name {
 		flex: 1;
-		border-bottom: none;
-		padding-bottom: 0;
-		margin-bottom: 0;
+		font-weight: 700;
+		font-size: 14px;
+		line-height: 1.3;
+		text-align: left;
 	}
 
 	.avatar-wrap {
@@ -138,7 +156,7 @@
 		width: 42px;
 		height: 42px;
 		border-radius: 50%;
-		border: 2px solid #444;
+		border: 2px solid var(--border);
 		background-size: cover;
 		background-position: center;
 		overflow: hidden;
@@ -151,18 +169,63 @@
 		object-fit: cover;
 	}
 
+	.divider {
+		height: 1px;
+		background: var(--border-soft);
+		margin: 14px 0;
+	}
+
+	.nav-list {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.nav-item {
+		all: unset;
+		box-sizing: border-box;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 9px 12px;
+		border-radius: var(--r-md);
+		color: var(--text-muted);
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: 0.15s;
+	}
+
+	.nav-item:hover {
+		background: var(--surface-2);
+		color: var(--text);
+	}
+
+	.nav-item-danger {
+		color: var(--danger);
+	}
+
 	.rules-list {
 		padding-left: 18px;
 		margin: 0;
-		line-height: 1.6;
-		color: #bbb;
+		font-size: 12px;
+		line-height: 1.55;
+		color: var(--text-muted);
 	}
 
 	.rules-list li {
-		margin-bottom: 12px;
+		margin-bottom: 13px;
+	}
+
+	.rules-list li:last-child {
+		margin-bottom: 0;
 	}
 
 	.rules-list li::marker {
 		color: var(--gold);
+	}
+
+	.rules-list :global(b) {
+		color: var(--text);
 	}
 </style>

@@ -175,7 +175,6 @@ export interface HistoryEntry {
 	kind: TournamentMatchKind;
 	resultP1: string | null;
 	resultP2: string | null;
-	resultScreenshotUrl: string | null;
 	timestamp: number;
 }
 

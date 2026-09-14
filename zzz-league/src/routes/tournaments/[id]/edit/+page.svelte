@@ -150,7 +150,7 @@
 
 	<div class="card main-content">
 		{#if $isAdmin}
-			<h2>Редактировать турнир</h2>
+			<h2 class="page-title">Редактировать турнир</h2>
 
 			{#if !loaded}
 				<p class="notice">Загрузка...</p>
@@ -197,3 +197,24 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.main-content {
+		padding: 24px 28px;
+		gap: 22px;
+	}
+
+	.page-title {
+		font-size: 19px;
+		padding-bottom: 16px;
+	}
+
+	.btn-col {
+		margin-top: 0;
+		align-items: flex-start;
+	}
+
+	.btn-col .btn-common {
+		padding: 0 28px;
+	}
+</style>

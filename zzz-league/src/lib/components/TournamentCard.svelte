@@ -8,7 +8,11 @@
 	} from "$lib/tournamentState";
 	import { dateDisplayOptions } from "$lib/uiCommon";
 
-	let { tournament, now }: { tournament: Tournament; now: number } = $props();
+	let {
+		tournament,
+		now,
+		compact = false,
+	}: { tournament: Tournament; now: number; compact?: boolean } = $props();
 
 	let registrationWindowOpen = $derived(
 		isRegistrationWindowOpen(
@@ -33,6 +37,7 @@
 
 <a
 	class="tournament status-{status}"
+	class:compact
 	href={resolve(`/tournaments/${tournament.id}`)}
 >
 	<p class="tournament-name">{tournament.name}</p>
@@ -71,61 +76,86 @@
 
 <style>
 	.tournament {
-		--accent: #555;
+		--accent: var(--border);
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 6px;
-		min-width: 220px;
+		gap: 8px;
+		min-width: 0;
 		font-size: 13px;
 		text-align: left;
-		padding: 14px 16px;
-		background: #202020;
-		border-radius: 10px;
-		border-left: 12px solid var(--accent);
-		transition: all 0.15s;
+		padding: 14px 16px 14px 18px;
+		background: var(--surface);
+		border: 1px solid var(--border-soft);
+		border-radius: var(--r-lg);
+		border-left-width: 4px;
+		border-left-style: solid;
+		border-left-color: var(--accent);
+		transition: transform 0.15s ease, border-color 0.15s ease;
 	}
 
 	.tournament:hover {
 		transform: translateY(-2px);
+		border-color: var(--accent);
 	}
 
 	.tournament-name {
-		font-size: 15px;
-		font-weight: bold;
-		color: #fff;
+		font-size: 13px;
+		font-weight: 700;
+		color: var(--text);
 	}
 
 	.tournament-dates {
-		color: #888;
+		color: var(--text-muted);
+		font-size: 11.5px;
+	}
+
+	.tournament.compact {
+		gap: 10px;
+		padding: 16px 18px;
+		background: var(--surface-2);
+		border-radius: var(--r-md);
+		border-left-width: 3px;
+	}
+
+	.tournament.compact .tournament-name {
+		font-size: 14px;
+	}
+
+	.tournament.compact .tournament-dates {
+		font-size: 12px;
+		color: var(--text-dim);
+	}
+
+	.tournament.compact.status-ended .tournament-status {
+		background: var(--surface-hover);
 	}
 
 	.tournament-status {
 		align-self: flex-start;
 		margin-top: 2px;
-		padding: 3px 10px;
-		border-radius: 20px;
-		font-size: 11px;
-		font-weight: bold;
-		text-transform: uppercase;
+		padding: 3px 9px;
+		border-radius: 999px;
+		font-size: 10px;
+		font-weight: 700;
 	}
 
 	.tournament.status-upcoming {
-		--accent: #5e8ee0;
+		--accent: var(--info);
 	}
 
 	.tournament.status-upcoming .tournament-status {
-		background: rgba(94, 142, 224, 0.15);
-		color: #5e8ee0;
+		background: var(--info-dim);
+		color: var(--info);
 	}
 
 	.tournament.status-registration {
-		--accent: var(--green);
+		--accent: var(--success);
 	}
 
 	.tournament.status-registration .tournament-status {
-		background: rgba(46, 163, 75, 0.15);
-		color: var(--green);
+		background: var(--success-dim);
+		color: var(--success);
 	}
 
 	.tournament.status-ongoing {
@@ -133,17 +163,17 @@
 	}
 
 	.tournament.status-ongoing .tournament-status {
-		background: rgba(255, 204, 0, 0.15);
+		background: var(--gold-dim);
 		color: var(--gold);
 	}
 
 	.tournament.status-ended {
-		--accent: #555;
-		opacity: 0.55;
+		--accent: var(--border);
+		opacity: 0.6;
 	}
 
 	.tournament.status-ended .tournament-status {
-		background: rgba(255, 255, 255, 0.06);
-		color: #888;
+		background: var(--surface-2);
+		color: var(--text-dim);
 	}
 </style>

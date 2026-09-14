@@ -138,7 +138,6 @@ export interface HistoryEntryDto {
 	kind: string;
 	resultP1: string | null;
 	resultP2: string | null;
-	resultScreenshotUrl: string | null;
 	timestamp: string;
 }
 

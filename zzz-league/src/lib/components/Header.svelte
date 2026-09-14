@@ -1,5 +1,11 @@
 <script lang="ts">
+	import { page } from "$app/state";
 	import { resolve } from "$app/paths";
+
+	function isActive(path: string, exact = false): boolean {
+		if (exact) return page.url.pathname === path;
+		return page.url.pathname === path || page.url.pathname.startsWith(path + "/");
+	}
 
 	const links = [
 		{
@@ -21,14 +27,16 @@
 </script>
 
 <header class="site-header card">
-	<a class="site-logo" href={resolve("/")}>NESC</a>
-	<nav class="nav-links">
-		<a class="nav-link" href={resolve("/")}>Главная</a>
-		<a class="nav-link" href={resolve("/tournaments")}>Архив турниров</a>
-		<a class="nav-link" href={resolve("/teams")}>Команды</a>
-		<a class="nav-link" href={resolve("/history")}>История матчей</a>
-		<a class="nav-link" href={resolve("/costs")}>Коммунити кост</a>
-	</nav>
+	<div class="header-left">
+		<a class="site-logo" href={resolve("/")}>NESC</a>
+		<nav class="nav-links">
+			<a class="nav-link" class:active={isActive(resolve("/"), true)} href={resolve("/")}>Главная</a>
+			<a class="nav-link" class:active={isActive(resolve("/tournaments"))} href={resolve("/tournaments")}>Архив турниров</a>
+			<a class="nav-link" class:active={isActive(resolve("/teams"))} href={resolve("/teams")}>Команды</a>
+			<a class="nav-link" class:active={isActive(resolve("/history"))} href={resolve("/history")}>История матчей</a>
+			<a class="nav-link" class:active={isActive(resolve("/costs"))} href={resolve("/costs")}>Коммунити кост</a>
+		</nav>
+	</div>
 	<div class="social-links">
 		{#each links as link (link.label)}
 			<a
@@ -38,7 +46,7 @@
 				aria-label={link.label}
 				class="social-link"
 			>
-				<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+				<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
 					<path d={link.path}></path>
 				</svg>
 			</a>
@@ -52,47 +60,77 @@
 		justify-content: space-between;
 		align-items: center;
 		width: 100%;
-		padding: 14px 25px;
-		max-width: 1400px;
+		padding: 14px 18px;
+		max-width: 1488px;
 		box-sizing: border-box;
 	}
 
+	.header-left {
+		display: flex;
+		align-items: center;
+		gap: 32px;
+	}
+
 	.site-logo {
-		font-size: 22px;
-		font-weight: bold;
+		font-size: 19px;
+		font-weight: 800;
 		color: var(--gold);
-		text-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
 	}
 
 	.nav-links {
 		display: flex;
 		align-items: center;
-		gap: 24px;
+		gap: 2px;
 	}
 
 	.nav-link {
-		font-size: 16px;
-		font-weight: 600;
-		transition: 0.2s;
+		display: flex;
+		align-items: center;
+		padding: 9px 12px;
+		border-radius: var(--r-md);
+		color: var(--text-muted);
+		font-size: 13px;
+		font-weight: 500;
+		transition: 0.15s;
+	}
+
+	.nav-link.active {
+		background: var(--gold-dim);
+		color: var(--gold);
+		font-weight: 700;
+	}
+
+	.nav-link.active:hover {
+		background: var(--gold-dim);
 	}
 
 	.nav-link:hover {
-		color: var(--gold);
+		background: var(--surface-2);
+		color: var(--text);
 	}
 
 	.social-links {
 		display: flex;
 		align-items: center;
-		gap: 16px;
+		gap: 8px;
 	}
 
 	.social-link {
-		color: #888;
-		display: flex;
-		transition: 0.2s;
+		width: 32px;
+		height: 32px;
+		border-radius: var(--r-md);
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		color: var(--text-muted);
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		transition: 0.15s;
 	}
 
 	.social-link:hover {
-		color: var(--gold);
+		background: var(--surface-hover);
+		color: var(--text);
+		border-color: var(--gold-border);
 	}
 </style>

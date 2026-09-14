@@ -182,7 +182,7 @@
 
 	<div class="card main-content">
 		{#if tournament}
-			<h2>Регистрация команды: {tournament.name}</h2>
+			<h2 class="page-title">Регистрация команды: {tournament.name}</h2>
 
 			{#if tournament.visible === false && !$isAdmin}
 				<p class="notice">Недостаточно прав для просмотра этой страницы.</p>
@@ -199,44 +199,50 @@
 					У вас пока нет команд. <a href={resolve("/teams/mine")}>Создайте команду</a>, чтобы зарегистрироваться.
 				</p>
 			{:else}
-				<div class="form-row-wide">
+				<div class="form-group team-select-group">
 					<label for="team-select">Команда</label>
 					{#if lockedTeamId}
 						<p id="team-select" class="value-highlight">
 							{selectedTeam?.name} ({selectedTeam?.creator.name} & {selectedTeam?.player2.name})
 						</p>
 					{:else}
-						<select id="team-select" bind:value={selectedTeamId}>
-							<option value="">Выберите команду</option>
-							{#each myTeams as team (team.id)}
-								<option value={team.id}>{team.name} ({team.creator.name} & {team.player2.name})</option>
-							{/each}
-						</select>
+						<span class="select-wrap">
+							<select id="team-select" bind:value={selectedTeamId}>
+								<option value="">Выберите команду</option>
+								{#each myTeams as team (team.id)}
+									<option value={team.id}>{team.name} ({team.creator.name} & {team.player2.name})</option>
+								{/each}
+							</select>
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+						</span>
 					{/if}
 				</div>
 
 				{#if selectedTeam && regLoaded}
-					<hr style="width: 100%" />
+					<div class="divider"></div>
 					<TournamentMemberRegistrationFields
 						idPrefix="p1"
 						label={`Игрок 1 (${selectedTeam.creator.name})`}
 						form={player1Form}
 					/>
 
-					<hr style="width: 100%" />
+					<div class="divider"></div>
 					<TournamentMemberRegistrationFields
 						idPrefix="p2"
 						label={`Игрок 2 (${selectedTeam.player2.name})`}
 						form={player2Form}
 					/>
 
-					<hr style="width: 100%" />
+					<div class="divider"></div>
 
-					<!-- svelte-ignore a11y_click_events_have_key_events -->
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="awareness" onclick={() => (awareness = !awareness)}>
-						<input type="checkbox" bind:checked={awareness} onclick={(e) => e.stopPropagation()} />
-						<span
+					<div class="check-row">
+						<span class="cb-wrap">
+							<input id="awareness" type="checkbox" class="cb-input" bind:checked={awareness} />
+							{#if awareness}
+								<svg class="cb-check" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+							{/if}
+						</span>
+						<label for="awareness"
 							>Конечно, мы полностью прочитали регламент, и осознаём, что
 							турнир проходит с <span class="value-highlight"
 								>{new Date(tournament.tournamentStartDate).toLocaleString("ru", dateDisplayOptions)}</span
@@ -245,11 +251,11 @@
 							<span class="value-highlight"
 								>{new Date(tournament.tournamentEndDate).toLocaleString("ru", dateDisplayOptions)}</span
 							>
-						</span>
+						</label>
 					</div>
 
 					{#if status}<p class="status error">{status}</p>{/if}
-					<div class="btn-col">
+					<div class="btn-row-form">
 						<button
 							class="btn-common btn-play"
 							class:btn-loading={isRegistering}
@@ -265,22 +271,126 @@
 </div>
 
 <style>
-	.awareness {
+	.main-content {
+		padding: 24px 28px;
+		gap: 18px;
+	}
+
+	.page-title {
+		font-size: 19px;
+		padding-bottom: 16px;
+	}
+
+	.team-select-group {
+		max-width: 420px;
+	}
+
+	.form-group {
 		display: flex;
-		align-items: center;
+		flex-direction: column;
+		gap: 6px;
+		min-width: 0;
+	}
+
+	.form-group label {
+		font-size: 11.5px;
+		color: var(--text-dim);
+		font-weight: 600;
+	}
+
+	.select-wrap {
+		position: relative;
+		display: block;
+	}
+
+	.select-wrap select {
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		width: 100%;
+		padding-right: 32px;
+	}
+
+	.select-arrow {
+		position: absolute;
+		right: 11px;
+		top: 50%;
+		transform: translateY(-50%);
+		color: var(--text-dim);
+		pointer-events: none;
+	}
+
+	.divider {
+		height: 1px;
+		background: var(--border-soft);
+		width: 100%;
+	}
+
+	.check-row {
+		display: flex;
+		align-items: flex-start;
 		gap: 10px;
+		max-width: 760px;
+	}
+
+	.check-row .cb-wrap {
+		margin-top: 2px;
+	}
+
+	.check-row label {
+		font-size: 12.5px;
+		color: var(--text-muted);
+		line-height: 1.6;
 		cursor: pointer;
 	}
 
-	.awareness input[type="checkbox"] {
-		width: 16px;
-		height: 16px;
-		min-width: 16px;
-		cursor: pointer;
-		accent-color: var(--gold);
+	.cb-wrap {
+		position: relative;
+		display: inline-flex;
+		flex-shrink: 0;
+		width: 15px;
+		height: 15px;
 	}
 
-	.awareness span {
-		color: #aaa;
+	.cb-input {
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		box-sizing: border-box;
+		flex: 0 0 15px;
+		min-width: 15px;
+		max-width: 15px;
+		width: 15px;
+		height: 15px;
+		margin: 0;
+		padding: 0;
+		border-radius: 4px;
+		border: 1px solid var(--border);
+		background: var(--bg-elevated);
+		cursor: pointer;
+	}
+
+	.cb-input:checked {
+		background: var(--gold);
+		border-color: var(--gold);
+	}
+
+	.cb-check {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		color: oklch(0.2 0.03 80);
+		pointer-events: none;
+	}
+
+	.btn-row-form {
+		display: flex;
+		gap: 10px;
+		max-width: 420px;
+	}
+
+	.btn-row-form .btn-common {
+		flex: 1;
 	}
 </style>

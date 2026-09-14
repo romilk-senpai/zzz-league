@@ -2,7 +2,7 @@
 	import { deleteTeam, listPlayers } from "$lib/backend";
 	import { currentUser, isAdmin } from "$lib/store";
 	import type { PlayerListItem, Team } from "$lib/types";
-	import { bustCache, dateDisplayOptions, openProfilePopup } from "$lib/uiCommon";
+	import { bustCache, openProfilePopup } from "$lib/uiCommon";
 
 	let {
 		open = $bindable(false),
@@ -58,6 +58,12 @@
 			deleting = false;
 		}
 	}
+
+	function teamInitials(name: string): string {
+		const words = name.trim().split(/\s+/).filter(Boolean);
+		if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+		return name.slice(0, 2).toUpperCase();
+	}
 </script>
 
 {#if open && team}
@@ -66,65 +72,129 @@
 	<div class="popup" onclick={() => (open = false)}>
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="card" onclick={(e) => e.stopPropagation()}>
+		<div class="card team-details-card" onclick={(e) => e.stopPropagation()}>
+			<div class="close-row">
+				<button class="icon-btn" onclick={() => (open = false)} aria-label="Закрыть">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+				</button>
+			</div>
+
 			{#if team.photoUrl}
 				<img class="team-logo" src={bustCache(team.photoUrl)} alt={team.name} />
+			{:else}
+				<span class="team-logo placeholder">{teamInitials(team.name)}</span>
 			{/if}
-			<h2>{team.name}</h2>
-			<div class="form-row">
-				<label for="team-details-p1">Игрок 1</label>
-				<button
-					id="team-details-p1"
-					class="member-link"
-					onclick={() => openMemberProfile(team!.creator.uid)}>{team.creator.name}</button
-				>
-			</div>
-			<div class="form-row">
-				<label for="team-details-p2">Игрок 2</label>
-				<button
-					id="team-details-p2"
-					class="member-link"
-					onclick={() => openMemberProfile(team!.player2.uid)}>{team.player2.name}</button
-				>
-			</div>
-			<p class="notice">
-				Создана {new Date(team.createdAt).toLocaleString("ru", dateDisplayOptions)}
-			</p>
+			<h2 class="popup-title">{team.name}</h2>
 
-			<div class="btn-row">
-				{#if canEdit}
+			<div class="member-list">
+				<button class="member-chip" onclick={() => openMemberProfile(team!.creator.uid)}>
+					<span class="member-label">Игрок 1</span>
+					<span class="member-name">{team.creator.name}</span>
+				</button>
+				<button class="member-chip" onclick={() => openMemberProfile(team!.player2.uid)}>
+					<span class="member-label">Игрок 2</span>
+					<span class="member-name">{team.player2.name}</span>
+				</button>
+			</div>
+
+			{#if canEdit}
+				<div class="btn-row">
 					<button class="btn-common" onclick={() => onEdit?.(team!)}>Изменить</button>
 					<button
-						class="btn-common danger"
+						class="btn-common btn-danger-ghost"
 						class:btn-loading={deleting}
 						onclick={handleDelete}>Удалить</button
 					>
-				{/if}
-				<button class="btn-common" onclick={() => (open = false)}>Закрыть</button>
-			</div>
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}
 
 <style>
+	.team-details-card {
+		width: 400px;
+		max-width: 90vw;
+		padding: 20px 26px 26px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16px;
+	}
+
+	.close-row {
+		width: 100%;
+		display: flex;
+		justify-content: flex-end;
+		margin-bottom: -8px;
+	}
+
 	.team-logo {
-		width: 96px;
-		height: 96px;
+		width: 64px;
+		height: 64px;
 		object-fit: cover;
-		border-radius: 8px;
-		align-self: center;
+		border-radius: var(--r-md);
 	}
 
-	.member-link {
-		all: unset;
+	.team-logo.placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--surface-hover);
+		color: var(--text-muted);
+		font-weight: 700;
+		font-size: 18px;
+	}
+
+	.popup-title {
+		font-size: 18px;
+		font-weight: 800;
+		border: none;
+		padding-bottom: 0;
+		margin-bottom: 0;
+		display: block;
+		text-align: center;
+	}
+
+	.member-list {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.member-chip {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		width: 100%;
+		height: auto;
+		padding: 9px 12px;
+		background: var(--bg-elevated);
+		border: 1px solid var(--border);
+		border-radius: var(--r-md);
 		cursor: pointer;
-		font-weight: bold;
-		text-decoration: underline transparent;
-		transition: color 0.15s;
+		font-family: inherit;
+		transition: border-color 0.15s;
 	}
 
-	.member-link:hover {
-		color: var(--gold);
-		text-decoration-color: currentColor;
+	.member-chip:hover {
+		border-color: var(--gold);
+	}
+
+	.member-label {
+		font-size: 11px;
+		color: var(--text-dim);
+	}
+
+	.member-name {
+		font-weight: 700;
+		color: var(--text);
+	}
+
+	.btn-row {
+		width: 100%;
+		margin-top: 4px;
 	}
 </style>

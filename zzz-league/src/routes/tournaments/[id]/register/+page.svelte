@@ -161,7 +161,7 @@
 
 	<div class="card main-content">
 		{#if tournament}
-			<h2>Регистрация: {tournament.name}</h2>
+			<h2 class="page-title">Регистрация: {tournament.name}</h2>
 
 			{#if tournament.visible === false && !$isAdmin}
 				<p class="notice">Недостаточно прав для просмотра этой страницы.</p>
@@ -185,17 +185,16 @@
 
 				<TournamentMemberRegistrationFields idPrefix="reg" {form} />
 
-				<hr style="width: 100%" />
+				<div class="divider"></div>
 
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div class="awareness" onclick={() => (awareness = !awareness)}>
-					<input
-						type="checkbox"
-						bind:checked={awareness}
-						onclick={(e) => e.stopPropagation()}
-					/>
-					<span
+				<div class="check-row">
+					<span class="cb-wrap">
+						<input id="awareness" type="checkbox" class="cb-input" bind:checked={awareness} />
+						{#if awareness}
+							<svg class="cb-check" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+						{/if}
+					</span>
+					<label for="awareness"
 						>Конечно, я полностью прочитал регламент, и осознаю, что
 						турнир проходит с <span class="value-highlight"
 							>{new Date(tournament.tournamentStartDate).toLocaleString(
@@ -210,11 +209,11 @@
 								dateDisplayOptions,
 							)}</span
 						>
-					</span>
+					</label>
 				</div>
 
 				{#if status}<p class="status error">{status}</p>{/if}
-				<div class="btn-col">
+				<div class="btn-row-form">
 					<button
 						class="btn-common btn-play"
 						class:btn-loading={isRegistering}
@@ -232,27 +231,94 @@
 </div>
 
 <style>
+	.main-content {
+		padding: 24px 28px;
+		gap: 18px;
+	}
+
+	.page-title {
+		font-size: 19px;
+		padding-bottom: 16px;
+	}
+
 	.prefill-btn {
 		align-self: flex-start;
-		padding: 10px 20px;
+		padding: 0 14px;
+		height: 32px;
+		font-size: 11.5px;
 	}
 
-	.awareness {
+	.divider {
+		height: 1px;
+		background: var(--border-soft);
+		width: 100%;
+	}
+
+	.check-row {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		gap: 10px;
+		max-width: 760px;
+	}
+
+	.check-row .cb-wrap {
+		margin-top: 2px;
+	}
+
+	.check-row label {
+		font-size: 12.5px;
+		color: var(--text-muted);
+		line-height: 1.6;
 		cursor: pointer;
 	}
 
-	.awareness input[type="checkbox"] {
-		width: 16px;
-		height: 16px;
-		min-width: 16px;
-		cursor: pointer;
-		accent-color: var(--gold);
+	.cb-wrap {
+		position: relative;
+		display: inline-flex;
+		flex-shrink: 0;
+		width: 15px;
+		height: 15px;
 	}
 
-	.awareness span {
-		color: #aaa;
+	.cb-input {
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		box-sizing: border-box;
+		flex: 0 0 15px;
+		min-width: 15px;
+		max-width: 15px;
+		width: 15px;
+		height: 15px;
+		margin: 0;
+		padding: 0;
+		border-radius: 4px;
+		border: 1px solid var(--border);
+		background: var(--bg-elevated);
+		cursor: pointer;
+	}
+
+	.cb-input:checked {
+		background: var(--gold);
+		border-color: var(--gold);
+	}
+
+	.cb-check {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		color: oklch(0.2 0.03 80);
+		pointer-events: none;
+	}
+
+	.btn-row-form {
+		display: flex;
+		gap: 10px;
+		max-width: 420px;
+	}
+
+	.btn-row-form .btn-common {
+		flex: 1;
 	}
 </style>

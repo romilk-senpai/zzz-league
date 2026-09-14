@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { deletePlayer, updatePlayerElo } from "$lib/backend";
+	import { getAgentAvatar } from "$lib/agentAvatars";
+	import avatarPlaceholder from "$lib/assets/avatar-placeholder.webp";
 	import { isAdmin } from "$lib/store";
 	import type { Player, PlayerListItem } from "$lib/types";
 	import { getLvl, getTier, openProfilePopup } from "$lib/uiCommon";
@@ -15,6 +17,7 @@
 		uid?: string | null;
 		name: string;
 		elo: number;
+		avatar?: string | null;
 		tournamentPoints?: number;
 		isMidConfirmed: boolean;
 		isHighConfirmed: boolean;
@@ -95,6 +98,8 @@
 	function getLadderPos(p: LeaderboardPlayer) {
 		return sortedPlayers.indexOf(p);
 	}
+
+	const rankClass = ["rank-1", "rank-2", "rank-3"];
 </script>
 
 <table>
@@ -103,9 +108,9 @@
 			<th>№</th>
 			<th>Тир</th>
 			<th>Игрок</th>
-			<th>ELO</th>
-			<th>LVL</th>
-			{#if $isAdmin && !hideOptions}<th>Опции</th>{/if}
+			<th class="align-right">ELO</th>
+			<th class="align-right">LVL</th>
+			{#if $isAdmin && !hideOptions}<th class="align-right">Опции</th>{/if}
 		</tr>
 	</thead>
 	<tbody>
@@ -113,6 +118,7 @@
 			{@const elo = player.elo || 1000}
 			{@const tier = getTier(player)}
 			{@const ladderPos = getLadderPos(player)}
+			{@const avatar = getAgentAvatar(player.avatar)}
 
 			<tr
 				class={[
@@ -125,31 +131,106 @@
 				<td>{index + 1}</td>
 				<td><span class="tier-badge {tier.cls}">{tier.name}</span></td>
 				<td class="player-name">
-					<button
-						class="hover-emphasis"
-						disabled={!player.uid}
-						onclick={() => handleNameClick(player)}>{player.name}</button
-					>
+					<div class="player-cell">
+						<div
+							class="player-avatar {ladderPos < 3 ? rankClass[ladderPos] : ''}"
+							style="background-image: {avatar ? 'none' : `url(${avatarPlaceholder})`}"
+						>
+							{#if avatar}
+								<img src={avatar.src} alt={avatar.name} />
+							{/if}
+						</div>
+						<button
+							class="hover-emphasis"
+							disabled={!player.uid}
+							onclick={() => handleNameClick(player)}>{player.name}</button
+						>
+					</div>
 				</td>
-				<td>
-					<b>{elo}</b>
+				<td class="align-right">
 					<PointsDelta points={player.tournamentPoints ?? 0} />
+					<b>{elo}</b>
 				</td>
-				<td><span class="lvl-badge">L{getLvl(elo)}</span></td>
+				<td class="align-right"><span class="lvl-badge">L{getLvl(elo)}</span></td>
 				{#if $isAdmin && !hideOptions}
 					<td class="options-cell">
 						<button
 							class="icon-btn"
+							aria-label="Изменить ELO"
 							onclick={() => handleUpdatePlayerElo(player.uid!, elo)}
-							>⚙️</button
 						>
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+						</button>
 						<button
 							class="icon-btn danger"
-							onclick={() => handleDelete(player.uid!)}>✕</button
+							aria-label="Удалить игрока"
+							onclick={() => handleDelete(player.uid!)}
 						>
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+						</button>
 					</td>
 				{/if}
 			</tr>
 		{/each}
 	</tbody>
 </table>
+
+<style>
+	.player-cell {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.player-avatar {
+		flex-shrink: 0;
+		width: 26px;
+		height: 26px;
+		border-radius: 50%;
+		background-color: var(--surface-2);
+		background-size: cover;
+		background-position: center;
+		border: 1px solid var(--border);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
+	}
+
+	.player-avatar.rank-1 {
+		border: 1.5px solid var(--gold);
+		color: var(--gold);
+	}
+
+	.player-avatar.rank-2 {
+		border: 1.5px solid var(--rank-silver);
+		color: var(--rank-silver);
+	}
+
+	.player-avatar.rank-3 {
+		border: 1.5px solid var(--rank-bronze);
+		color: var(--rank-bronze);
+	}
+
+	.player-avatar img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+
+	.options-cell {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 4px;
+	}
+
+	.align-right {
+		text-align: right;
+	}
+
+	td.align-right b {
+		font-variant-numeric: tabular-nums;
+	}
+</style>

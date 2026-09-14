@@ -91,7 +91,7 @@
 
 	<div class="card main-content">
 		{#if $isAdmin}
-			<h2>Создать турнир</h2>
+			<h2 class="page-title">Создать турнир</h2>
 
 			<TournamentFormFields
 				bind:name
@@ -131,3 +131,24 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.main-content {
+		padding: 24px 28px;
+		gap: 22px;
+	}
+
+	.page-title {
+		font-size: 19px;
+		padding-bottom: 16px;
+	}
+
+	.btn-col {
+		margin-top: 0;
+		align-items: flex-start;
+	}
+
+	.btn-col .btn-common {
+		padding: 0 28px;
+	}
+</style>

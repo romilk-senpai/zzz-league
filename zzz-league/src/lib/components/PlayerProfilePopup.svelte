@@ -42,6 +42,11 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="card profile-card" onclick={(e) => e.stopPropagation()}>
+		<div class="close-row">
+			<button class="icon-btn" onclick={closeProfilePopup} aria-label="Закрыть">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+			</button>
+		</div>
 		{#if !player}
 			<h1>Игрок не найден</h1>
 		{:else}
@@ -68,7 +73,7 @@
 			<div class="profile-header">
 				<span
 					class="avatar-wrap"
-					style="background-image: url({avatarPlaceholder})"
+					style="background-image: {avatar ? 'none' : `url(${avatarPlaceholder})`}"
 				>
 					{#if avatar}
 						<img class="profile-avatar" src={avatar.src} alt={avatar.name} />
@@ -158,16 +163,12 @@
 			</div>
 
 			<a
-				class="btn-common btn-history"
+				class="btn-common btn-play btn-history"
 				href={resolve(`/history/${player.uid}`)}
 				onclick={closeProfilePopup}
 			>
 				История матчей
 			</a>
-
-			<button class="btn-common back-btn" onclick={closeProfilePopup}
-				>← Закрыть</button
-			>
 		{/if}
 	</div>
 </div>
@@ -175,7 +176,15 @@
 <style>
 	.profile-card {
 		width: 480px;
+		padding: 20px 26px 26px;
 		text-align: center;
+		gap: 18px;
+	}
+
+	.close-row {
+		display: flex;
+		justify-content: flex-end;
+		margin-bottom: -8px;
 	}
 
 	.profile-header {
@@ -188,10 +197,10 @@
 
 	.avatar-wrap {
 		flex-shrink: 0;
-		width: 96px;
-		height: 96px;
+		width: 88px;
+		height: 88px;
 		border-radius: 50%;
-		border: 2px solid #444;
+		border: 2px solid var(--border);
 		background-size: cover;
 		background-position: center;
 		overflow: hidden;
@@ -223,6 +232,7 @@
 	.profile-name-row h1 {
 		margin-bottom: 0;
 		font-size: 20px;
+		color: var(--text);
 	}
 
 	.info-card {
@@ -230,18 +240,19 @@
 		align-items: center;
 		gap: 8px;
 		width: 100%;
-		background: #222;
-		padding: 6px 10px;
-		border-radius: 8px;
-		border: 1px solid #333;
-		font-size: 13px;
+		background: var(--bg-elevated);
+		padding: 7px 11px;
+		border-radius: var(--r-md);
+		border: 1px solid var(--border);
+		font-size: 12px;
+		line-height: 1.3;
+		font-family: inherit;
 		cursor: pointer;
 		transition: 0.15s;
 	}
 
 	.info-card:hover {
-		border-color: #555;
-		background: #272727;
+		border-color: var(--gold);
 	}
 
 	.info-card:disabled {
@@ -251,8 +262,11 @@
 
 	.info-label {
 		flex-shrink: 0;
-		color: #888;
+		width: 58px;
+		text-align: left;
+		color: var(--text-dim);
 		font-size: 12px;
+		font-weight: 500;
 	}
 
 	.info-value {
@@ -262,7 +276,7 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		text-align: left;
-		color: #ddd;
+		color: var(--text-muted);
 	}
 
 	.copied-label {
@@ -274,10 +288,11 @@
 
 	.copy-icon {
 		flex-shrink: 0;
+		align-self: center;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		color: #888;
+		color: var(--text-dim);
 		transition: 0.15s;
 	}
 
@@ -287,45 +302,50 @@
 	}
 
 	.btn-history {
-		margin-top: 8px;
+		margin-top: 4px;
 	}
 
 	.stat-grid {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 12px;
-		margin-top: 16px;
+		gap: 10px;
+		margin-top: 4px;
 	}
 
 	.stat-item {
 		flex: 1 1 130px;
-		height: 42px;
+		height: 36px;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 10px;
-		background: #222;
-		padding: 0 14px;
-		border-radius: 8px;
-		border: 1px solid #333;
+		background: var(--bg-elevated);
+		padding: 0 11px;
+		border-radius: var(--r-md);
+		border: 1px solid var(--border);
 	}
 
 	.elo-item {
 		flex-basis: 100%;
+		height: 42px;
 	}
 
 	.stat-label {
-		color: #9f9f9f;
-		/* text-transform: uppercase; */
+		color: var(--text-dim);
+		font-size: 11.5px;
 	}
 
 	.stat-value {
-		font-weight: bold;
+		font-weight: 800;
+		font-size: 15px;
+	}
+
+	.elo-item .stat-value {
 		font-size: 18px;
 	}
 
 	.winrate {
-		color: #2eb82e;
+		color: var(--success);
 	}
 
 	.gold {

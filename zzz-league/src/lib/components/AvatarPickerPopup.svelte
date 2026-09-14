@@ -58,12 +58,20 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card avatar-picker-card" onclick={(e) => e.stopPropagation()}>
-			<h2>Выберите аватар</h2>
-			<input
-				class="search-input"
-				placeholder="Поиск..."
-				bind:value={searchQuery}
-			/>
+			<div class="close-row">
+				<button class="icon-btn" onclick={close} aria-label="Закрыть">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+				</button>
+			</div>
+			<h2 class="popup-title">Выберите аватар</h2>
+			<span class="search-wrap">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="search-icon"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+				<input
+					class="search-input"
+					placeholder="Поиск..."
+					bind:value={searchQuery}
+				/>
+			</span>
 			<div class="avatar-grid">
 				{#each filteredAvatars as agent (agent.id)}
 					<button
@@ -80,15 +88,12 @@
 				{/each}
 			</div>
 			{#if status}<p class="status error">{status}</p>{/if}
-			<div class="btn-row">
-				<button
-					class="btn-common btn-play"
-					class:btn-loading={saving}
-					disabled={!selectedId || selectedId === selected}
-					onclick={handleSave}>Сохранить</button
-				>
-				<button class="btn-common" onclick={close}>Закрыть</button>
-			</div>
+			<button
+				class="btn-common btn-play"
+				class:btn-loading={saving}
+				disabled={!selectedId || selectedId === selected}
+				onclick={handleSave}>Сохранить</button
+			>
 		</div>
 	</div>
 {/if}
@@ -97,10 +102,41 @@
 	.avatar-picker-card {
 		width: 560px;
 		max-width: 90vw;
+		padding: 20px 26px 26px;
+		gap: 14px;
+	}
+
+	.close-row {
+		display: flex;
+		justify-content: flex-end;
+		margin-bottom: -8px;
+	}
+
+	.popup-title {
+		font-size: 16px;
+		font-weight: 800;
+		border: none;
+		padding-bottom: 0;
+		margin-bottom: 0;
+	}
+
+	.search-wrap {
+		position: relative;
+		display: block;
+	}
+
+	.search-icon {
+		position: absolute;
+		left: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		color: var(--text-dim);
+		pointer-events: none;
 	}
 
 	.search-input {
 		width: 100%;
+		padding-left: 28px;
 	}
 
 	.avatar-grid {
@@ -114,45 +150,47 @@
 	}
 
 	.avatar-option {
-		background: #222;
+		background: var(--surface-2);
 		border: 2px solid transparent;
-		border-radius: 8px;
-		padding: 6px;
+		border-radius: var(--r-md);
+		padding: 8px 4px;
 		cursor: pointer;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 6px;
+		font-family: inherit;
 		transition: 0.15s;
 	}
 
 	.avatar-option img {
-		width: 64px;
-		height: 64px;
+		width: 52px;
+		height: 52px;
 		object-fit: cover;
 		border-radius: 50%;
 		display: block;
 	}
 
 	.avatar-option span {
-		font-size: 11px;
+		font-size: 10px;
 		text-align: center;
-		color: #ccc;
+		color: var(--text-muted);
 		line-height: 1.2;
 	}
 
 	.avatar-option:hover {
-		border-color: #555;
+		border-color: var(--border);
 	}
 
 	.avatar-option.selected {
 		border-color: var(--gold);
+		background: var(--gold-dim);
 	}
 
 	.no-results {
 		grid-column: 1 / -1;
 		text-align: center;
-		color: #888;
+		color: var(--text-dim);
 		padding: 20px 0;
 	}
 </style>

@@ -80,8 +80,9 @@
 		{#each filteredRows as row, index}
 			<tr>
 				<td>{index + 1}</td>
-				<td>
+				<td class="tier-pair">
 					<span class="tier-badge {row.tier1.cls}">{row.tier1.name}</span>
+					<span class="tier-sep">+</span>
 					<span class="tier-badge {row.tier2.cls}">{row.tier2.name}</span>
 				</td>
 				<td class="player-name">
@@ -90,11 +91,17 @@
 						onclick={() => onViewTeam?.(row.team.id)}>{row.label}</button
 					>
 				</td>
-				<td><span>{row.registration.approved ? "✅" : "❌"}</span></td>
+				<td class="approved-cell {row.registration.approved ? 'approved' : 'declined'}">
+					{#if row.registration.approved}
+						<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+					{:else}
+						<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+					{/if}
+				</td>
 				{#if canViewRegistrations}
 					<td>
 						<button
-							class="icon-btn hover-emphasis"
+							class="btn-common btn-view"
 							onclick={() => onViewRegistration?.(row.team.id)}
 							>Смотреть</button
 						>
@@ -118,6 +125,34 @@
 </table>
 
 <style>
+	.approved-cell {
+		text-align: center;
+	}
+
+	.approved-cell.approved {
+		color: var(--success);
+	}
+
+	.approved-cell.declined {
+		color: var(--danger);
+	}
+
+	.btn-view {
+		height: 26px;
+		padding: 0 10px;
+		font-size: 11px;
+	}
+
+	.tier-pair {
+		white-space: nowrap;
+	}
+
+	.tier-sep {
+		color: var(--text-dim);
+		font-weight: 700;
+		margin: 0 2px;
+	}
+
 	.team-name-btn {
 		display: inline-block;
 		max-width: 260px;
