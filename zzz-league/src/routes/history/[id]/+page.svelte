@@ -22,7 +22,7 @@
 	}
 
 	.page-title {
-		font-size: 19px;
+		font-size: 20px;
 		padding-bottom: 16px;
 	}
 </style>

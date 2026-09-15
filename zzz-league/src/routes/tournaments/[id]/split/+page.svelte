@@ -357,7 +357,7 @@
 	}
 
 	.page-title {
-		font-size: 19px;
+		font-size: 20px;
 		padding-bottom: 16px;
 	}
 
@@ -368,7 +368,7 @@
 	}
 
 	.field-group label {
-		font-size: 11.5px;
+		font-size: 12px;
 		color: var(--text-dim);
 		font-weight: 600;
 	}
@@ -411,7 +411,7 @@
 	}
 
 	.split-column h3 {
-		font-size: 13px;
+		font-size: 14px;
 		font-weight: 700;
 		color: var(--text-muted);
 		margin: 0;
@@ -448,7 +448,7 @@
 		border-radius: var(--r-sm);
 		background: var(--surface-2);
 		border: 1px solid var(--border-soft);
-		font-size: 12.5px;
+		font-size: 12px;
 		font-weight: 500;
 		cursor: grab;
 	}
@@ -459,7 +459,7 @@
 
 	.hint {
 		color: var(--text-dim);
-		font-size: 11.5px;
+		font-size: 12px;
 		margin: 0;
 	}
 

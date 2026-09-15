@@ -526,7 +526,7 @@
 
 	.tournament-label {
 		text-align: center;
-		font-size: 10.5px;
+		font-size: 11px;
 		font-weight: 700;
 		color: var(--text-dim);
 		overflow: hidden;
@@ -576,7 +576,7 @@
 		background: var(--bg-elevated);
 		border: 1px solid var(--border);
 		color: var(--text);
-		font-size: 13px;
+		font-size: 14px;
 		font-family: inherit;
 		text-align: center;
 		font-weight: 700;
@@ -618,7 +618,7 @@
 	.btn-sm-action {
 		flex: 1;
 		height: 32px;
-		font-size: 11.5px;
+		font-size: 12px;
 	}
 
 	.hidden-file-input {
@@ -668,7 +668,7 @@
 		gap: 6px;
 		padding: 6px 10px;
 		border-radius: 999px;
-		font-size: 10.5px;
+		font-size: 11px;
 		font-weight: 700;
 		flex: 1;
 		min-width: 0;
@@ -702,7 +702,7 @@
 	}
 
 	.admin-label {
-		font-size: 10.5px;
+		font-size: 11px;
 		font-weight: 700;
 		color: var(--danger);
 		text-align: center;

@@ -117,6 +117,7 @@
 	.content-column {
 		display: flex;
 		flex-direction: column;
+		gap: 20px;
 	}
 
 	.top-tabs {
@@ -124,30 +125,30 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 8px;
-		margin-bottom: 20px;
 	}
 
 	.top-tab {
-		background: #222;
-		border: 1px solid #333;
-		color: #aaa;
-		padding: 10px 20px;
-		border-radius: 8px;
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		color: var(--text-muted);
+		padding: 9px 16px;
+		border-radius: var(--r-md);
 		cursor: pointer;
 		font-weight: 700;
-		font-size: 15px;
-		transition: 0.2s;
+		font-size: 12px;
+		font-family: inherit;
+		transition: 0.15s;
 	}
 
 	.top-tab:hover {
-		border-color: #555;
-		color: #ddd;
+		border-color: var(--border-soft);
+		color: var(--text);
 	}
 
 	.top-tab.active {
-		border-color: var(--gold);
+		border-color: var(--gold-border);
 		color: var(--gold);
-		background: rgba(255, 204, 0, 0.08);
+		background: var(--gold-dim);
 	}
 
 	.csv-actions {
@@ -155,5 +156,12 @@
 		flex-wrap: wrap;
 		gap: 8px;
 		margin-left: auto;
+	}
+
+	.csv-actions .btn-common {
+		height: 32px;
+		font-size: 12px;
+		padding: 0 12px;
+		width: auto;
 	}
 </style>

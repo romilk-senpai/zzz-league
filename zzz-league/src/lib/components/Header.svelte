@@ -72,7 +72,7 @@
 	}
 
 	.site-logo {
-		font-size: 19px;
+		font-size: 20px;
 		font-weight: 800;
 		color: var(--gold);
 	}
@@ -89,7 +89,7 @@
 		padding: 9px 12px;
 		border-radius: var(--r-md);
 		color: var(--text-muted);
-		font-size: 13px;
+		font-size: 14px;
 		font-weight: 500;
 		transition: 0.15s;
 	}

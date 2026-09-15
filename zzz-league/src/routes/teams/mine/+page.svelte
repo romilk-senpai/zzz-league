@@ -141,28 +141,32 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		gap: 12px;
 		padding-bottom: 16px;
 		border-bottom: 1px solid var(--border-soft);
 	}
 
 	.page-title {
-		font-size: 19px;
+		font-size: 20px;
 		border: none;
 		padding: 0;
 		margin: 0;
+		min-height: 32px;
+		display: flex;
+		align-items: center;
 	}
 
 	.create-btn {
 		width: auto;
 		height: 32px;
-		font-size: 11.5px;
+		font-size: 12px;
 		padding: 0 14px;
 	}
 
 	.team-list {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 8px;
 		width: 100%;
 	}
 
@@ -170,7 +174,7 @@
 		display: flex;
 		align-items: center;
 		gap: 11px;
-		height: 40px;
+		height: 38px;
 		padding: 0 12px;
 		background: var(--surface-2);
 		border: 1px solid var(--border-soft);
@@ -203,9 +207,9 @@
 
 	.team-name {
 		font-weight: 700;
-		font-size: 12.5px;
+		font-size: 14px;
 		flex-shrink: 0;
-		width: 130px;
+		width: 150px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -214,7 +218,7 @@
 	.team-players {
 		flex: 1;
 		color: var(--text-muted);
-		font-size: 12px;
+		font-size: 14px;
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;

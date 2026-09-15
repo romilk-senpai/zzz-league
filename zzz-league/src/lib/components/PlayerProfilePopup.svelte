@@ -76,7 +76,7 @@
 					style="background-image: {avatar ? 'none' : `url(${avatarPlaceholder})`}"
 				>
 					{#if avatar}
-						<img class="profile-avatar" src={avatar.src} alt={avatar.name} />
+						<img class="profile-avatar" src={avatar.srcLarge} alt={avatar.name} />
 					{/if}
 				</span>
 				<div class="profile-header-info">
@@ -306,14 +306,13 @@
 	}
 
 	.stat-grid {
-		display: flex;
-		flex-wrap: wrap;
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
 		gap: 10px;
 		margin-top: 4px;
 	}
 
 	.stat-item {
-		flex: 1 1 130px;
 		height: 36px;
 		display: flex;
 		align-items: center;
@@ -326,18 +325,18 @@
 	}
 
 	.elo-item {
-		flex-basis: 100%;
+		grid-column: 1 / -1;
 		height: 42px;
 	}
 
 	.stat-label {
 		color: var(--text-dim);
-		font-size: 11.5px;
+		font-size: 12px;
 	}
 
 	.stat-value {
 		font-weight: 800;
-		font-size: 15px;
+		font-size: 16px;
 	}
 
 	.elo-item .stat-value {

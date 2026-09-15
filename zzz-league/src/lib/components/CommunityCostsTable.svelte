@@ -124,7 +124,7 @@
 	}
 </script>
 
-<div class="card">
+<div class="card cost-card">
 	<h2>Коммунити кост</h2>
 
 	<div class="specialty-tabs">
@@ -181,7 +181,7 @@
 
 <div class="log-columns">
 	<div class="card log-card">
-		<h2>❌ Отклонённые изменения</h2>
+		<h2 class="log-heading rejected">Отклонённые изменения</h2>
 		{#if rejectedLog.length === 0}
 			<p class="notice">Пока нет отклонённых предложений.</p>
 		{:else}
@@ -201,7 +201,7 @@
 	</div>
 
 	<div class="card log-card">
-		<h2>✅ Принятые изменения</h2>
+		<h2 class="log-heading approved">Принятые изменения</h2>
 		{#if approvedLog.length === 0}
 			<p class="notice">Пока нет принятых предложений.</p>
 		{:else}
@@ -244,35 +244,44 @@
 />
 
 <style>
+	.cost-card {
+		padding: 24px 28px;
+		gap: 16px;
+	}
+
 	.specialty-tabs {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: 6px;
 	}
 
 	.specialty-tab {
 		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		background: #222;
-		border: 1px solid #333;
-		color: #aaa;
-		padding: 8px 14px;
-		border-radius: 8px;
+		gap: 6px;
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		color: var(--text-muted);
+		padding: 6px 13px;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 600;
+		font-family: inherit;
 		cursor: pointer;
-		transition: 0.2s;
+		transition: 0.15s;
 	}
 
 	.specialty-tab:hover {
-		border-color: #555;
-		color: #ddd;
+		border-color: var(--border-soft);
+		color: var(--text);
 	}
 
 	.specialty-tab.active {
-		border-color: var(--gold);
+		border-color: var(--gold-border);
 		color: var(--gold);
-		background: rgba(255, 204, 0, 0.08);
+		background: var(--gold-dim);
+		font-weight: 700;
 	}
 
 	.tab-badge {
@@ -283,27 +292,27 @@
 		height: 18px;
 		padding: 0 4px;
 		border-radius: 9px;
-		background: var(--loss);
+		background: var(--danger);
 		color: #fff;
 		font-size: 11px;
 		font-weight: 800;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		box-shadow: 0 0 0 2px #1a1a1a;
+		box-shadow: 0 0 0 2px var(--surface);
 	}
 
 	.specialty-heading {
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		color: var(--gold);
-		text-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
 	}
 
 	.specialty-heading h3 {
 		margin: 0;
-		font-size: 22px;
+		font-size: 16px;
+		font-weight: 700;
+		color: var(--gold);
 	}
 
 	.cost-scroll {
@@ -314,7 +323,7 @@
 	.cost-grid {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 8px;
 		min-width: 720px;
 	}
 
@@ -332,9 +341,9 @@
 
 	.cost-col-label {
 		text-align: center;
-		font-size: 12px;
-		font-weight: 600;
-		color: #888;
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--text-dim);
 	}
 
 	.cost-agent {
@@ -345,13 +354,13 @@
 		gap: 10px;
 		min-width: 0;
 		cursor: pointer;
-		border-radius: 6px;
+		border-radius: var(--r-sm);
 		padding: 4px;
 		margin: -4px;
 	}
 
 	.cost-agent:hover {
-		background: rgba(255, 255, 255, 0.05);
+		background: var(--surface-hover);
 	}
 
 	.contrib-alert {
@@ -363,7 +372,7 @@
 		align-items: center;
 		justify-content: center;
 		font-weight: 900;
-		font-size: 13px;
+		font-size: 14px;
 		line-height: 1;
 		color: #fff;
 		text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
@@ -372,10 +381,10 @@
 	.cost-avatar {
 		width: 36px;
 		height: 36px;
-		border-radius: 8px;
+		border-radius: var(--r-sm);
 		object-fit: cover;
 		flex-shrink: 0;
-		border: 1px solid #333;
+		border: 1px solid var(--border);
 	}
 
 	.cost-agent-name {
@@ -383,55 +392,70 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		font-weight: 600;
-		font-size: 13px;
+		font-size: 14px;
 	}
 
 	.cost-cell {
 		text-align: center;
-		padding: 10px 4px;
-		border-radius: 6px;
+		padding: 9px 4px;
+		border-radius: var(--r-sm);
 		font-weight: 700;
 		font-size: 14px;
 	}
 
 	.cost-cell.col-0 {
-		background: #163a3d;
-		color: #7fd8cf;
+		background: oklch(0.32 0.06 190);
+		color: oklch(0.8 0.1 190);
 	}
 
 	.cost-cell.col-1 {
-		background: #163a52;
-		color: #74c0e8;
+		background: oklch(0.32 0.06 220);
+		color: oklch(0.8 0.1 220);
 	}
 
 	.cost-cell.col-2 {
-		background: #24325c;
-		color: #93a6f2;
+		background: oklch(0.32 0.06 250);
+		color: oklch(0.8 0.1 250);
 	}
 
 	.cost-cell.col-3 {
-		background: #3a2c63;
-		color: #c2a4f5;
+		background: oklch(0.32 0.06 280);
+		color: oklch(0.8 0.1 280);
 	}
 
 	.cost-cell.col-4 {
-		background: #55295c;
-		color: #e2a0e0;
+		background: oklch(0.32 0.06 320);
+		color: oklch(0.8 0.1 320);
 	}
 
 	.cost-cell.col-5 {
-		background: #742d4c;
-		color: #f5a3b8;
+		background: oklch(0.32 0.06 350);
+		color: oklch(0.8 0.1 350);
 	}
 
 	.cost-cell.col-6 {
-		background: #8f2a34;
-		color: #ff9a92;
+		background: oklch(0.32 0.06 20);
+		color: oklch(0.8 0.1 20);
 	}
 
 	.cost-cell.empty {
-		color: rgba(255, 255, 255, 0.3);
-		filter: saturate(0.4) brightness(0.75);
+		background: var(--surface-hover);
+		color: var(--text-dim);
+	}
+
+	.log-heading {
+		border: none;
+		padding-bottom: 0;
+		margin-bottom: 0;
+		font-size: 14px;
+	}
+
+	.log-heading.rejected {
+		color: var(--danger);
+	}
+
+	.log-heading.approved {
+		color: var(--success);
 	}
 
 	.log-list {
@@ -449,24 +473,25 @@
 		align-items: center;
 		width: 100%;
 		min-width: 0;
-		background: #222;
-		border: 1px solid #333;
-		border-radius: 8px;
-		padding: 10px;
+		background: var(--surface-2);
+		border: 1px solid var(--border-soft);
+		border-radius: var(--r-md);
+		padding: 9px 11px;
 		cursor: pointer;
+		transition: border-color 0.15s;
 	}
 
 	.log-item:hover {
-		border-color: #555;
+		border-color: var(--gold-border);
 	}
 
 	.log-avatar {
 		width: 32px;
 		height: 32px;
-		border-radius: 8px;
+		border-radius: var(--r-sm);
 		object-fit: cover;
 		flex-shrink: 0;
-		border: 1px solid #333;
+		border: 1px solid var(--border);
 	}
 
 	.log-body {
@@ -478,30 +503,32 @@
 
 	.log-title {
 		font-weight: 600;
-		font-size: 13px;
+		font-size: 12px;
 	}
 
 	.log-msg {
 		font-size: 12px;
-		color: #aaa;
+		color: var(--text-dim);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
 	.log-columns {
-		display: flex;
-		gap: 20px;
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 18px;
 	}
 
 	.log-columns .log-card {
-		flex: 1;
 		min-width: 0;
+		padding: 20px;
+		gap: 10px;
 	}
 
 	@media (max-width: 700px) {
 		.log-columns {
-			flex-direction: column;
+			grid-template-columns: 1fr;
 		}
 	}
 </style>

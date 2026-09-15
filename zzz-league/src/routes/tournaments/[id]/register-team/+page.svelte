@@ -33,6 +33,7 @@
 	let regLoaded = $state(false);
 	let awareness = $state(false);
 	let status = $state("");
+	let showErrors = $state(false);
 	let isRegistering = $state(false);
 
 	let player1Form = $state(emptyMemberRegistrationForm());
@@ -54,11 +55,13 @@
 		if (isRegistering || !tournament || !selectedTeam) return;
 
 		if (!awareness) {
+			showErrors = true;
 			status = "Ты не ОСОЗНАЛ.";
 			return;
 		}
 
 		if (!isMemberRegistrationFormComplete(player1Form) || !isMemberRegistrationFormComplete(player2Form)) {
+			showErrors = true;
 			status = "Заполните все поля для обоих игроков";
 			return;
 		}
@@ -72,6 +75,7 @@
 			return;
 		}
 
+		showErrors = false;
 		isRegistering = true;
 		try {
 			await applyForTeamTournament(
@@ -224,6 +228,7 @@
 						idPrefix="p1"
 						label={`Игрок 1 (${selectedTeam.creator.name})`}
 						form={player1Form}
+						{showErrors}
 					/>
 
 					<div class="divider"></div>
@@ -231,13 +236,20 @@
 						idPrefix="p2"
 						label={`Игрок 2 (${selectedTeam.player2.name})`}
 						form={player2Form}
+						{showErrors}
 					/>
 
 					<div class="divider"></div>
 
 					<div class="check-row">
 						<span class="cb-wrap">
-							<input id="awareness" type="checkbox" class="cb-input" bind:checked={awareness} />
+							<input
+								id="awareness"
+								type="checkbox"
+								class="cb-input"
+								class:invalid={showErrors && !awareness}
+								bind:checked={awareness}
+							/>
 							{#if awareness}
 								<svg class="cb-check" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
 							{/if}
@@ -277,7 +289,7 @@
 	}
 
 	.page-title {
-		font-size: 19px;
+		font-size: 20px;
 		padding-bottom: 16px;
 	}
 
@@ -293,7 +305,7 @@
 	}
 
 	.form-group label {
-		font-size: 11.5px;
+		font-size: 12px;
 		color: var(--text-dim);
 		font-weight: 600;
 	}
@@ -338,7 +350,7 @@
 	}
 
 	.check-row label {
-		font-size: 12.5px;
+		font-size: 12px;
 		color: var(--text-muted);
 		line-height: 1.6;
 		cursor: pointer;
@@ -373,6 +385,10 @@
 	.cb-input:checked {
 		background: var(--gold);
 		border-color: var(--gold);
+	}
+
+	.cb-input.invalid {
+		border-color: var(--danger);
 	}
 
 	.cb-check {

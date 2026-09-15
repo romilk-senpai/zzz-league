@@ -1067,7 +1067,7 @@
 	.no-matches {
 		display: block;
 		text-align: center;
-		font-size: 15px;
+		font-size: 16px;
 		color: var(--text-dim);
 		padding: 0;
 	}
@@ -1107,7 +1107,7 @@
 		border-color: var(--text-dim);
 	}
 
-	/* mockup's .match-side-name inherits the body's 13.5px/normal weight — the shared global
+	/* mockup's .match-side-name inherits the body's 14px/normal weight — the shared global
 	   .match-player-name (16px/700) is sized for TournamentMatchPopup's bigger header context. */
 	.match-player-name {
 		cursor: pointer;
@@ -1115,7 +1115,7 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		font-size: 13.5px;
+		font-size: 14px;
 		font-weight: 600;
 	}
 
@@ -1135,7 +1135,7 @@
 	}
 
 	.match-score {
-		font-size: 13px;
+		font-size: 14px;
 		font-weight: 800;
 		font-variant-numeric: tabular-nums;
 		color: var(--text-dim);
@@ -1329,7 +1329,7 @@
 	}
 
 	.spec-value {
-		font-size: 13px;
+		font-size: 14px;
 		font-weight: 600;
 		color: var(--text);
 	}
@@ -1353,7 +1353,7 @@
 
 	.tournament-actions {
 		display: flex;
-		align-items: flex-start;
+		align-items: stretch;
 		gap: 28px;
 		flex-wrap: wrap;
 		padding-bottom: 20px;

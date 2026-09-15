@@ -25,6 +25,7 @@
 		tournamentStartDate = $bindable(),
 		tournamentEndDate = $bindable(),
 		editableTypeAndMode = true,
+		showErrors = false,
 	}: {
 		name: string;
 		description: string;
@@ -48,6 +49,7 @@
 		tournamentStartDate: string;
 		tournamentEndDate: string;
 		editableTypeAndMode?: boolean;
+		showErrors?: boolean;
 	} = $props();
 
 	let descriptionPreview = $derived(renderMarkdown(description));
@@ -70,7 +72,13 @@
 	<div class="form-grid name-row">
 		<div class="form-group">
 			<label for="f-name">Название</label>
-			<input id="f-name" type="text" bind:value={name} placeholder="NESC: Season 3 High-mid 1" />
+			<input
+				id="f-name"
+				type="text"
+				class:invalid={showErrors && !name.trim()}
+				bind:value={name}
+				placeholder="NESC: Season 3 High-mid 1"
+			/>
 		</div>
 		{#if editableTypeAndMode}
 			<div class="form-group">
@@ -116,31 +124,42 @@
 				<option value="double elimination">Double elimination</option>
 			</select>
 		</div>
-		{@render checkbox(
-			"f-break-ties",
-			breakTiesEnabled,
-			"Break ties with placement matches",
-			() => (breakTiesEnabled = !breakTiesEnabled),
-		)}
-		{#if breakTiesEnabled}
-			<div class="form-group">
-				<label for="f-break-ties-place">Break ties through this place</label>
-				<input id="f-break-ties-place" type="number" min="1" bind:value={breakTiesPlace} />
-			</div>
-		{/if}
 
-		{@render checkbox(
-			"f-elo-enabled",
-			overrideEloEnabled,
-			"Фиксированное эло за победу/поражение",
-			() => (overrideEloEnabled = !overrideEloEnabled),
-		)}
-		{#if overrideEloEnabled}
-			<div class="form-group">
-				<label for="f-elo-value">Значение эло</label>
-				<input id="f-elo-value" type="number" min="1" bind:value={overrideEloValue} />
-			</div>
-		{/if}
+		<div class="form-group toggle-field">
+			{@render checkbox(
+				"f-break-ties",
+				breakTiesEnabled,
+				"Break ties with placement matches",
+				() => (breakTiesEnabled = !breakTiesEnabled),
+			)}
+			<input
+				id="f-break-ties-place"
+				type="number"
+				min="1"
+				aria-label="Место"
+				class:input-disabled={!breakTiesEnabled}
+				bind:value={breakTiesPlace}
+				disabled={!breakTiesEnabled}
+			/>
+		</div>
+
+		<div class="form-group toggle-field">
+			{@render checkbox(
+				"f-elo-enabled",
+				overrideEloEnabled,
+				"Фиксированное эло за победу/поражение",
+				() => (overrideEloEnabled = !overrideEloEnabled),
+			)}
+			<input
+				id="f-elo-value"
+				type="number"
+				min="1"
+				aria-label="Значение"
+				class:input-disabled={!overrideEloEnabled}
+				bind:value={overrideEloValue}
+				disabled={!overrideEloEnabled}
+			/>
+		</div>
 	</div>
 </div>
 
@@ -208,21 +227,41 @@
 	<div class="form-grid">
 		<div class="form-group">
 			<label for="f-reg-start">Начало регистрации</label>
-			<input id="f-reg-start" type="datetime-local" bind:value={registrationStartDate} />
+			<input
+				id="f-reg-start"
+				type="datetime-local"
+				class:invalid={showErrors && !registrationStartDate}
+				bind:value={registrationStartDate}
+			/>
 		</div>
 		<div class="form-group">
 			<label for="f-reg-end">Конец регистрации</label>
-			<input id="f-reg-end" type="datetime-local" bind:value={registrationEndDate} />
+			<input
+				id="f-reg-end"
+				type="datetime-local"
+				class:invalid={showErrors && !registrationEndDate}
+				bind:value={registrationEndDate}
+			/>
 		</div>
 	</div>
 	<div class="form-grid">
 		<div class="form-group">
 			<label for="f-tour-start">Начало турнира</label>
-			<input id="f-tour-start" type="datetime-local" bind:value={tournamentStartDate} />
+			<input
+				id="f-tour-start"
+				type="datetime-local"
+				class:invalid={showErrors && !tournamentStartDate}
+				bind:value={tournamentStartDate}
+			/>
 		</div>
 		<div class="form-group">
 			<label for="f-tour-end">Конец турнира</label>
-			<input id="f-tour-end" type="datetime-local" bind:value={tournamentEndDate} />
+			<input
+				id="f-tour-end"
+				type="datetime-local"
+				class:invalid={showErrors && !tournamentEndDate}
+				bind:value={tournamentEndDate}
+			/>
 		</div>
 	</div>
 </div>
@@ -235,7 +274,7 @@
 	}
 
 	.section-label {
-		font-size: 11px;
+		font-size: 16px;
 		font-weight: 700;
 		color: var(--gold);
 		padding-bottom: 8px;
@@ -246,6 +285,7 @@
 	.form-grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
+		align-items: start;
 		gap: 14px 16px;
 		max-width: 820px;
 	}
@@ -262,13 +302,24 @@
 	}
 
 	.form-group label {
-		font-size: 11.5px;
+		font-size: 12px;
 		color: var(--text-dim);
 		font-weight: 600;
 	}
 
 	.description-group {
 		max-width: 820px;
+	}
+
+	.toggle-field .check-row {
+		align-self: auto;
+		height: auto;
+	}
+
+	.toggle-field .check-row label {
+		color: var(--text-dim);
+		font-weight: 600;
+		white-space: nowrap;
 	}
 
 	.check-row {
@@ -280,7 +331,7 @@
 	}
 
 	.check-row label {
-		font-size: 12.5px;
+		font-size: 12px;
 		color: var(--text-muted);
 		font-weight: 500;
 		cursor: pointer;
@@ -343,5 +394,9 @@
 	.description-preview :global(p) {
 		margin: 0;
 		line-height: 21px;
+	}
+
+	.form-group input.invalid {
+		border-color: var(--danger);
 	}
 </style>

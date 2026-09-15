@@ -267,7 +267,7 @@
 	}
 </script>
 
-<div class="card">
+<div class="card weapon-card">
 	<h2>W-Engines</h2>
 
 	<div class="specialty-tabs">
@@ -301,7 +301,7 @@
 			<div class="weapon-grid">
 				<div class="weapon-header-row">
 					<div class="weapon-name-col"></div>
-					{#each engineBaseRankLabels as r (r)}
+					{#each engineRankLabels as r (r)}
 						<div class="weapon-col-label">{r}</div>
 					{/each}
 				</div>
@@ -333,7 +333,7 @@
 										onclick={() => toggleGroup(row.engineId)}
 										title={collapsed ? "Показать стоимость по агентам" : "Свернуть стоимость по агентам"}
 									>
-										<span class="group-toggle-caret" class:collapsed>▾</span>
+										<svg class="group-toggle-caret" class:collapsed width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
 										{row.overrideRows.length}
 										{#if collapsed && row.overridesPendingScore !== null}
 											<span
@@ -345,7 +345,7 @@
 									</button>
 								{/if}
 							</div>
-							{#each row.baseCosts as value, i (i)}
+							{#each row.baseCosts.slice(0, 5) as value, i (i)}
 								<div class="weapon-cell col-{i}" class:empty={value >= 9999}>
 									{value}
 								</div>
@@ -377,7 +377,6 @@
 											{value}
 										</div>
 									{/each}
-									<div class="weapon-cell-spacer"></div>
 								</div>
 							{/each}
 
@@ -394,7 +393,7 @@
 
 <div class="log-columns">
 	<div class="card log-card">
-		<h2>❌ Отклонённые изменения</h2>
+		<h2 class="log-heading rejected">Отклонённые изменения</h2>
 		{#if rejectedLog.length === 0}
 			<p class="notice">Пока нет отклонённых предложений.</p>
 		{:else}
@@ -416,7 +415,7 @@
 	</div>
 
 	<div class="card log-card">
-		<h2>✅ Принятые изменения</h2>
+		<h2 class="log-heading approved">Принятые изменения</h2>
 		{#if approvedLog.length === 0}
 			<p class="notice">Пока нет принятых предложений.</p>
 		{:else}
@@ -466,24 +465,32 @@
 />
 
 <style>
+	.weapon-card {
+		padding: 24px 28px;
+		gap: 16px;
+	}
+
 	.specialty-tabs {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: 6px;
 	}
 
 	.specialty-tab {
 		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		background: #222;
-		border: 1px solid #333;
-		color: #aaa;
-		padding: 8px 14px;
-		border-radius: 8px;
+		gap: 6px;
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		color: var(--text-muted);
+		padding: 6px 13px;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 600;
+		font-family: inherit;
 		cursor: pointer;
-		transition: 0.2s;
+		transition: 0.15s;
 	}
 
 	.tab-badge {
@@ -494,25 +501,26 @@
 		height: 18px;
 		padding: 0 4px;
 		border-radius: 9px;
-		background: var(--loss);
+		background: var(--danger);
 		color: #fff;
 		font-size: 11px;
 		font-weight: 800;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		box-shadow: 0 0 0 2px #1a1a1a;
+		box-shadow: 0 0 0 2px var(--surface);
 	}
 
 	.specialty-tab:hover {
-		border-color: #555;
-		color: #ddd;
+		border-color: var(--border-soft);
+		color: var(--text);
 	}
 
 	.specialty-tab.active {
-		border-color: var(--gold);
+		border-color: var(--gold-border);
 		color: var(--gold);
-		background: rgba(255, 204, 0, 0.08);
+		background: var(--gold-dim);
+		font-weight: 700;
 	}
 
 	.specialty-heading {
@@ -520,13 +528,13 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 10px;
-		color: var(--gold);
-		text-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
 	}
 
 	.specialty-heading h3 {
 		margin: 0;
-		font-size: 22px;
+		font-size: 16px;
+		font-weight: 700;
+		color: var(--gold);
 	}
 
 	.toggle-all-btn {
@@ -535,17 +543,16 @@
 		cursor: pointer;
 		font-size: 12px;
 		font-weight: 600;
-		color: #aaa;
-		background: #222;
-		border: 1px solid #333;
+		color: var(--text-muted);
+		background: var(--surface-2);
+		border: 1px solid var(--border);
 		padding: 6px 12px;
-		border-radius: 6px;
-		text-shadow: none;
+		border-radius: var(--r-sm);
 	}
 
 	.toggle-all-btn:hover {
-		color: #ddd;
-		border-color: #555;
+		color: var(--text);
+		border-color: var(--border-soft);
 	}
 
 	.weapon-scroll {
@@ -556,14 +563,14 @@
 	.weapon-grid {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 8px;
 		min-width: 620px;
 	}
 
 	.weapon-header-row,
 	.weapon-row {
 		display: grid;
-		grid-template-columns: minmax(180px, 260px) repeat(6, minmax(56px, 1fr));
+		grid-template-columns: minmax(180px, 260px) repeat(5, minmax(56px, 1fr));
 		gap: 8px;
 		align-items: center;
 	}
@@ -574,9 +581,9 @@
 
 	.weapon-col-label {
 		text-align: center;
-		font-size: 12px;
-		font-weight: 600;
-		color: #888;
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--text-dim);
 	}
 
 	.weapon-group {
@@ -600,25 +607,29 @@
 	.group-toggle {
 		all: unset;
 		box-sizing: border-box;
-		display: flex;
+		display: inline-flex;
 		align-items: center;
-		gap: 3px;
+		gap: 5px;
 		flex-shrink: 0;
 		cursor: pointer;
 		font-size: 11px;
-		color: #888;
-		padding: 2px 6px;
-		border-radius: 4px;
+		font-weight: 700;
+		color: var(--text-muted);
+		background: var(--surface-2);
+		border: 1px solid var(--border-soft);
+		padding: 4px 9px 4px 8px;
+		border-radius: 999px;
 	}
 
 	.group-toggle:hover {
-		color: #ccc;
-		background: rgba(255, 255, 255, 0.05);
+		color: var(--text);
+		border-color: var(--border);
+		background: var(--surface-hover);
 	}
 
 	.group-toggle-caret {
-		display: inline-block;
-		transition: transform 0.15s;
+		flex-shrink: 0;
+		transition: transform 0.15s ease;
 	}
 
 	.group-toggle-caret.collapsed {
@@ -633,13 +644,13 @@
 		gap: 10px;
 		min-width: 0;
 		cursor: pointer;
-		border-radius: 6px;
+		border-radius: var(--r-sm);
 		padding: 4px;
 		margin: -4px;
 	}
 
 	.weapon-agent:hover {
-		background: rgba(255, 255, 255, 0.05);
+		background: var(--surface-hover);
 	}
 
 	.sub-agent {
@@ -650,10 +661,10 @@
 	.weapon-avatar {
 		width: 36px;
 		height: 36px;
-		border-radius: 8px;
+		border-radius: var(--r-sm);
 		object-fit: cover;
 		flex-shrink: 0;
-		border: 1px solid #333;
+		border: 1px solid var(--border);
 	}
 
 	.weapon-avatar.sub-avatar {
@@ -662,7 +673,7 @@
 	}
 
 	.weapon-avatar.placeholder {
-		background: #2a2a2a;
+		background: var(--surface-2);
 	}
 
 	.weapon-name {
@@ -670,22 +681,21 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		font-weight: 600;
-		font-size: 13px;
+		font-size: 14px;
 	}
 
 	.sub-row .weapon-name {
 		font-weight: 500;
 		font-size: 12px;
-		color: #ccc;
+		color: var(--text-muted);
 	}
 
 	.new-tag {
 		flex-shrink: 0;
-		font-size: 10px;
+		font-size: 9px;
 		font-weight: 700;
-		text-transform: uppercase;
 		color: var(--gold);
-		background: rgba(255, 204, 0, 0.12);
+		background: var(--gold-dim);
 		padding: 1px 5px;
 		border-radius: 4px;
 	}
@@ -699,7 +709,7 @@
 		align-items: center;
 		justify-content: center;
 		font-weight: 900;
-		font-size: 13px;
+		font-size: 14px;
 		line-height: 1;
 		color: #fff;
 		text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
@@ -716,19 +726,19 @@
 		box-sizing: border-box;
 		cursor: pointer;
 		align-self: flex-start;
-		padding: 4px 24px;
+		padding: 2px 0 0 41px;
 		font-size: 11px;
-		color: #666;
+		color: var(--text-dim);
 	}
 
 	.add-agent-row:hover {
-		color: #aaa;
+		color: var(--text-muted);
 	}
 
 	.weapon-cell {
 		text-align: center;
-		padding: 10px 4px;
-		border-radius: 6px;
+		padding: 9px 4px;
+		border-radius: var(--r-sm);
 		font-weight: 700;
 		font-size: 14px;
 	}
@@ -736,10 +746,6 @@
 	.weapon-cell.sub-cell {
 		padding: 6px 4px;
 		font-size: 12px;
-	}
-
-	.weapon-cell-spacer {
-		background: transparent;
 	}
 
 	.weapon-cell.col-0 {
@@ -767,29 +773,41 @@
 		color: #e2a0e0;
 	}
 
-	.weapon-cell.col-5 {
-		background: #742d4c;
-		color: #f5a3b8;
+	.weapon-cell.empty {
+		background: var(--surface-hover);
+		color: var(--text-dim);
 	}
 
-	.weapon-cell.empty {
-		color: rgba(255, 255, 255, 0.3);
-		filter: saturate(0.4) brightness(0.75);
+	.log-heading {
+		border: none;
+		padding-bottom: 0;
+		margin-bottom: 0;
+		font-size: 14px;
+	}
+
+	.log-heading.rejected {
+		color: var(--danger);
+	}
+
+	.log-heading.approved {
+		color: var(--success);
 	}
 
 	.log-columns {
-		display: flex;
-		gap: 20px;
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 18px;
 	}
 
 	.log-columns .log-card {
-		flex: 1;
 		min-width: 0;
+		padding: 20px;
+		gap: 10px;
 	}
 
 	@media (max-width: 700px) {
 		.log-columns {
-			flex-direction: column;
+			grid-template-columns: 1fr;
 		}
 	}
 
@@ -808,24 +826,25 @@
 		align-items: center;
 		width: 100%;
 		min-width: 0;
-		background: #222;
-		border: 1px solid #333;
-		border-radius: 8px;
-		padding: 10px;
+		background: var(--surface-2);
+		border: 1px solid var(--border-soft);
+		border-radius: var(--r-md);
+		padding: 9px 11px;
 		cursor: pointer;
+		transition: border-color 0.15s;
 	}
 
 	.log-item:hover {
-		border-color: #555;
+		border-color: var(--gold-border);
 	}
 
 	.log-avatar {
 		width: 32px;
 		height: 32px;
-		border-radius: 8px;
+		border-radius: var(--r-sm);
 		object-fit: cover;
 		flex-shrink: 0;
-		border: 1px solid #333;
+		border: 1px solid var(--border);
 	}
 
 	.log-body {
@@ -837,12 +856,12 @@
 
 	.log-title {
 		font-weight: 600;
-		font-size: 13px;
+		font-size: 12px;
 	}
 
 	.log-msg {
 		font-size: 12px;
-		color: #aaa;
+		color: var(--text-dim);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;

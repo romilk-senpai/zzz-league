@@ -34,6 +34,7 @@
 	let form = $state(emptyMemberRegistrationForm());
 	let awareness = $state(false);
 	let status = $state("");
+	let showErrors = $state(false);
 
 	let fieldsInitialized = false;
 	function applyRegistrationData(reg: TournamentRegistration | null) {
@@ -89,11 +90,13 @@
 		if (isRegistering || !tournament) return;
 
 		if (!awareness) {
+			showErrors = true;
 			status = "Ты не ОСОЗНАЛ.";
 			return;
 		}
 
 		if (!isMemberRegistrationFormComplete(form)) {
+			showErrors = true;
 			status = "Заполните все поля";
 			return;
 		}
@@ -105,6 +108,7 @@
 
 		if (!$currentUser) return;
 
+		showErrors = false;
 		isRegistering = true;
 		try {
 			await applyForTournament(tournament.id, $currentUser.uid, memberRegistrationFormToInput(form));
@@ -183,13 +187,19 @@
 					>
 				{/if}
 
-				<TournamentMemberRegistrationFields idPrefix="reg" {form} />
+				<TournamentMemberRegistrationFields idPrefix="reg" {form} {showErrors} />
 
 				<div class="divider"></div>
 
 				<div class="check-row">
 					<span class="cb-wrap">
-						<input id="awareness" type="checkbox" class="cb-input" bind:checked={awareness} />
+						<input
+							id="awareness"
+							type="checkbox"
+							class="cb-input"
+							class:invalid={showErrors && !awareness}
+							bind:checked={awareness}
+						/>
 						{#if awareness}
 							<svg class="cb-check" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
 						{/if}
@@ -237,7 +247,7 @@
 	}
 
 	.page-title {
-		font-size: 19px;
+		font-size: 20px;
 		padding-bottom: 16px;
 	}
 
@@ -245,7 +255,7 @@
 		align-self: flex-start;
 		padding: 0 14px;
 		height: 32px;
-		font-size: 11.5px;
+		font-size: 12px;
 	}
 
 	.divider {
@@ -266,7 +276,7 @@
 	}
 
 	.check-row label {
-		font-size: 12.5px;
+		font-size: 12px;
 		color: var(--text-muted);
 		line-height: 1.6;
 		cursor: pointer;
@@ -301,6 +311,10 @@
 	.cb-input:checked {
 		background: var(--gold);
 		border-color: var(--gold);
+	}
+
+	.cb-input.invalid {
+		border-color: var(--danger);
 	}
 
 	.cb-check {

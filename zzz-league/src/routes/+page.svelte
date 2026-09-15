@@ -147,8 +147,8 @@
 				</h2>
 				<div style="display:flex; align-items:center; gap:16px;">
 					{#if isViewingArchive}
-						<button class="btn-common back-btn" onclick={loadLive}
-							>← ТЕКУЩАЯ ЛИГА</button
+						<button class="btn-common current-league-btn" onclick={loadLive}
+							>← Текущая лига</button
 						>
 					{/if}
 					<label class="filter-toggle">
@@ -245,13 +245,13 @@
 	}
 
 	.timer-label {
-		font-size: 12.5px;
+		font-size: 12px;
 		font-weight: 700;
 		color: var(--text);
 	}
 
 	.timer-ended {
-		font-size: 15px;
+		font-size: 16px;
 		font-weight: 800;
 		color: var(--danger);
 	}
@@ -296,7 +296,7 @@
 	}
 
 	.section-heading {
-		font-size: 15px;
+		font-size: 16px;
 		color: var(--gold);
 		border: none;
 		padding: 0;
@@ -314,7 +314,7 @@
 	}
 
 	.leaderboard-card .search-container h2 {
-		font-size: 15px;
+		font-size: 16px;
 	}
 
 	.leaderboard-card .table-wrapper {
@@ -341,10 +341,10 @@
 		padding-left: 28px;
 	}
 
-	.back-btn {
+	.current-league-btn {
 		height: 32px;
 		padding: 0 14px;
-		font-size: 11.5px;
+		font-size: 12px;
 	}
 
 	.archive-section {
@@ -364,11 +364,11 @@
 	.archive-buttons .btn-common {
 		height: 32px;
 		padding: 0 12px;
-		font-size: 11.5px;
+		font-size: 12px;
 	}
 
 	.section-label {
-		font-size: 11px;
+		font-size: 16px;
 		font-weight: 700;
 		color: var(--text-dim);
 	}

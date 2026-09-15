@@ -1,5 +1,7 @@
+// Pre-resized to 80px (see scripts/resize-avatars.mjs) — weapon icons are never shown larger
+// than 36px anywhere, so unlike agents there's no second "large" tier.
 const modules = import.meta.glob<{ default: string }>(
-	'./assets/weapons/*.webp',
+	'./assets/weapons/sm/*.webp',
 	{ eager: true },
 );
 

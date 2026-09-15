@@ -360,7 +360,7 @@
 	}
 
 	.section-label {
-		font-size: 11px;
+		font-size: 16px;
 		font-weight: 700;
 		color: var(--text-dim);
 		margin-bottom: 10px;
@@ -372,7 +372,7 @@
 		padding: 12px 14px;
 		border-radius: var(--r-md);
 		border: 1px dashed var(--border);
-		font-size: 12.5px;
+		font-size: 12px;
 		line-height: 1.6;
 	}
 </style>

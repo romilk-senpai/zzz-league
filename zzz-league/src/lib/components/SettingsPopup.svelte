@@ -133,7 +133,7 @@
 			onclick={() => (avatarPickerOpen = true)}
 		>
 			{#if selectedAvatar}
-				<img src={selectedAvatar.src} alt={selectedAvatar.name} />
+				<img src={selectedAvatar.srcLarge} alt={selectedAvatar.name} />
 			{:else}
 				<span class="avatar-placeholder">?</span>
 			{/if}
@@ -245,7 +245,7 @@
 
 	.popup-title {
 		display: block;
-		font-size: 17px;
+		font-size: 18px;
 		font-weight: 700;
 		text-align: center;
 		margin-bottom: 0;
@@ -274,7 +274,7 @@
 	.form-row label {
 		flex: 0 0 130px;
 		color: var(--text-muted);
-		font-size: 12.5px;
+		font-size: 12px;
 	}
 
 	.form-row input {

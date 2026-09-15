@@ -44,6 +44,7 @@
 
 	let status = $state("");
 	let savingTournament = $state(false);
+	let showErrors = $state(false);
 
 	onMount(async () => {
 		try {
@@ -106,10 +107,12 @@
 			overrideEloValue,
 		});
 		if (result.error !== null) {
+			showErrors = true;
 			status = result.error;
 			return;
 		}
 
+		showErrors = false;
 		try {
 			if (savingTournament) return;
 			savingTournament = true;
@@ -180,6 +183,7 @@
 					bind:tournamentStartDate
 					bind:tournamentEndDate
 					editableTypeAndMode={false}
+					{showErrors}
 				/>
 
 				{#if status}<p class="status error">{status}</p>{/if}
@@ -205,7 +209,7 @@
 	}
 
 	.page-title {
-		font-size: 19px;
+		font-size: 20px;
 		padding-bottom: 16px;
 	}
 

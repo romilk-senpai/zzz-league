@@ -41,9 +41,10 @@ export async function createTeam(
 	return toTeam(await apiPost<TeamDto>('/api/teams', { creatorPlayerId, player2PlayerId, name, photo: photoBase64 }));
 }
 
-export async function updateTeam(id: string, name: string, player2PlayerId: string, photo: File | null = null): Promise<Team> {
+// The second player is fixed at creation — an edit can only change the name/logo.
+export async function updateTeam(id: string, name: string, photo: File | null = null): Promise<Team> {
 	const photoBase64 = photo ? await fileToBase64(photo) : null;
-	return toTeam(await apiPut<TeamDto>(`/api/teams/${id}`, { name, player2PlayerId, photo: photoBase64 }));
+	return toTeam(await apiPut<TeamDto>(`/api/teams/${id}`, { name, photo: photoBase64 }));
 }
 
 export async function deleteTeam(id: string): Promise<void> {

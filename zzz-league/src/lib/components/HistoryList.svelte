@@ -340,10 +340,6 @@
 {/if}
 
 <style>
-	.match-list {
-		gap: 4px;
-	}
-
 	.h-item {
 		--btn-fg: var(--text);
 		display: flex;
@@ -354,7 +350,7 @@
 		border-radius: var(--r-sm);
 		border-left: 3px solid var(--border);
 		background: var(--surface-2);
-		font-size: 12.5px;
+		font-size: 14px;
 		transition: background 0.15s;
 	}
 
@@ -403,7 +399,7 @@
 	.h-vs {
 		color: var(--text-dim);
 		font-weight: 500;
-		font-size: 11px;
+		font-size: 12px;
 		flex-shrink: 0;
 	}
 
@@ -412,7 +408,7 @@
 	}
 
 	.h-delta {
-		font-size: 10px;
+		font-size: 11px;
 		font-weight: 800;
 		padding: 1px 5px;
 		border-radius: 4px;
@@ -444,14 +440,14 @@
 
 	.h-meta {
 		display: grid;
-		grid-template-columns: 170px 96px 24px;
+		grid-template-columns: 182px 104px 24px;
 		align-items: center;
 		gap: 12px;
 		flex-shrink: 0;
 	}
 
 	.h-score {
-		font-size: 11.5px;
+		font-size: 14px;
 		font-weight: 700;
 		color: var(--text-muted);
 		font-variant-numeric: tabular-nums;
@@ -463,7 +459,7 @@
 	}
 
 	.h-tournament {
-		font-size: 11px;
+		font-size: 12px;
 		color: var(--text-dim);
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -475,7 +471,7 @@
 	}
 
 	.h-date {
-		font-size: 11px;
+		font-size: 12px;
 		color: var(--text-dim);
 		white-space: nowrap;
 		text-align: right;
@@ -510,7 +506,7 @@
 	.legacy-divider {
 		text-align: center;
 		color: var(--text-dim);
-		font-size: 11px;
+		font-size: 12px;
 		padding: 4px 0;
 		border-bottom: 1px solid var(--border-soft);
 	}
@@ -525,7 +521,7 @@
 
 	.pager-btn {
 		height: 32px;
-		font-size: 11.5px;
+		font-size: 12px;
 		padding: 0 14px;
 	}
 

@@ -56,7 +56,8 @@
 	}
 
 	async function handleSave() {
-		if (saving || !name.trim() || !selectedPlayer2Uid || !$currentUser) return;
+		// Player 2 is fixed at creation — an edit only ever touches name/photo.
+		if (saving || !name.trim() || (!isEdit && !selectedPlayer2Uid) || !$currentUser) return;
 
 		const photo = photoFile?.[0] ?? null;
 		if (photo && isImageTooLarge(photo)) {
@@ -68,7 +69,7 @@
 		status = "";
 		try {
 			const saved = isEdit
-				? await updateTeam(team!.id, name.trim(), selectedPlayer2Uid, photo)
+				? await updateTeam(team!.id, name.trim(), photo)
 				: await createTeam($currentUser.uid, selectedPlayer2Uid, name.trim(), photo);
 			onSaved?.(saved);
 		} catch (error: any) {
@@ -134,7 +135,7 @@
 				</div>
 			</div>
 
-			<div class="form-group">
+			<div class="form-row">
 				<label for="team-name">Название</label>
 				<input
 					id="team-name"
@@ -144,38 +145,45 @@
 				/>
 			</div>
 
-			<div class="form-group">
-				<label for="team-player2-search">Поиск напарника</label>
-				<span class="search-wrap">
-					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="search-icon"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-					<input
-						id="team-player2-search"
-						type="text"
-						class="search-input"
-						placeholder="Поиск..."
-						bind:value={searchQuery}
-					/>
-				</span>
-			</div>
+			{#if isEdit}
+				<div class="form-row">
+					<label for="team-player2-readonly">Напарник</label>
+					<p id="team-player2-readonly" class="readonly-value">{team!.player2.name}</p>
+				</div>
+			{:else}
+				<div class="form-row">
+					<label for="team-player2-search">Поиск напарника</label>
+					<span class="search-wrap">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="search-icon"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+						<input
+							id="team-player2-search"
+							type="text"
+							class="search-input"
+							placeholder="Поиск..."
+							bind:value={searchQuery}
+						/>
+					</span>
+				</div>
 
-			<div class="form-group">
-				<label for="team-player2-select">Напарник</label>
-				<span class="select-wrap">
-					<select id="team-player2-select" bind:value={selectedPlayer2Uid}>
-						<option value="">Выберите игрока</option>
-						{#each availablePlayers as player (player.uid)}
-							<option value={player.uid}>{player.name}</option>
-						{/each}
-					</select>
-					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
-				</span>
-			</div>
+				<div class="form-row">
+					<label for="team-player2-select">Напарник</label>
+					<span class="select-wrap">
+						<select id="team-player2-select" bind:value={selectedPlayer2Uid}>
+							<option value="">Выберите игрока</option>
+							{#each availablePlayers as player (player.uid)}
+								<option value={player.uid}>{player.name}</option>
+							{/each}
+						</select>
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="select-arrow"><polyline points="6 9 12 15 18 9"/></svg>
+					</span>
+				</div>
+			{/if}
 
 			{#if status}<p class="status error">{status}</p>{/if}
 			<button
 				class="btn-common btn-play btn-block"
 				class:btn-loading={saving}
-				disabled={!name.trim() || !selectedPlayer2Uid}
+				disabled={!name.trim() || (!isEdit && !selectedPlayer2Uid)}
 				onclick={handleSave}>Сохранить</button
 			>
 		</div>
@@ -254,15 +262,37 @@
 		color: var(--text-dim);
 	}
 
-	.form-group {
+	.form-row {
 		display: flex;
-		flex-direction: column;
-		gap: 6px;
+		align-items: center;
+		gap: 14px;
 	}
 
-	.form-group label {
-		font-size: 11.5px;
-		color: var(--text-dim);
+	.form-row label {
+		flex: 0 0 110px;
+		color: var(--text-muted);
+		font-size: 12px;
+	}
+
+	.form-row input,
+	.form-row .search-wrap,
+	.form-row .select-wrap,
+	.form-row .readonly-value {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.readonly-value {
+		margin: 0;
+		height: 36px;
+		display: flex;
+		align-items: center;
+		padding: 0 12px;
+		border-radius: var(--r-md);
+		background: var(--bg-elevated);
+		border: 1px solid var(--border-soft);
+		color: var(--text-muted);
+		font-size: 12px;
 		font-weight: 600;
 	}
 

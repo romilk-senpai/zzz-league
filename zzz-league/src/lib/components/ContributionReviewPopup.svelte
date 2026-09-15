@@ -35,6 +35,7 @@
 	let expandedComments = $state<Set<string>>(new Set());
 	let expandedDiscussions = $state<Set<string>>(new Set());
 	let discussionDrafts = $state<Record<string, string>>({});
+	let showReviewForm = $state(false);
 
 	// Best-effort "is this my review" match for the pre-fill/edit UX below — ReviewDto only
 	// carries a display name, not a stable reviewer id, but this is cosmetic: the server always
@@ -48,6 +49,7 @@
 		expandedComments = new Set();
 		expandedDiscussions = new Set();
 		discussionDrafts = {};
+		showReviewForm = false;
 		const id = contributionId;
 		getContribution(id).then((detail) => {
 			if (id !== contributionId) return; // stale response from a since-changed selection
@@ -55,6 +57,7 @@
 			const mine = detail?.reviews.find((r) => r.reviewerName === $currentUser?.name) ?? null;
 			vote = mine?.vote ?? "positive";
 			comment = mine?.comment ?? "";
+			showReviewForm = !!mine;
 		});
 	});
 
@@ -97,6 +100,14 @@
 		approved: "Принято",
 		rejected: "Отклонено",
 	};
+
+	// Purely presentational restatement of the same 0..1 score contributionColor renders as a
+	// dot — gives the color meaning in words instead of just a gradient hue.
+	function scoreProximityLabel(score: number): string {
+		if (score >= 0.66) return "близко к одобрению";
+		if (score <= 0.33) return "далеко от одобрения";
+		return "неоднозначная оценка";
+	}
 
 	async function submitReview() {
 		if (!contribution || submittingReview) return;
@@ -148,34 +159,45 @@
 			{#if !contribution}
 				<p class="notice">Загрузка…</p>
 			{:else}
-			<h2>{agentName} — предложение от {contribution.authorName}</h2>
+			<div class="header-row">
+				<h2 class="popup-title">{agentName} — предложение от {contribution.authorName}</h2>
+				<button class="icon-btn close-btn" onclick={() => (open = false)} aria-label="Закрыть">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+				</button>
+			</div>
 
 			<div class="status-row">
-				<span class="status-badge status-{contribution.status}">{statusLabels[contribution.status]}</span>
+				<span class="tag status-{contribution.status}">{statusLabels[contribution.status]}</span>
 				{#if contribution.status === "pending"}
 					<span
 						class="score-dot"
 						style="background:{contributionColor(contribution.score)}"
 						title="Прогресс к одобрению сообществом"
 					></span>
+					<span class="score-label">{scoreProximityLabel(contribution.score)}</span>
 				{/if}
 			</div>
 
 			<p class="contribution-message">{contribution.message}</p>
 
-			<div class="diff-grid" style="grid-template-columns: 90px repeat({rankLabels.length}, 1fr);">
-				<div></div>
-				{#each rankLabels as m, i (i)}
-					<div class="diff-label">{m || `#${i + 1}`}</div>
-				{/each}
-				<div class="diff-row-label">Сейчас</div>
-				{#each currentCosts as v, i (i)}
-					<div class="diff-cell">{v}</div>
-				{/each}
-				<div class="diff-row-label">Предложено</div>
-				{#each contribution.proposedCosts as v, i (i)}
-					<div class="diff-cell" class:changed={v !== currentCosts[i]}>{v}</div>
-				{/each}
+			<div class="section-block">
+				<div class="section-title">Изменение стоимости</div>
+				<div class="diff-scroll">
+					<div class="diff-grid" style="grid-template-columns: 78px repeat({rankLabels.length}, minmax(44px, 1fr));">
+						<div></div>
+						{#each rankLabels as m, i (i)}
+							<div class="diff-label">{m || `#${i + 1}`}</div>
+						{/each}
+						<div class="diff-row-label">Сейчас</div>
+						{#each currentCosts as v, i (i)}
+							<div class="diff-cell">{v}</div>
+						{/each}
+						<div class="diff-row-label">Предложено</div>
+						{#each contribution.proposedCosts as v, i (i)}
+							<div class="diff-cell" class:changed={v !== currentCosts[i]}>{v}</div>
+						{/each}
+					</div>
+				</div>
 			</div>
 
 			<h3>Отзывы ({contribution.reviews.length})</h3>
@@ -190,25 +212,24 @@
 							<div class="review-header">
 								<span class="review-vote vote-{r.vote}">{voteLabels[r.vote]}</span>
 								<span class="review-author">{r.reviewerName}</span>
-								{#if r.comment}
-									<button
-										type="button"
-										class="review-comment-line"
-										class:expanded={commentExpanded}
-										onclick={() => toggleComment(r.id)}
-									>
-										{r.comment}
-									</button>
-								{/if}
 							</div>
 
-							<button
-								type="button"
-								class="discussion-toggle"
-								onclick={() => toggleDiscussion(r.id)}
-							>
-								💬 {r.comments.length ? `Обсуждение (${r.comments.length})` : "Обсудить"}
-								<span class="discussion-caret" class:expanded={discussionExpanded}>▸</span>
+							{#if r.comment}
+								<button
+									type="button"
+									class="review-comment-toggle"
+									class:expanded={commentExpanded}
+									title="Показать полностью"
+									onclick={() => toggleComment(r.id)}
+								>
+									<span class="review-comment">{r.comment}</span>
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+								</button>
+							{/if}
+
+							<button type="button" class="discussion-toggle" onclick={() => toggleDiscussion(r.id)}>
+								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+								{r.comments.length ? `Обсуждение (${r.comments.length})` : "Обсудить"}
 							</button>
 
 							{#if discussionExpanded}
@@ -219,7 +240,7 @@
 										<div class="discussion-list">
 											{#each r.comments as rc (rc.id)}
 												<div class="discussion-comment">
-													<span class="discussion-author">{rc.authorName}</span>
+													<span class="discussion-author">{rc.authorName}:</span>
 													<span class="discussion-text">{rc.text}</span>
 												</div>
 											{/each}
@@ -232,7 +253,7 @@
 											oninput={(e) => (discussionDrafts[r.id] = e.currentTarget.value)}
 										/>
 										{#if $currentUser}
-											<button type="button" onclick={() => submitDiscussionComment(r.id)}
+											<button type="button" class="btn-common" onclick={() => submitDiscussionComment(r.id)}
 												>Отправить</button
 											>
 										{/if}
@@ -244,41 +265,50 @@
 				</div>
 			{/if}
 
+			<div class="divider"></div>
+
 			{#if $currentUser}
-			<div class="add-review">
-				<div class="vote-choice">
-					<button type="button" class:selected={vote === "positive"} onclick={() => (vote = "positive")}
-						>👍</button
-					>
-					<button type="button" class:selected={vote === "neutral"} onclick={() => (vote = "neutral")}
-						>😐</button
-					>
-					<button type="button" class:selected={vote === "negative"} onclick={() => (vote = "negative")}
-						>👎</button
-					>
-				</div>
-				<textarea rows="2" placeholder="Комментарий к отзыву" bind:value={comment}></textarea>
-				{#if errorMessage}
-					<p class="notice error">{errorMessage}</p>
+				{#if showReviewForm}
+					<div class="add-review">
+						<div class="vote-choice">
+							<button type="button" class:selected={vote === "positive"} onclick={() => (vote = "positive")}
+								>👍</button
+							>
+							<button type="button" class:selected={vote === "neutral"} onclick={() => (vote = "neutral")}
+								>😐</button
+							>
+							<button type="button" class:selected={vote === "negative"} onclick={() => (vote = "negative")}
+								>👎</button
+							>
+						</div>
+						<textarea rows="2" placeholder="Комментарий к отзыву" bind:value={comment}></textarea>
+						{#if errorMessage}
+							<p class="notice error">{errorMessage}</p>
+						{/if}
+						<button class="btn-common" onclick={submitReview} disabled={submittingReview}>
+							{submittingReview ? "Отправка…" : myReview ? "Обновить отзыв" : "Добавить отзыв"}
+						</button>
+					</div>
+				{:else}
+					<button type="button" class="btn-common btn-block" onclick={() => (showReviewForm = true)}>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+						Оставить отзыв
+					</button>
 				{/if}
-				<button class="btn-common" onclick={submitReview} disabled={submittingReview}>
-					{submittingReview ? "Отправка…" : myReview ? "Обновить отзыв" : "Добавить отзыв"}
-				</button>
-			</div>
 			{:else}
 				<p class="notice">Войдите, чтобы оставить отзыв.</p>
 			{/if}
 
 			{#if canModerate && contribution.status === "pending"}
-				<div class="btn-row">
-					<button class="btn-common btn-play" onclick={approve} disabled={resolving}>Принять</button>
-					<button class="btn-common btn-reject" onclick={reject} disabled={resolving}>Отклонить</button>
+				<div class="divider"></div>
+				<div class="moderation-block">
+					<div class="section-title moderation-title">Модерация</div>
+					<div class="btn-row">
+						<button class="btn-common btn-play" onclick={approve} disabled={resolving}>Принять</button>
+						<button class="btn-common btn-danger-ghost" onclick={reject} disabled={resolving}>Отклонить</button>
+					</div>
 				</div>
 			{/if}
-
-			<div class="btn-row">
-				<button class="btn-common" onclick={() => (open = false)}>Закрыть</button>
-			</div>
 			{/if}
 		</div>
 	</div>
@@ -288,8 +318,32 @@
 	.review-card {
 		width: 560px;
 		max-width: 90vw;
-		max-height: 65vh;
+		max-height: 80vh;
+		padding: 20px 26px 26px;
+		gap: 18px;
 		overflow-y: auto;
+	}
+
+	.header-row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 12px;
+	}
+
+	.popup-title {
+		font-size: 16px;
+		font-weight: 800;
+		line-height: 1.35;
+		border: none;
+		padding-bottom: 0;
+		margin-bottom: 0;
+	}
+
+	.close-btn {
+		margin-top: -4px;
+		margin-right: -6px;
+		flex-shrink: 0;
 	}
 
 	.status-row {
@@ -298,168 +352,234 @@
 		gap: 10px;
 	}
 
-	.status-badge {
-		font-size: 12px;
-		font-weight: bold;
-		padding: 4px 10px;
-		border-radius: 4px;
+	.tag {
+		padding: 3px 9px;
+		border-radius: var(--r-sm);
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+		white-space: nowrap;
 	}
 
-	.status-pending {
-		background: rgba(255, 204, 0, 0.12);
+	.tag.status-pending {
+		background: var(--gold-dim);
 		color: var(--gold);
 	}
 
-	.status-approved {
-		background: rgba(46, 163, 75, 0.15);
-		color: var(--green);
+	.tag.status-approved {
+		background: var(--success-dim);
+		color: var(--success);
 	}
 
-	.status-rejected {
-		background: rgba(220, 57, 57, 0.15);
-		color: var(--loss);
+	.tag.status-rejected {
+		background: var(--danger-dim);
+		color: var(--danger);
 	}
 
 	.score-dot {
-		width: 12px;
-		height: 12px;
+		width: 11px;
+		height: 11px;
 		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.score-label {
+		font-size: 11px;
+		color: var(--text-dim);
 	}
 
 	.contribution-message {
-		color: #ccc;
+		margin: 0;
+		padding: 10px 12px;
+		border-left: 3px solid var(--gold-border);
+		background: var(--surface-2);
+		border-radius: 0 var(--r-sm) var(--r-sm) 0;
+		font-size: 12px;
+		color: var(--text);
+		line-height: 1.5;
 	}
 
 	.notice.error {
-		color: var(--loss);
+		color: var(--danger);
+	}
+
+	.section-block {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 14px 16px;
+		background: var(--surface-2);
+		border: 1px solid var(--border-soft);
+		border-radius: var(--r-md);
+	}
+
+	.section-title {
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: var(--text-dim);
+	}
+
+	.diff-scroll {
+		overflow-x: auto;
 	}
 
 	.diff-grid {
 		display: grid;
-		grid-template-columns: 90px repeat(7, 1fr);
 		gap: 6px;
 		align-items: center;
+		min-width: 480px;
 	}
 
 	.diff-label {
 		text-align: center;
-		font-size: 11px;
-		color: #888;
+		font-size: 10px;
+		font-weight: 700;
+		color: var(--text-dim);
 	}
 
 	.diff-row-label {
-		font-size: 12px;
-		color: #888;
+		font-size: 11px;
+		color: var(--text-dim);
+		white-space: nowrap;
 	}
 
 	.diff-cell {
 		text-align: center;
-		padding: 6px 2px;
-		border-radius: 4px;
-		background: #222;
-		font-size: 13px;
+		padding: 7px 2px;
+		border-radius: 6px;
+		background: var(--surface);
+		font-size: 12px;
+		font-weight: 600;
 	}
 
 	.diff-cell.changed {
-		background: rgba(255, 204, 0, 0.15);
+		background: var(--gold-dim);
 		color: var(--gold);
-		font-weight: bold;
+		font-weight: 800;
 	}
 
 	.review-list {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 8px;
 	}
 
 	.review-item {
-		background: #222;
-		border-radius: 6px;
-		font-size: 13px;
-		padding: 8px 10px;
+		background: var(--surface-2);
+		border: 1px solid var(--border-soft);
+		border-radius: var(--r-md);
+		font-size: 14px;
+		padding: 10px 12px;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 7px;
 	}
 
 	.review-header {
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		min-width: 0;
+		flex-wrap: wrap;
 	}
 
 	.review-vote {
-		font-weight: 600;
+		font-weight: 700;
+		font-size: 12px;
 		white-space: nowrap;
 		flex-shrink: 0;
 	}
 
 	.vote-positive {
-		color: var(--green);
+		color: var(--success);
 	}
 
 	.vote-negative {
-		color: var(--loss);
+		color: var(--danger);
 	}
 
 	.vote-neutral {
-		color: #aaa;
+		color: var(--text-muted);
 	}
 
 	.review-author {
-		color: #aaa;
+		color: var(--text-dim);
+		font-size: 12px;
 		flex-shrink: 0;
 	}
 
-	.review-comment-line {
-		all: unset;
-		box-sizing: border-box;
-		cursor: pointer;
-		color: #ccc;
-		flex: 1 1 120px;
+	.review-comment-toggle {
+		display: flex;
+		align-items: center;
+		gap: 6px;
 		min-width: 0;
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		font-family: inherit;
+	}
+
+	.review-comment-toggle svg {
+		flex-shrink: 0;
+		color: var(--text-dim);
+		transition: transform 0.15s ease;
+	}
+
+	.review-comment-toggle.expanded svg {
+		transform: rotate(180deg);
+	}
+
+	.review-comment-toggle:hover .review-comment {
+		color: var(--gold-strong);
+	}
+
+	.review-comment-toggle:hover svg {
+		color: var(--text-muted);
+	}
+
+	.review-comment {
+		font-size: 12px;
+		color: var(--text);
+		line-height: 1.4;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+		text-align: left;
 	}
 
-	.review-comment-line.expanded {
+	.review-comment-toggle.expanded .review-comment {
 		white-space: normal;
-		flex-basis: 100%;
 	}
 
 	.discussion-toggle {
-		all: unset;
-		box-sizing: border-box;
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
+		gap: 5px;
 		align-self: flex-start;
-		cursor: pointer;
-		color: #888;
 		font-size: 11px;
+		color: var(--text-dim);
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		font-family: inherit;
 	}
 
 	.discussion-toggle:hover {
-		color: #ccc;
-	}
-
-	.discussion-caret {
-		transition: transform 0.15s;
-	}
-
-	.discussion-caret.expanded {
-		transform: rotate(90deg);
+		color: var(--text-muted);
 	}
 
 	.discussion {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding: 8px;
-		background: #1a1a1a;
-		border-radius: 6px;
+		gap: 9px;
+		padding: 11px;
+		background: var(--bg-elevated);
+		border-radius: var(--r-sm);
+		border: 1px solid var(--border-soft);
 	}
 
 	.discussion-empty {
@@ -476,19 +596,27 @@
 
 	.discussion-comment {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
-		font-size: 12px;
+		flex-direction: column;
+		gap: 2px;
+		padding-bottom: 9px;
+		border-bottom: 1px solid var(--border-soft);
+	}
+
+	.discussion-comment:last-of-type {
+		padding-bottom: 0;
+		border-bottom: none;
 	}
 
 	.discussion-author {
-		color: #aaa;
+		color: var(--text-dim);
 		font-weight: 600;
-		flex-shrink: 0;
+		font-size: 11px;
 	}
 
 	.discussion-text {
-		color: #ccc;
+		color: var(--text);
+		font-size: 12px;
+		line-height: 1.4;
 	}
 
 	.discussion-add {
@@ -499,23 +627,22 @@
 	.discussion-add input {
 		flex: 1;
 		min-width: 0;
-		padding: 6px 8px;
+		height: 32px;
+		padding: 0 9px;
 		font-size: 12px;
 	}
 
-	.discussion-add button {
-		all: unset;
-		box-sizing: border-box;
-		cursor: pointer;
-		padding: 6px 10px;
-		background: #333;
-		border-radius: 6px;
-		font-size: 12px;
+	.discussion-add .btn-common {
+		height: 32px;
+		padding: 0 11px;
+		font-size: 11px;
+		width: auto;
 		white-space: nowrap;
 	}
 
-	.discussion-add button:hover {
-		background: #444;
+	.divider {
+		height: 1px;
+		background: var(--border-soft);
 	}
 
 	.add-review {
@@ -531,9 +658,9 @@
 
 	.vote-choice button {
 		flex: 1;
-		background: #222;
-		border: 1px solid #333;
-		border-radius: 8px;
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		border-radius: var(--r-md);
 		padding: 8px;
 		font-size: 18px;
 		cursor: pointer;
@@ -541,12 +668,24 @@
 
 	.vote-choice button.selected {
 		border-color: var(--gold);
-		background: rgba(255, 204, 0, 0.1);
+		background: var(--gold-dim);
 	}
 
-	.btn-reject {
-		background: #441111;
-		color: #ff4444;
-		border-color: #662222;
+	.btn-block {
+		width: 100%;
+	}
+
+	.moderation-block {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 12px 14px;
+		border-radius: var(--r-md);
+		background: var(--danger-dim);
+		border: 1px solid var(--danger-border);
+	}
+
+	.moderation-title {
+		color: var(--danger);
 	}
 </style>

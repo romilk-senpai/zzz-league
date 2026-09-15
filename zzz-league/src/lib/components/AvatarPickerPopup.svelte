@@ -64,14 +64,18 @@
 				</button>
 			</div>
 			<h2 class="popup-title">Выберите аватар</h2>
-			<span class="search-wrap">
-				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="search-icon"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-				<input
-					class="search-input"
-					placeholder="Поиск..."
-					bind:value={searchQuery}
-				/>
-			</span>
+			<div class="form-group">
+				<label for="avatar-search">Поиск аватара</label>
+				<span class="search-wrap">
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="search-icon"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+					<input
+						id="avatar-search"
+						class="search-input"
+						placeholder="Поиск..."
+						bind:value={searchQuery}
+					/>
+				</span>
+			</div>
 			<div class="avatar-grid">
 				{#each filteredAvatars as agent (agent.id)}
 					<button
@@ -118,6 +122,18 @@
 		border: none;
 		padding-bottom: 0;
 		margin-bottom: 0;
+	}
+
+	.form-group {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.form-group label {
+		font-size: 12px;
+		color: var(--text-dim);
+		font-weight: 600;
 	}
 
 	.search-wrap {

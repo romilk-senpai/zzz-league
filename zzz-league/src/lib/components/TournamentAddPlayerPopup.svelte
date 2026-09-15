@@ -130,7 +130,7 @@
 	}
 
 	.form-group label {
-		font-size: 11.5px;
+		font-size: 12px;
 		color: var(--text-dim);
 		font-weight: 600;
 	}

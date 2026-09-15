@@ -34,6 +34,7 @@
 
 	let status = $state("");
 	let creatingTournament = $state(false);
+	let showErrors = $state(false);
 
 	async function handleCreateTournament() {
 		const result = parseAndValidateTournamentForm({
@@ -47,10 +48,12 @@
 			overrideEloValue,
 		});
 		if (result.error !== null) {
+			showErrors = true;
 			status = result.error;
 			return;
 		}
 
+		showErrors = false;
 		try {
 			if (creatingTournament) return;
 			creatingTournament = true;
@@ -115,6 +118,7 @@
 				bind:registrationEndDate
 				bind:tournamentStartDate
 				bind:tournamentEndDate
+				{showErrors}
 			/>
 
 			{#if status}<p class="status error">{status}</p>{/if}
@@ -139,7 +143,7 @@
 	}
 
 	.page-title {
-		font-size: 19px;
+		font-size: 20px;
 		padding-bottom: 16px;
 	}
 

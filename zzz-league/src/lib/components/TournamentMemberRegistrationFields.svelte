@@ -7,11 +7,16 @@
 		idPrefix,
 		label = null,
 		form,
+		showErrors = false,
 	}: {
 		idPrefix: string;
 		label?: string | null;
 		form: MemberRegistrationForm;
+		showErrors?: boolean;
 	} = $props();
+
+	let hasRoster = $derived(!!form.rosterScreenshot?.length || !!form.existingRosterUrl);
+	let hasHoyolab = $derived(!!form.hoyolabScreenshot?.length || !!form.existingHoyolabUrl);
 
 	let rosterPreview = useObjectUrlPreview(() => form.rosterScreenshot?.[0]);
 	let hoyolabPreview = useObjectUrlPreview(() => form.hoyolabScreenshot?.[0]);
@@ -38,44 +43,48 @@
 
 {#if label}<h3 class="member-label">{label}</h3>{/if}
 
-<div class="check-row">
-	<span class="cb-wrap">
-		<input
-			id="{idPrefix}-prize-as-money"
-			type="checkbox"
-			class="cb-input"
-			bind:checked={form.prizeAsMoney}
-		/>
-		{#if form.prizeAsMoney}
-			<svg class="cb-check" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-		{/if}
-	</span>
-	<label for="{idPrefix}-prize-as-money">Взять призовые деньгами</label>
-</div>
-
 <div class="form-grid">
 	<div class="form-group">
 		<label for="{idPrefix}-zzz-uid">Игровой UID</label>
-		<input id="{idPrefix}-zzz-uid" type="text" bind:value={form.gameUid} placeholder="Игровой UID" />
+		<input
+			id="{idPrefix}-zzz-uid"
+			type="text"
+			class:invalid={showErrors && !form.gameUid}
+			bind:value={form.gameUid}
+			placeholder="Игровой UID"
+		/>
 	</div>
-	{#if !form.prizeAsMoney}
-		<div class="form-group">
-			<label for="{idPrefix}-prize-uid">UID для призовых</label>
-			<input
-				id="{idPrefix}-prize-uid"
-				type="text"
-				bind:value={form.prizeUid}
-				placeholder="UID для призовых"
-			/>
+	<div class="form-group toggle-field">
+		<div class="check-row">
+			<span class="cb-wrap">
+				<input
+					id="{idPrefix}-prize-as-money"
+					type="checkbox"
+					class="cb-input"
+					bind:checked={form.prizeAsMoney}
+				/>
+				{#if form.prizeAsMoney}
+					<svg class="cb-check" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+				{/if}
+			</span>
+			<label for="{idPrefix}-prize-as-money">Взять призовые деньгами</label>
 		</div>
-	{:else}
-		<span></span>
-	{/if}
+		<input
+			id="{idPrefix}-prize-uid"
+			type="text"
+			class:input-disabled={form.prizeAsMoney}
+			class:invalid={showErrors && !form.prizeAsMoney && !form.prizeUid}
+			bind:value={form.prizeUid}
+			disabled={form.prizeAsMoney}
+			placeholder={form.prizeAsMoney ? "Не требуется" : "UID для призовых"}
+		/>
+	</div>
 	<div class="form-group">
 		<label for="{idPrefix}-darte-nickname">Ник на Darte</label>
 		<input
 			id="{idPrefix}-darte-nickname"
 			type="text"
+			class:invalid={showErrors && !form.darteNickname}
 			bind:value={form.darteNickname}
 			placeholder="Ник на Darte"
 		/>
@@ -85,6 +94,7 @@
 		<input
 			id="{idPrefix}-darte-account"
 			type="text"
+			class:invalid={showErrors && !form.darteAccount}
 			bind:value={form.darteAccount}
 			placeholder="Название пресета на Darte"
 		/>
@@ -94,6 +104,7 @@
 		<input
 			id="{idPrefix}-darte-preset"
 			type="text"
+			class:invalid={showErrors && !form.dartePreset}
 			bind:value={form.dartePreset}
 			placeholder="Название ростера"
 		/>
@@ -101,7 +112,7 @@
 </div>
 
 <div class="upload-grid">
-	<div class="upload-card">
+	<div class="upload-card" class:invalid={showErrors && !hasRoster}>
 		<div class="upload-card-label">Скриншот ростера</div>
 		{#if rosterPreview.url}
 			<button type="button" class="thumb has-image" onclick={() => openImagePopup(rosterPreview.url!)}>
@@ -140,7 +151,7 @@
 		{/if}
 	</div>
 
-	<div class="upload-card">
+	<div class="upload-card" class:invalid={showErrors && !hasHoyolab}>
 		<div class="upload-card-label">Скриншот персонажей в Hoyolab</div>
 		{#if hoyolabPreview.url}
 			<button type="button" class="thumb has-image" onclick={() => openImagePopup(hoyolabPreview.url!)}>
@@ -182,7 +193,7 @@
 
 <style>
 	.member-label {
-		font-size: 13px;
+		font-size: 14px;
 		font-weight: 700;
 		color: var(--gold);
 		margin: 0;
@@ -195,7 +206,7 @@
 	}
 
 	.check-row label {
-		font-size: 12.5px;
+		font-size: 12px;
 		color: var(--text-muted);
 		font-weight: 500;
 		cursor: pointer;
@@ -256,9 +267,15 @@
 	}
 
 	.form-group label {
-		font-size: 11.5px;
+		font-size: 12px;
 		color: var(--text-dim);
 		font-weight: 600;
+	}
+
+	.toggle-field .check-row label {
+		color: var(--text-dim);
+		font-weight: 600;
+		white-space: nowrap;
 	}
 
 	.upload-grid {
@@ -276,6 +293,14 @@
 		background: var(--bg-elevated);
 		border: 1px solid var(--border);
 		border-radius: var(--r-md);
+	}
+
+	.upload-card.invalid {
+		border-color: var(--danger);
+	}
+
+	.form-group input.invalid {
+		border-color: var(--danger);
 	}
 
 	.upload-card-label {
@@ -327,7 +352,7 @@
 	.upload-btn {
 		flex: 1;
 		height: 32px;
-		font-size: 11.5px;
+		font-size: 12px;
 		padding: 0 12px;
 	}
 

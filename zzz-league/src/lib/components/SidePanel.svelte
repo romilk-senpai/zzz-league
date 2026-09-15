@@ -190,7 +190,7 @@
 		padding: 9px 12px;
 		border-radius: var(--r-md);
 		color: var(--text-muted);
-		font-size: 13px;
+		font-size: 14px;
 		font-weight: 500;
 		cursor: pointer;
 		transition: 0.15s;

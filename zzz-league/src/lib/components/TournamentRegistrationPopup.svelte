@@ -168,7 +168,7 @@
 	}
 
 	.popup-title {
-		font-size: 17px;
+		font-size: 18px;
 		font-weight: 800;
 		border: none;
 		padding-bottom: 0;
@@ -190,7 +190,7 @@
 	}
 
 	.member-label {
-		font-size: 13px;
+		font-size: 14px;
 		font-weight: 700;
 		color: var(--text);
 	}
@@ -215,7 +215,7 @@
 	}
 
 	.spec-value {
-		font-size: 13px;
+		font-size: 14px;
 		font-weight: 600;
 		color: var(--text);
 		overflow: hidden;
@@ -235,7 +235,7 @@
 	}
 
 	.screenshot-label {
-		font-size: 11.5px;
+		font-size: 12px;
 		color: var(--text-dim);
 		font-weight: 600;
 	}
