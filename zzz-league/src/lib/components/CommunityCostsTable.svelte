@@ -14,6 +14,7 @@
 	import ContributionMenu from "./ContributionMenu.svelte";
 	import ContributionProposalPopup from "./ContributionProposalPopup.svelte";
 	import ContributionReviewPopup from "./ContributionReviewPopup.svelte";
+	import { _ } from "$lib/i18n";
 
 	let activeSpecialty = $state<Specialty>("attack");
 
@@ -125,7 +126,7 @@
 </script>
 
 <div class="card cost-card">
-	<h2>Коммунити кост</h2>
+	<h2>{$_("communityCostsTable.title")}</h2>
 
 	<div class="specialty-tabs">
 		{#each specialties as s (s.id)}
@@ -164,7 +165,7 @@
 							<span
 								class="contrib-alert"
 								style="background:{contributionColor(row.pendingScore)}"
-								title="Есть предложение по изменению стоимости"
+								title={$_("communityCostsTable.pendingChangeTooltip")}
 							>!</span>
 						{/if}
 					</button>
@@ -181,9 +182,9 @@
 
 <div class="log-columns">
 	<div class="card log-card">
-		<h2 class="log-heading rejected">Отклонённые изменения</h2>
+		<h2 class="log-heading rejected">{$_("communityCostsTable.rejectedHeading")}</h2>
 		{#if rejectedLog.length === 0}
-			<p class="notice">Пока нет отклонённых предложений.</p>
+			<p class="notice">{$_("communityCostsTable.noRejected")}</p>
 		{:else}
 			<div class="log-list">
 				{#each rejectedLog as c (c.id)}
@@ -201,9 +202,9 @@
 	</div>
 
 	<div class="card log-card">
-		<h2 class="log-heading approved">Принятые изменения</h2>
+		<h2 class="log-heading approved">{$_("communityCostsTable.approvedHeading")}</h2>
 		{#if approvedLog.length === 0}
-			<p class="notice">Пока нет принятых предложений.</p>
+			<p class="notice">{$_("communityCostsTable.noApproved")}</p>
 		{:else}
 			<div class="log-list">
 				{#each approvedLog as c (c.id)}

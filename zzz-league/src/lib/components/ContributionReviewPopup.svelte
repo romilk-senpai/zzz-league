@@ -11,6 +11,7 @@
 		type ContributionDetail,
 	} from "$lib/contributions";
 	import { currentUser, isAdmin, isModerator } from "$lib/store";
+	import { _ } from "$lib/i18n";
 
 	let {
 		open = $bindable(false),
@@ -89,24 +90,24 @@
 
 	let canModerate = $derived($isAdmin || $isModerator);
 
-	const voteLabels: Record<ReviewVote, string> = {
-		positive: "👍 Плюс",
-		neutral: "😐 Нейтрально",
-		negative: "👎 Минус",
-	};
+	let voteLabels: Record<ReviewVote, string> = $derived({
+		positive: `👍 ${$_("contributionReviewPopup.vote.positive")}`,
+		neutral: `😐 ${$_("contributionReviewPopup.vote.neutral")}`,
+		negative: `👎 ${$_("contributionReviewPopup.vote.negative")}`,
+	});
 
-	const statusLabels: Record<ContributionDetail["status"], string> = {
-		pending: "На рассмотрении",
-		approved: "Принято",
-		rejected: "Отклонено",
-	};
+	let statusLabels: Record<ContributionDetail["status"], string> = $derived({
+		pending: $_("contributionReviewPopup.status.pending"),
+		approved: $_("contributionReviewPopup.status.approved"),
+		rejected: $_("contributionReviewPopup.status.rejected"),
+	});
 
 	// Purely presentational restatement of the same 0..1 score contributionColor renders as a
 	// dot — gives the color meaning in words instead of just a gradient hue.
 	function scoreProximityLabel(score: number): string {
-		if (score >= 0.66) return "близко к одобрению";
-		if (score <= 0.33) return "далеко от одобрения";
-		return "неоднозначная оценка";
+		if (score >= 0.66) return $_("contributionReviewPopup.scoreProximity.close");
+		if (score <= 0.33) return $_("contributionReviewPopup.scoreProximity.far");
+		return $_("contributionReviewPopup.scoreProximity.mixed");
 	}
 
 	async function submitReview() {
@@ -157,11 +158,11 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card review-card" onclick={(e) => e.stopPropagation()}>
 			{#if !contribution}
-				<p class="notice">Загрузка…</p>
+				<p class="notice">{$_("common.loading")}</p>
 			{:else}
 			<div class="header-row">
-				<h2 class="popup-title">{agentName} — предложение от {contribution.authorName}</h2>
-				<button class="icon-btn close-btn" onclick={() => (open = false)} aria-label="Закрыть">
+				<h2 class="popup-title">{$_("contributionReviewPopup.popupTitle", { values: { agent: agentName, author: contribution.authorName } })}</h2>
+				<button class="icon-btn close-btn" onclick={() => (open = false)} aria-label={$_("common.close")}>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
@@ -172,7 +173,7 @@
 					<span
 						class="score-dot"
 						style="background:{contributionColor(contribution.score)}"
-						title="Прогресс к одобрению сообществом"
+						title={$_("contributionReviewPopup.approvalProgressTooltip")}
 					></span>
 					<span class="score-label">{scoreProximityLabel(contribution.score)}</span>
 				{/if}
@@ -181,18 +182,18 @@
 			<p class="contribution-message">{contribution.message}</p>
 
 			<div class="section-block">
-				<div class="section-title">Изменение стоимости</div>
+				<div class="section-title">{$_("contributionReviewPopup.costChangeTitle")}</div>
 				<div class="diff-scroll">
 					<div class="diff-grid" style="grid-template-columns: 78px repeat({rankLabels.length}, minmax(44px, 1fr));">
 						<div></div>
 						{#each rankLabels as m, i (i)}
 							<div class="diff-label">{m || `#${i + 1}`}</div>
 						{/each}
-						<div class="diff-row-label">Сейчас</div>
+						<div class="diff-row-label">{$_("contributionReviewPopup.currentRow")}</div>
 						{#each currentCosts as v, i (i)}
 							<div class="diff-cell">{v}</div>
 						{/each}
-						<div class="diff-row-label">Предложено</div>
+						<div class="diff-row-label">{$_("contributionReviewPopup.proposedRow")}</div>
 						{#each contribution.proposedCosts as v, i (i)}
 							<div class="diff-cell" class:changed={v !== currentCosts[i]}>{v}</div>
 						{/each}
@@ -200,9 +201,9 @@
 				</div>
 			</div>
 
-			<h3>Отзывы ({contribution.reviews.length})</h3>
+			<h3>{$_("contributionReviewPopup.reviewsHeading", { values: { count: contribution.reviews.length } })}</h3>
 			{#if contribution.reviews.length === 0}
-				<p class="notice">Пока никто не оставил отзыв.</p>
+				<p class="notice">{$_("contributionReviewPopup.noReviewsYet")}</p>
 			{:else}
 				<div class="review-list">
 					{#each contribution.reviews as r (r.id)}
@@ -219,7 +220,7 @@
 									type="button"
 									class="review-comment-toggle"
 									class:expanded={commentExpanded}
-									title="Показать полностью"
+									title={$_("contributionReviewPopup.showFullTooltip")}
 									onclick={() => toggleComment(r.id)}
 								>
 									<span class="review-comment">{r.comment}</span>
@@ -229,13 +230,15 @@
 
 							<button type="button" class="discussion-toggle" onclick={() => toggleDiscussion(r.id)}>
 								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-								{r.comments.length ? `Обсуждение (${r.comments.length})` : "Обсудить"}
+								{r.comments.length
+									? $_("contributionReviewPopup.discussionWithCount", { values: { count: r.comments.length } })
+									: $_("contributionReviewPopup.discussionStart")}
 							</button>
 
 							{#if discussionExpanded}
 								<div class="discussion">
 									{#if r.comments.length === 0}
-										<p class="notice discussion-empty">Пока нет комментариев.</p>
+										<p class="notice discussion-empty">{$_("contributionReviewPopup.noCommentsYet")}</p>
 									{:else}
 										<div class="discussion-list">
 											{#each r.comments as rc (rc.id)}
@@ -248,13 +251,13 @@
 									{/if}
 									<div class="discussion-add">
 										<input
-											placeholder="Написать комментарий..."
+											placeholder={$_("contributionReviewPopup.commentPlaceholder")}
 											value={discussionDrafts[r.id] ?? ""}
 											oninput={(e) => (discussionDrafts[r.id] = e.currentTarget.value)}
 										/>
 										{#if $currentUser}
 											<button type="button" class="btn-common" onclick={() => submitDiscussionComment(r.id)}
-												>Отправить</button
+												>{$_("contributionReviewPopup.send")}</button
 											>
 										{/if}
 									</div>
@@ -281,31 +284,35 @@
 								>👎</button
 							>
 						</div>
-						<textarea rows="2" placeholder="Комментарий к отзыву" bind:value={comment}></textarea>
+						<textarea rows="2" placeholder={$_("contributionReviewPopup.reviewCommentPlaceholder")} bind:value={comment}></textarea>
 						{#if errorMessage}
 							<p class="notice error">{errorMessage}</p>
 						{/if}
 						<button class="btn-common" onclick={submitReview} disabled={submittingReview}>
-							{submittingReview ? "Отправка…" : myReview ? "Обновить отзыв" : "Добавить отзыв"}
+							{submittingReview
+								? $_("contributionReviewPopup.submitting")
+								: myReview
+									? $_("contributionReviewPopup.updateReview")
+									: $_("contributionReviewPopup.addReview")}
 						</button>
 					</div>
 				{:else}
 					<button type="button" class="btn-common btn-block" onclick={() => (showReviewForm = true)}>
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-						Оставить отзыв
+						{$_("contributionReviewPopup.leaveReview")}
 					</button>
 				{/if}
 			{:else}
-				<p class="notice">Войдите, чтобы оставить отзыв.</p>
+				<p class="notice">{$_("contributionReviewPopup.loginToReview")}</p>
 			{/if}
 
 			{#if canModerate && contribution.status === "pending"}
 				<div class="divider"></div>
 				<div class="moderation-block">
-					<div class="section-title moderation-title">Модерация</div>
+					<div class="section-title moderation-title">{$_("contributionReviewPopup.moderationTitle")}</div>
 					<div class="btn-row">
-						<button class="btn-common btn-play" onclick={approve} disabled={resolving}>Принять</button>
-						<button class="btn-common btn-danger-ghost" onclick={reject} disabled={resolving}>Отклонить</button>
+						<button class="btn-common btn-play" onclick={approve} disabled={resolving}>{$_("contributionReviewPopup.approve")}</button>
+						<button class="btn-common btn-danger-ghost" onclick={reject} disabled={resolving}>{$_("contributionReviewPopup.reject")}</button>
 					</div>
 				</div>
 			{/if}

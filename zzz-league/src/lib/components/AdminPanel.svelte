@@ -13,6 +13,7 @@
 	import type { PlayerListItem } from "$lib/types";
 	import { resolve } from "$app/paths";
 	import { onMount } from "svelte";
+	import { _ } from "$lib/i18n";
 
 	let players = $state<PlayerListItem[]>([]);
 
@@ -71,7 +72,7 @@
 	let winningPlayer = $state("1");
 
 	async function handleSetTimer() {
-		const hours = prompt("Через сколько часов закончить?");
+		const hours = prompt($_("adminPanel.setTimerPrompt"));
 		if (hours) {
 			try {
 				await setSeasonTimer(Date.now() + parseFloat(hours) * 3600000);
@@ -83,9 +84,9 @@
 	}
 
 	async function handleAddPlayer() {
-		const playerName = prompt("Введите ник для игрока:");
+		const playerName = prompt($_("adminPanel.addPlayerPrompt"));
 		if (!playerName) return;
-		if (playerName.length < 2) alert("Мала букв");
+		if (playerName.length < 2) alert($_("adminPanel.playerNameTooShort"));
 		try {
 			const created = await addPlayer(playerName);
 			patchPlayers([created]);
@@ -100,7 +101,7 @@
 			!selectedPlayer2 ||
 			selectedPlayer1.name === selectedPlayer2.name
 		) {
-			return alert("Выберите разных");
+			return alert($_("adminPanel.selectDifferentPlayersShort"));
 		}
 
 		try {
@@ -123,7 +124,7 @@
 			!selectedPlayer2 ||
 			selectedPlayer1.name === selectedPlayer2.name
 		) {
-			alert("Выберите разных игроков");
+			alert($_("adminPanel.selectDifferentPlayers"));
 			return;
 		}
 
@@ -155,7 +156,7 @@
 			!selectedPlayer2 ||
 			selectedPlayer1.name === selectedPlayer2.name
 		) {
-			alert("Выберите разных игроков");
+			alert($_("adminPanel.selectDifferentPlayers"));
 			return;
 		}
 
@@ -164,7 +165,7 @@
 			winner === 1 ? selectedPlayer2.name : selectedPlayer1.name;
 		if (
 			!confirm(
-				`${loserName} получает техлуз и теряет ELO, оппонент не получает ELO. Продолжить?`,
+				$_("adminPanel.techLossConfirm", { values: { loserName } }),
 			)
 		) {
 			return;
@@ -190,7 +191,7 @@
 	}
 
 	async function handleResetSeason() {
-		const name = prompt("Название сезона для архива:");
+		const name = prompt($_("adminPanel.resetSeasonPrompt"));
 		if (!name) return;
 		try {
 			await resetSeason(name);
@@ -201,19 +202,19 @@
 	}
 
 	async function handleBackfillLastPlayed() {
-		if (!confirm("Пересчитать дату последнего матча для всех игроков?"))
+		if (!confirm($_("adminPanel.backfillConfirm")))
 			return;
 		try {
 			const { updatedPlayers } = await backfillLastPlayedTimestamps();
 			await reloadPlayers();
-			alert(`Обновлено игроков: ${updatedPlayers}`);
+			alert($_("adminPanel.backfillDone", { values: { count: updatedPlayers } }));
 		} catch (error) {
 			alert(error);
 		}
 	}
 
 	async function handleFinalizeTournament() {
-		if (!confirm("Применить очки?")) return;
+		if (!confirm($_("adminPanel.finalizeConfirm"))) return;
 
 		try {
 			await finalizeTournament();
@@ -225,41 +226,41 @@
 </script>
 
 <div class="card admin-card">
-	<h2>Control Panel</h2>
+	<h2>{$_("adminPanel.title")}</h2>
 
 	<div class="stack">
 		<a class="btn-common" href={resolve("/tournaments/create")}>
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-			Создать турнир</a
+			{$_("adminPanel.createTournament")}</a
 		>
 		<button type="button" class="btn-common btn-success" onclick={handleFinalizeTournament}>
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-			Применить итоги
+			{$_("adminPanel.applyResults")}
 		</button>
 	</div>
 
 	<div class="divider"></div>
 
 	<div class="grid-2">
-		<button class="btn-common btn-sm" onclick={handleSetTimer} title="Установить таймер">
+		<button class="btn-common btn-sm" onclick={handleSetTimer} title={$_("adminPanel.setTimerTooltip")}>
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
-			Таймер
+			{$_("adminPanel.timerButton")}
 		</button>
-		<button class="btn-common btn-sm" onclick={handleAddPlayer} title="Добавить игрока">
+		<button class="btn-common btn-sm" onclick={handleAddPlayer} title={$_("adminPanel.addPlayerTooltip")}>
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-			Игрока
+			{$_("adminPanel.addPlayerButton")}
 		</button>
 	</div>
 
 	<div class="divider"></div>
 
-	<div class="section-label">Запись матча</div>
+	<div class="section-label">{$_("adminPanel.matchRecordingLabel")}</div>
 
 	<div class="stack">
 		<input
 			type="text"
 			class="search-input"
-			placeholder="Поиск Игрока 1..."
+			placeholder={$_("adminPanel.searchPlayer1Placeholder")}
 			bind:value={searchQueryP1}
 		/>
 		<select bind:value={selectedPlayer1}>
@@ -271,7 +272,7 @@
 		<input
 			type="text"
 			class="search-input"
-			placeholder="Поиск Игрока 2..."
+			placeholder={$_("adminPanel.searchPlayer2Placeholder")}
 			bind:value={searchQueryP2}
 			style="margin-top: 4px;"
 		/>
@@ -283,7 +284,7 @@
 
 		<button class="btn-common btn-sm" onclick={showForecast} style="margin-top: 2px;">
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-			Прогноз ELO
+			{$_("adminPanel.eloForecastButton")}
 		</button>
 
 		{#if showingForecast}
@@ -304,16 +305,16 @@
 		{/if}
 
 		<select bind:value={winningPlayer} style="margin-top: 2px;">
-			<option value="1">Победа Игрока 1</option>
-			<option value="0">Победа Игрока 2</option>
+			<option value="1">{$_("adminPanel.player1WinOption")}</option>
+			<option value="0">{$_("adminPanel.player2WinOption")}</option>
 		</select>
 		<button type="button" class="btn-common btn-play" onclick={handleRegisterMatch} style="margin-top: 2px;">
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-			Записать матч
+			{$_("adminPanel.registerMatchButton")}
 		</button>
 		<button type="button" class="btn-common btn-danger-ghost btn-sm" onclick={handleRegisterTechLoss}>
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5"/></svg>
-			Техлуз
+			{$_("adminPanel.techLossButton")}
 		</button>
 	</div>
 
@@ -321,7 +322,7 @@
 
 	<button type="button" class="btn-common btn-danger-ghost btn-sm" onclick={handleResetSeason}>
 		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-		Сброс сезона
+		{$_("adminPanel.resetSeasonButton")}
 	</button>
 </div>
 

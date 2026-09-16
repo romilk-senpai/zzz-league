@@ -12,6 +12,7 @@
 	import TournamentAddPlayerPopup from "$lib/components/TournamentAddPlayerPopup.svelte";
 	import TournamentAddTeamPopup from "$lib/components/TournamentAddTeamPopup.svelte";
 	import TeamDetailsPopup from "$lib/components/TeamDetailsPopup.svelte";
+	import { _, locale, formatDate } from "$lib/i18n";
 	import {
 		cancelTournamentRegistration,
 		closeTournamentRegistration,
@@ -219,15 +220,16 @@
 	// of separate paragraphs.
 	let statusPill = $derived.by(() => {
 		if (!tournament) return null;
-		if (registrationWindowOpen) return { text: "Идёт регистрация", cls: "pill-success" };
+		if (registrationWindowOpen)
+			return { text: $_("pageTournamentDetail.statusRegistrationOpen"), cls: "pill-success" };
 		if (isRegistrationClosed(tournament.state))
-			return { text: "Регистрация закрыта", cls: "pill-neutral" };
+			return { text: $_("pageTournamentDetail.statusRegistrationClosed"), cls: "pill-neutral" };
 		if (isBracketCreated(tournament.state))
-			return { text: "Сетка создана, ожидает начала", cls: "pill-info" };
+			return { text: $_("pageTournamentDetail.statusBracketCreated"), cls: "pill-info" };
 		if (tournament.state === TOURNAMENT_STATE.STARTED)
-			return { text: "Турнир идёт", cls: "pill-gold" };
+			return { text: $_("pageTournamentDetail.statusOngoing"), cls: "pill-gold" };
 		if (tournament.state === TOURNAMENT_STATE.COMPLETE)
-			return { text: "Турнир окончен", cls: "pill-neutral" };
+			return { text: $_("pageTournamentDetail.statusComplete"), cls: "pill-neutral" };
 		return null;
 	});
 	let canCancelRegistration = $derived(
@@ -267,7 +269,7 @@
 		runAction(
 			(v) => (cancellingRegistration = v),
 			() => cancelTournamentRegistration(tournament!.id),
-			"Отменить регистрацию на турнир?",
+			$_("pageTournamentDetail.confirmCancelRegistration"),
 		);
 	}
 
@@ -277,7 +279,7 @@
 		runAction(
 			(v) => (closingRegistration = v),
 			() => closeTournamentRegistration(tournament!.id),
-			"Закрыть регистрацию на турнир?",
+			$_("pageTournamentDetail.confirmCloseRegistration"),
 		);
 	}
 
@@ -287,7 +289,7 @@
 		runAction(
 			(v) => (creatingBracket = v),
 			() => createChallongeBracket(tournament!.id),
-			"Создать сетку Challonge? После этого список участников менять нельзя.",
+			$_("pageTournamentDetail.confirmCreateBracket"),
 		);
 	}
 
@@ -309,7 +311,7 @@
 		runAction(
 			(v) => (finishingTournament = v),
 			() => finishTournament(tournament!.id),
-			"Закончить турнир?",
+			$_("pageTournamentDetail.confirmFinishTournament"),
 		);
 	}
 
@@ -319,7 +321,7 @@
 		runAction(
 			(v) => (incrementingSeasonalCount = v),
 			() => incrementSeasonalTournamentCount(tournament!.id),
-			"Начислить очко сезонных турниров всем подтверждённым участникам?",
+			$_("pageTournamentDetail.confirmIncrementSeasonalCount"),
 		);
 	}
 
@@ -329,7 +331,7 @@
 		runAction(
 			(v) => (incrementingCount = v),
 			() => incrementTournamentCount(tournament!.id),
-			"Начислить очко обычных турниров всем подтверждённым участникам?",
+			$_("pageTournamentDetail.confirmIncrementCount"),
 		);
 	}
 
@@ -342,7 +344,7 @@
 				await deleteTournament(tournament!.id);
 				await goto(resolve("/tournaments"));
 			},
-			`Удалить турнир "${tournament.name}"? Это действие необратимо.`,
+			$_("pageTournamentDetail.confirmDeleteTournament", { values: { name: tournament.name } }),
 		);
 	}
 
@@ -515,7 +517,7 @@
 
 	<div class="card main-content">
 		{#if tournament && !canView}
-			<p class="notice">Недостаточно прав для просмотра этой страницы.</p>
+			<p class="notice">{$_("pageTournamentDetail.noViewPermission")}</p>
 		{:else if tournament}
 			<div class="tournament-header">
 				<div class="tournament-title-row">
@@ -541,7 +543,11 @@
 				</div>
 
 				{#if tournament.divisionIndex}
-					<p class="division-note">Сетка {tournament.divisionIndex}</p>
+					<p class="division-note">
+						{$_("pageTournamentDetail.divisionLabel", {
+							values: { index: tournament.divisionIndex },
+						})}
+					</p>
 				{/if}
 
 				{#if tournament.description}
@@ -552,13 +558,13 @@
 
 				<div class="spec-grid">
 					<div class="spec">
-						<span class="spec-label">Тип турнира</span>
+						<span class="spec-label">{$_("pageTournamentDetail.specTournamentType")}</span>
 						<span class="spec-value"
 							>{tournament.registrationType === "team" ? "2x2" : "1x1"}</span
 						>
 					</div>
 					<div class="spec">
-						<span class="spec-label">Игровой режим</span>
+						<span class="spec-label">{$_("pageTournamentDetail.specGameMode")}</span>
 						<span class="spec-value"
 							>{tournament.gameMode === "deadly_assault"
 								? "Deadly Assault"
@@ -566,47 +572,35 @@
 						>
 					</div>
 					<div class="spec">
-						<span class="spec-label">Система</span>
+						<span class="spec-label">{$_("pageTournamentDetail.specSystem")}</span>
 						<span class="spec-value">{tournament.type}</span>
 					</div>
 					<div class="spec">
-						<span class="spec-label">Рамки коста</span>
+						<span class="spec-label">{$_("pageTournamentDetail.specCostRange")}</span>
 						<span class="spec-value">{tournament.minCost}–{tournament.maxCost}</span>
 					</div>
 					<div class="spec">
-						<span class="spec-label">Мин. персонажей</span>
+						<span class="spec-label">{$_("pageTournamentDetail.specMinCharacters")}</span>
 						<span class="spec-value">{tournament.minCharacters}</span>
 					</div>
 					<div class="spec">
-						<span class="spec-label">Эло за победу/поражение</span>
+						<span class="spec-label">{$_("pageTournamentDetail.specEloChange")}</span>
 						<span class="spec-value"
 							>{tournament.overrideEloChange == -1
-								? "Стандартное"
+								? $_("pageTournamentDetail.standardElo")
 								: tournament.overrideEloChange}</span
 						>
 					</div>
 				</div>
 
 				<div class="date-grid">
-					<span class="date-label">Регистрация</span>
+					<span class="date-label">{$_("pageTournamentDetail.dateLabelRegistration")}</span>
 					<span class="date-value"
-						>{new Date(tournament.registrationStartDate).toLocaleString(
-							"ru",
-							dateDisplayOptions,
-						)} – {new Date(tournament.registrationEndDate).toLocaleString(
-							"ru",
-							dateDisplayOptions,
-						)}</span
+						>{formatDate(new Date(tournament.registrationStartDate), dateDisplayOptions, $locale)} – {formatDate(new Date(tournament.registrationEndDate), dateDisplayOptions, $locale)}</span
 					>
-					<span class="date-label">Турнир</span>
+					<span class="date-label">{$_("pageTournamentDetail.dateLabelTournament")}</span>
 					<span class="date-value"
-						>{new Date(tournament.tournamentStartDate).toLocaleString(
-							"ru",
-							dateDisplayOptions,
-						)} – {new Date(tournament.tournamentEndDate).toLocaleString(
-							"ru",
-							dateDisplayOptions,
-						)}</span
+						>{formatDate(new Date(tournament.tournamentStartDate), dateDisplayOptions, $locale)} – {formatDate(new Date(tournament.tournamentEndDate), dateDisplayOptions, $locale)}</span
 					>
 				</div>
 			</div>
@@ -618,25 +612,26 @@
 							<button
 								class="btn-common btn-danger-ghost"
 								class:btn-loading={deletingTournament}
-								onclick={handleDeleteTournament}>Удалить турнир</button
+								onclick={handleDeleteTournament}
+								>{$_("pageTournamentDetail.deleteTournamentButton")}</button
 							>
 							{#if !isLocked(tournament.state)}
 								<a
 									class="btn-common"
 									href={resolve(`/tournaments/${tournament.id}/edit`)}
-									>Редактировать турнир</a
+									>{$_("pageTournamentDetail.editTournamentButton")}</a
 								>
 								{#if tournament.registrationType === "team"}
 									<button
 										class="btn-common"
 										onclick={() => (addTeamPopupOpen = true)}
-										>Добавить команду</button
+										>{$_("pageTournamentDetail.addTeamButton")}</button
 									>
 								{:else}
 									<button
 										class="btn-common"
 										onclick={() => (addPlayerPopupOpen = true)}
-										>Добавить игрока</button
+										>{$_("pageTournamentDetail.addPlayerButton")}</button
 									>
 								{/if}
 								{#if isRegistrationOpen(tournament.state)}
@@ -644,21 +639,21 @@
 										class="btn-common"
 										class:btn-loading={closingRegistration}
 										onclick={handleCloseRegistration}
-										>Закрыть регистрацию</button
+										>{$_("pageTournamentDetail.closeRegistrationButton")}</button
 									>
 								{/if}
 								{#if !tournament.divisionGroupId}
 									<a
 										class="btn-common"
 										href={resolve(`/tournaments/${tournament.id}/split`)}
-										>Разделить на сетки</a
+										>{$_("pageTournamentDetail.splitIntoGroupsButton")}</a
 									>
 								{/if}
 								<button
 									class="btn-common btn-play"
 									class:btn-loading={creatingBracket}
 									onclick={handleCreateBracket}
-									>Создать сетку Challonge</button
+									>{$_("pageTournamentDetail.createBracketButton")}</button
 								>
 							{/if}
 							{#if isBracketCreated(tournament.state)}
@@ -666,12 +661,13 @@
 									class="btn-common"
 									href={tournament.challongeTournamentUrl}
 									target="_blank"
-									rel="noopener noreferrer">Открыть в Challonge</a
+									rel="noopener noreferrer">{$_("pageTournamentDetail.openInChallongeButton")}</a
 								>
 								<button
 									class="btn-common btn-play"
 									class:btn-loading={startingTournament}
-									onclick={handleStartTournament}>Начать турнир</button
+									onclick={handleStartTournament}
+									>{$_("pageTournamentDetail.startTournamentButton")}</button
 								>
 							{/if}
 							{#if tournament.state === TOURNAMENT_STATE.STARTED}
@@ -679,7 +675,7 @@
 									class="btn-common btn-play"
 									class:btn-loading={updatingGames}
 									onclick={handleUpdateTournamentGames}
-									>Принудительно обновить игры</button
+									>{$_("pageTournamentDetail.forceUpdateGamesButton")}</button
 								>
 							{/if}
 							{#if tournament.state === TOURNAMENT_STATE.AWAITING_REVIEW}
@@ -687,7 +683,7 @@
 									class="btn-common btn-play"
 									class:btn-loading={finishingTournament}
 									onclick={handleFinishTournament}
-									>Закончить турнир</button
+									>{$_("pageTournamentDetail.finishTournamentButton")}</button
 								>
 							{/if}
 						</div>
@@ -702,14 +698,16 @@
 											? `/tournaments/${tournament.id}/register-team`
 											: `/tournaments/${tournament.id}/register`,
 									)}
-									>{#if myRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</a
+									>{#if myRegistration}{$_(
+											"pageTournamentDetail.updateRegistrationButton",
+										)}{:else}{$_("pageTournamentDetail.registerButton")}{/if}</a
 								>
 							{/if}
 							{#if myRegistration}
 								<button
 									class="btn-common"
 									onclick={() => openRegistrationRecord(myRegistration)}
-									>Моя регистрация</button
+									>{$_("pageTournamentDetail.myRegistrationButton")}</button
 								>
 							{/if}
 							{#if myRegistration && canCancelRegistration}
@@ -717,7 +715,7 @@
 									class="btn-common btn-danger-ghost"
 									class:btn-loading={cancellingRegistration}
 									onclick={handleCancelRegistration}
-									>Отменить регистрацию</button
+									>{$_("pageTournamentDetail.cancelRegistrationButton")}</button
 								>
 							{/if}
 						</div>
@@ -725,14 +723,23 @@
 				</div>
 			{/if}
 
-			{#if tournament.winnerId}
-				<h2 class="winner-label">
-					Победил {getPlayerName(tournament.winnerId)!}
-				</h2>
-			{:else if tournament.winnerTeamId}
-				<h2 class="winner-label">
-					Победила {getTeamLabel(tournament.winnerTeamId)!}
-				</h2>
+			{#if tournament.winnerId || tournament.winnerTeamId}
+				<div class="winner-banner">
+					<div class="winner-badge-info">
+						<div class="winner-icon">
+							<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 5H4a1 1 0 0 0-1 1 5 5 0 0 0 4 4.9"/><path d="M17 5h3a1 1 0 0 1 1 1 5 5 0 0 1-4 4.9"/></svg>
+						</div>
+						<div class="winner-eyebrow">{$_("pageTournamentDetail.championLabel")}</div>
+					</div>
+					<div class="winner-who">
+						{#if getMatchSideAvatarSrc(tournament.winnerId, tournament.winnerTeamId)}
+							<img class="winner-avatar" src={getMatchSideAvatarSrc(tournament.winnerId, tournament.winnerTeamId)} alt="" />
+						{/if}
+						<div class="winner-name">
+							{tournament.winnerId ? getPlayerName(tournament.winnerId) : getTeamLabel(tournament.winnerTeamId)}
+						</div>
+					</div>
+				</div>
 			{/if}
 
 			{#if tournament.challongeTournamentUrl && hasTournamentStarted(tournament.state)}
@@ -742,10 +749,12 @@
 					class="collapsible-header"
 					onclick={() => (bracketExpanded = !bracketExpanded)}
 				>
-					<h2>Сетка</h2>
+					<h2>{$_("pageTournamentDetail.bracketHeading")}</h2>
 					<span class="collapse-arrow-wrapper">
 						<span class="collapse-label"
-							>{bracketExpanded ? "Свернуть" : "Развернуть"}</span
+							>{bracketExpanded
+								? $_("pageTournamentDetail.collapseLabel")
+								: $_("pageTournamentDetail.expandLabel")}</span
 						>
 						<svg
 							class="collapse-arrow"
@@ -792,10 +801,12 @@
 					class="collapsible-header"
 					onclick={() => (matchesExpanded = !matchesExpanded)}
 				>
-					<h2>Игры</h2>
+					<h2>{$_("pageTournamentDetail.gamesHeading")}</h2>
 					<span class="collapse-arrow-wrapper">
 						<span class="collapse-label"
-							>{matchesExpanded ? "Свернуть" : "Развернуть"}</span
+							>{matchesExpanded
+								? $_("pageTournamentDetail.collapseLabel")
+								: $_("pageTournamentDetail.expandLabel")}</span
 						>
 						<svg
 							class="collapse-arrow"
@@ -833,7 +844,7 @@
 									>
 								{/if}
 							</span>
-							<p>Показать завершённые матчи</p>
+							<p>{$_("pageTournamentDetail.showCompletedMatchesLabel")}</p>
 						</label>
 						{#if currentUserParticipates}
 							<label class="match-filter-toggle">
@@ -854,12 +865,12 @@
 										>
 									{/if}
 								</span>
-								<p>Показать только мои матчи</p>
+								<p>{$_("pageTournamentDetail.showOnlyMyMatchesLabel")}</p>
 							</label>
 						{/if}
 						<input
 							class="search-input"
-							placeholder="Поиск..."
+							placeholder={$_("pageTournamentDetail.searchPlaceholder")}
 							bind:value={matchSearchQuery}
 						/>
 					</div>
@@ -948,17 +959,17 @@
 								</div>
 							</div>
 						{:else}
-							<span class="no-matches">Матчи не найдены</span>
+							<span class="no-matches">{$_("pageTournamentDetail.noMatchesFound")}</span>
 						{/each}
 					</div>
 				{/if}
 			{/if}
 
 			<div class="search-container">
-				<h2>Участники</h2>
+				<h2>{$_("pageTournamentDetail.participantsHeading")}</h2>
 				<input
 					class="search-input"
-					placeholder="Поиск..."
+					placeholder={$_("pageTournamentDetail.searchPlaceholder")}
 					bind:value={searchQuery}
 				/>
 			</div>
@@ -1388,10 +1399,63 @@
 		line-height: 21px;
 	}
 
-	.winner-label {
-		width: 100%;
-		font-size: 32px;
-		text-align: center;
-		display: block;
+	.winner-banner {
+		background: var(--surface);
+		border: 1px solid var(--border-soft);
+		border-left: var(--r-lg) solid var(--gold);
+		border-radius: var(--r-lg);
+		padding: 16px 24px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+
+	.winner-badge-info {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+	}
+
+	.winner-icon {
+		flex-shrink: 0;
+		width: 34px;
+		height: 34px;
+		border-radius: 50%;
+		background: var(--gold-dim);
+		color: var(--gold);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.winner-eyebrow {
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--text);
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+	}
+
+	.winner-who {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.winner-avatar {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		object-fit: cover;
+		border: 2px solid var(--gold);
+		background: var(--surface-hover);
+	}
+
+	.winner-name {
+		font-size: 22px;
+		font-weight: 800;
+		color: var(--gold);
 	}
 </style>

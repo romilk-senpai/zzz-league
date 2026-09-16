@@ -4,6 +4,7 @@
 	import type { PlayerListItem, Team, Tournament, TournamentRegistration } from "$lib/types";
 	import { hasTournamentStarted } from "$lib/tournamentState";
 	import { getTier } from "$lib/uiCommon";
+	import { _ } from "$lib/i18n";
 
 	interface Props {
 		registrations: TournamentRegistration[]; // team-shaped (teamId set) only
@@ -68,12 +69,12 @@
 <table>
 	<thead>
 		<tr>
-			<th>№</th>
-			<th>Тир</th>
-			<th>Команда</th>
-			<th>Подтвержден</th>
-			{#if canViewRegistrations}<th>Рега</th>{/if}
-			{#if $isAdmin && !hideOptions}<th>Опции</th>{/if}
+			<th>{$_("tournamentTeamTable.numberColumn")}</th>
+			<th>{$_("tournamentTeamTable.tierColumn")}</th>
+			<th>{$_("tournamentTeamTable.teamColumn")}</th>
+			<th>{$_("tournamentTeamTable.confirmedColumn")}</th>
+			{#if canViewRegistrations}<th>{$_("tournamentTeamTable.registrationColumn")}</th>{/if}
+			{#if $isAdmin && !hideOptions}<th>{$_("tournamentTeamTable.optionsColumn")}</th>{/if}
 		</tr>
 	</thead>
 	<tbody>
@@ -103,7 +104,7 @@
 						<button
 							class="btn-common btn-view"
 							onclick={() => onViewRegistration?.(row.team.id)}
-							>Смотреть</button
+							>{$_("tournamentTeamTable.viewButton")}</button
 						>
 					</td>
 				{/if}

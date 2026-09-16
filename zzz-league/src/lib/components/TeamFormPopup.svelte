@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { createTeam, listPlayers, updateTeam } from "$lib/backend";
 	import { useObjectUrlPreview } from "$lib/imagePreview.svelte.js";
+	import { _ } from "$lib/i18n";
 	import { currentUser } from "$lib/store";
 	import type { PlayerListItem, Team } from "$lib/types";
 	import { bustCache, isImageTooLarge, MAX_IMAGE_SIZE_MB, openImagePopup } from "$lib/uiCommon";
@@ -61,7 +62,7 @@
 
 		const photo = photoFile?.[0] ?? null;
 		if (photo && isImageTooLarge(photo)) {
-			status = `Файл слишком большой, максимум ${MAX_IMAGE_SIZE_MB}МБ`;
+			status = $_("teamFormPopup.fileTooLarge", { values: { maxSize: MAX_IMAGE_SIZE_MB } });
 			return;
 		}
 
@@ -88,12 +89,12 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card team-form-card" onclick={(e) => e.stopPropagation()}>
 			<div class="close-row">
-				<button class="icon-btn" onclick={close} aria-label="Закрыть">
+				<button class="icon-btn" onclick={close} aria-label={$_("common.close")}>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
 
-			<h2 class="popup-title">{isEdit ? "Изменить команду" : "Создать команду"}</h2>
+			<h2 class="popup-title">{isEdit ? $_("teamFormPopup.editTitle") : $_("teamFormPopup.createTitle")}</h2>
 
 			<div class="logo-row">
 				{#if photoPreview.url}
@@ -127,49 +128,49 @@
 					<button
 						type="button"
 						class="btn-common"
-						onclick={() => photoFileInput?.click()}>Выбрать логотип</button
+						onclick={() => photoFileInput?.click()}>{$_("teamFormPopup.chooseLogo")}</button
 					>
 					{#if existingPhotoUrl && !photoPreview.url}
-						<span class="logo-hint">Оставьте пустым, чтобы не менять логотип</span>
+						<span class="logo-hint">{$_("teamFormPopup.logoHint")}</span>
 					{/if}
 				</div>
 			</div>
 
 			<div class="form-row">
-				<label for="team-name">Название</label>
+				<label for="team-name">{$_("teamFormPopup.nameLabel")}</label>
 				<input
 					id="team-name"
 					type="text"
 					bind:value={name}
-					placeholder="Название команды"
+					placeholder={$_("teamFormPopup.namePlaceholder")}
 				/>
 			</div>
 
 			{#if isEdit}
 				<div class="form-row">
-					<label for="team-player2-readonly">Напарник</label>
+					<label for="team-player2-readonly">{$_("teamFormPopup.partnerLabel")}</label>
 					<p id="team-player2-readonly" class="readonly-value">{team!.player2.name}</p>
 				</div>
 			{:else}
 				<div class="form-row">
-					<label for="team-player2-search">Поиск напарника</label>
+					<label for="team-player2-search">{$_("teamFormPopup.searchPartnerLabel")}</label>
 					<span class="search-wrap">
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="search-icon"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 						<input
 							id="team-player2-search"
 							type="text"
 							class="search-input"
-							placeholder="Поиск..."
+							placeholder={$_("teamFormPopup.searchPlaceholder")}
 							bind:value={searchQuery}
 						/>
 					</span>
 				</div>
 
 				<div class="form-row">
-					<label for="team-player2-select">Напарник</label>
+					<label for="team-player2-select">{$_("teamFormPopup.partnerLabel")}</label>
 					<span class="select-wrap">
 						<select id="team-player2-select" bind:value={selectedPlayer2Uid}>
-							<option value="">Выберите игрока</option>
+							<option value="">{$_("teamFormPopup.selectPlayerOption")}</option>
 							{#each availablePlayers as player (player.uid)}
 								<option value={player.uid}>{player.name}</option>
 							{/each}
@@ -184,7 +185,7 @@
 				class="btn-common btn-play btn-block"
 				class:btn-loading={saving}
 				disabled={!name.trim() || (!isEdit && !selectedPlayer2Uid)}
-				onclick={handleSave}>Сохранить</button
+				onclick={handleSave}>{$_("common.save")}</button
 			>
 		</div>
 	</div>

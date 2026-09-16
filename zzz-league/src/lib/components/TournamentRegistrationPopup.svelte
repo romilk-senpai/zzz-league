@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { _ } from "$lib/i18n";
 	import { currentUser, isAdmin, isModerator } from "$lib/store";
 	import { hasTournamentStarted } from "$lib/tournamentState";
 	import { bustCache, openImagePopup } from "$lib/uiCommon";
@@ -49,12 +50,12 @@
 					alt=""
 					onerror={(e) => {
 						const btn = e.currentTarget.closest(".screenshot-thumb");
-						if (btn) btn.outerHTML = '<div class="screenshot-placeholder">Не удалось загрузить</div>';
+						if (btn) btn.outerHTML = `<div class="screenshot-placeholder">${$_("tournamentRegistrationPopup.failedToLoad")}</div>`;
 					}}
 				/>
 			</button>
 		{:else}
-			<div class="screenshot-placeholder">Нет скриншота</div>
+			<div class="screenshot-placeholder">{$_("tournamentRegistrationPopup.noScreenshot")}</div>
 		{/if}
 	</div>
 {/snippet}
@@ -73,34 +74,34 @@
 		</div>
 		{#if canViewSensitive}
 			<div class="spec">
-				<span class="spec-label">Игровой UID</span>
+				<span class="spec-label">{$_("tournamentRegistrationPopup.gameUidLabel")}</span>
 				<span class="spec-value">{details?.gameUid || "-"}</span>
 			</div>
 			<div class="spec">
-				<span class="spec-label">Призовые</span>
+				<span class="spec-label">{$_("tournamentRegistrationPopup.prizeLabel")}</span>
 				<span class="spec-value"
-					>{details?.prizeAsMoney ? "Деньгами" : details?.prizeUid || "-"}</span
+					>{details?.prizeAsMoney ? $_("tournamentRegistrationPopup.byMoney") : details?.prizeUid || "-"}</span
 				>
 			</div>
 		{/if}
 		<div class="spec">
-			<span class="spec-label">Ник на Darte</span>
+			<span class="spec-label">{$_("tournamentRegistrationPopup.darteNicknameLabel")}</span>
 			<span class="spec-value">{details?.darteNickname || "-"}</span>
 		</div>
 		<div class="spec">
-			<span class="spec-label">Пресет на Darte</span>
+			<span class="spec-label">{$_("tournamentRegistrationPopup.dartePresetLabel")}</span>
 			<span class="spec-value">{details?.dartePresetName || "-"}</span>
 		</div>
 		<div class="spec">
-			<span class="spec-label">Название ростера</span>
+			<span class="spec-label">{$_("tournamentRegistrationPopup.rosterNameLabel")}</span>
 			<span class="spec-value">{details?.rosterName || "-"}</span>
 		</div>
 	</div>
 
 	<div class="divider"></div>
-	{@render screenshotBlock("Скриншот ростера", details?.rosterScreenshotUrl)}
+	{@render screenshotBlock($_("tournamentRegistrationPopup.rosterScreenshotLabel"), details?.rosterScreenshotUrl)}
 	{#if canViewHoyolab}
-		{@render screenshotBlock("Скриншот персонажей в Hoyolab", details?.hoyolabScreenshotUrl)}
+		{@render screenshotBlock($_("tournamentRegistrationPopup.hoyolabScreenshotLabel"), details?.hoyolabScreenshotUrl)}
 	{/if}
 {/snippet}
 
@@ -116,18 +117,18 @@
 			onclick={(e) => e.stopPropagation()}
 		>
 			<div class="close-row">
-				<button class="icon-btn" onclick={close} aria-label="Закрыть">
+				<button class="icon-btn" onclick={close} aria-label={$_("common.close")}>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
 
 			{#if reg?.player2}
-				<h2 class="popup-title">Регистрация команды</h2>
+				<h2 class="popup-title">{$_("tournamentRegistrationPopup.teamRegistrationTitle")}</h2>
 				<div class="member-columns">
 					<div class="member-column">
 						{@render memberSection(
 							"1",
-							player1?.name ?? "Игрок 1",
+							player1?.name ?? $_("tournamentRegistrationPopup.player1Fallback"),
 							player1?.discordUsername,
 							reg.player1,
 						)}
@@ -135,14 +136,14 @@
 					<div class="member-column">
 						{@render memberSection(
 							"2",
-							player2?.name ?? "Игрок 2",
+							player2?.name ?? $_("tournamentRegistrationPopup.player2Fallback"),
 							player2?.discordUsername,
 							reg.player2,
 						)}
 					</div>
 				</div>
 			{:else}
-				<h2 class="popup-title">Регистрация{player1?.name ? ` · ${player1.name}` : ""}</h2>
+				<h2 class="popup-title">{$_("tournamentRegistrationPopup.registrationTitle")}{player1?.name ? ` · ${player1.name}` : ""}</h2>
 				{@render memberSection("1", null, player1?.discordUsername, reg?.player1)}
 			{/if}
 		</div>

@@ -17,6 +17,7 @@
 	} from "$lib/tournamentRegistrationForm";
 	import { dateDisplayOptions, isImageTooLarge, MAX_IMAGE_SIZE_MB } from "$lib/uiCommon";
 	import { onMount } from "svelte";
+	import { _, locale, formatDate } from "$lib/i18n";
 
 	const id = $derived(page.params.id);
 
@@ -56,13 +57,13 @@
 
 		if (!awareness) {
 			showErrors = true;
-			status = "Ты не ОСОЗНАЛ.";
+			status = $_("pageTournamentRegisterTeam.notAware");
 			return;
 		}
 
 		if (!isMemberRegistrationFormComplete(player1Form) || !isMemberRegistrationFormComplete(player2Form)) {
 			showErrors = true;
-			status = "Заполните все поля для обоих игроков";
+			status = $_("pageTournamentRegisterTeam.fillAllFields");
 			return;
 		}
 
@@ -71,7 +72,7 @@
 			...memberRegistrationScreenshotFiles(player2Form),
 		];
 		if (files.some(isImageTooLarge)) {
-			status = `Файл слишком большой, максимум ${MAX_IMAGE_SIZE_MB}МБ`;
+			status = $_("pageTournamentRegisterTeam.fileTooLarge", { values: { max: MAX_IMAGE_SIZE_MB } });
 			return;
 		}
 
@@ -186,25 +187,25 @@
 
 	<div class="card main-content">
 		{#if tournament}
-			<h2 class="page-title">Регистрация команды: {tournament.name}</h2>
+			<h2 class="page-title">{$_("pageTournamentRegisterTeam.pageTitle", { values: { name: tournament.name } })}</h2>
 
 			{#if tournament.visible === false && !$isAdmin}
-				<p class="notice">Недостаточно прав для просмотра этой страницы.</p>
+				<p class="notice">{$_("pageTournamentRegisterTeam.noPermission")}</p>
 			{:else if !$currentUser}
-				<p class="notice">Войдите, чтобы зарегистрироваться на турнир.</p>
+				<p class="notice">{$_("pageTournamentRegisterTeam.loginRequired")}</p>
 			{:else if isLocked(tournament.state) || tournament.challongeTournamentId}
-				<p class="notice">Турнир уже начался, регистрация закрыта.</p>
+				<p class="notice">{$_("pageTournamentRegisterTeam.tournamentStarted")}</p>
 			{:else if !registrationWindowOpen}
-				<p class="notice">Регистрация на турнир закрыта.</p>
+				<p class="notice">{$_("pageTournamentRegisterTeam.registrationClosed")}</p>
 			{:else if !teamsLoaded}
-				<p class="notice">Загрузка...</p>
+				<p class="notice">{$_("common.loading")}</p>
 			{:else if myTeams.length === 0}
 				<p class="notice">
-					У вас пока нет команд. <a href={resolve("/teams/mine")}>Создайте команду</a>, чтобы зарегистрироваться.
+					{$_("pageTournamentRegisterTeam.noTeamsPrefix")} <a href={resolve("/teams/mine")}>{$_("pageTournamentRegisterTeam.createTeamLink")}</a>{$_("pageTournamentRegisterTeam.noTeamsSuffix")}
 				</p>
 			{:else}
 				<div class="form-group team-select-group">
-					<label for="team-select">Команда</label>
+					<label for="team-select">{$_("pageTournamentRegisterTeam.teamLabel")}</label>
 					{#if lockedTeamId}
 						<p id="team-select" class="value-highlight">
 							{selectedTeam?.name} ({selectedTeam?.creator.name} & {selectedTeam?.player2.name})
@@ -212,7 +213,7 @@
 					{:else}
 						<span class="select-wrap">
 							<select id="team-select" bind:value={selectedTeamId}>
-								<option value="">Выберите команду</option>
+								<option value="">{$_("pageTournamentRegisterTeam.selectTeamOption")}</option>
 								{#each myTeams as team (team.id)}
 									<option value={team.id}>{team.name} ({team.creator.name} & {team.player2.name})</option>
 								{/each}
@@ -226,7 +227,7 @@
 					<div class="divider"></div>
 					<TournamentMemberRegistrationFields
 						idPrefix="p1"
-						label={`Игрок 1 (${selectedTeam.creator.name})`}
+						label={$_("pageTournamentRegisterTeam.player1Label", { values: { name: selectedTeam.creator.name } })}
 						form={player1Form}
 						{showErrors}
 					/>
@@ -234,7 +235,7 @@
 					<div class="divider"></div>
 					<TournamentMemberRegistrationFields
 						idPrefix="p2"
-						label={`Игрок 2 (${selectedTeam.player2.name})`}
+						label={$_("pageTournamentRegisterTeam.player2Label", { values: { name: selectedTeam.player2.name } })}
 						form={player2Form}
 						{showErrors}
 					/>
@@ -255,13 +256,12 @@
 							{/if}
 						</span>
 						<label for="awareness"
-							>Конечно, мы полностью прочитали регламент, и осознаём, что
-							турнир проходит с <span class="value-highlight"
-								>{new Date(tournament.tournamentStartDate).toLocaleString("ru", dateDisplayOptions)}</span
+							>{$_("pageTournamentRegisterTeam.awarenessPrefix")} <span class="value-highlight"
+								>{formatDate(new Date(tournament.tournamentStartDate), dateDisplayOptions, $locale)}</span
 							>
-							по
+							{$_("pageTournamentRegisterTeam.awarenessBetween")}
 							<span class="value-highlight"
-								>{new Date(tournament.tournamentEndDate).toLocaleString("ru", dateDisplayOptions)}</span
+								>{formatDate(new Date(tournament.tournamentEndDate), dateDisplayOptions, $locale)}</span
 							>
 						</label>
 					</div>
@@ -272,9 +272,9 @@
 							class="btn-common btn-play"
 							class:btn-loading={isRegistering}
 							onclick={handleRegister}
-							>{#if myRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</button
+							>{#if myRegistration}{$_("pageTournamentRegisterTeam.updateRegistrationButton")}{:else}{$_("pageTournamentRegisterTeam.registerButton")}{/if}</button
 						>
-						<a class="btn-common" href={resolve(`/tournaments/${tournament.id}`)}>Отмена</a>
+						<a class="btn-common" href={resolve(`/tournaments/${tournament.id}`)}>{$_("common.cancel")}</a>
 					</div>
 				{/if}
 			{/if}

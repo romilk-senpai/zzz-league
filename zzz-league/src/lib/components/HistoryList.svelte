@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from "svelte";
 	import { resolve } from "$app/paths";
+	import { _, locale, formatDate as formatLocalizedDate } from "$lib/i18n";
 	import {
 		deleteHistoryEntry,
 		getTeam,
@@ -76,7 +77,7 @@
 	}
 
 	function formatDate(timestamp: number) {
-		return new Date(timestamp).toLocaleString("ru-RU", dateDisplayOptions);
+		return formatLocalizedDate(new Date(timestamp), dateDisplayOptions, $locale);
 	}
 
 	function changeClass(change: number) {
@@ -87,7 +88,7 @@
 
 	async function handleDelete(id: string) {
 		if (
-			!confirm("Удалить запись? ELO/очки и победы/поражения будут отменены.")
+			!confirm($_("historyList.confirmDelete"))
 		)
 			return;
 		try {
@@ -212,7 +213,7 @@
 <div class="match-list">
 	{#each entries as entry (entry.id)}
 		{#if entry.id === legacyDividerEntryId}
-			<div class="legacy-divider">Легаси история (возможны ошибки)</div>
+			<div class="legacy-divider">{$_("historyList.legacyDivider")}</div>
 		{/if}
 
 		{@const isLeft = !viewerId || entry.p1PlayerId === viewerId}
@@ -265,16 +266,16 @@
 						>{rightChange! > 0 ? "+" : ""}{rightChange}</span
 					>
 				{:else if viewerId}
-					<span class="h-vs adjustment">Корректировка ELO</span>
+					<span class="h-vs adjustment">{$_("historyList.eloAdjustment")}</span>
 				{:else}
-					<span class="h-vs adjustment">— Корректировка ELO</span>
+					<span class="h-vs adjustment">— {$_("historyList.eloAdjustment")}</span>
 				{/if}
 			</div>
 			<div class="h-score-wrap">
 				{#if entry.resultP1 && entry.resultP2}
 					<span class="h-score">{leftResult}–{rightResult}</span>
 				{:else if entry.kind === "tech_loss" || right}
-					<span class="h-score techloss">Техлуз</span>
+					<span class="h-score techloss">{$_("historyList.techLoss")}</span>
 				{/if}
 			</div>
 			<div class="h-meta">
@@ -284,7 +285,7 @@
 						href={resolve(`/tournaments/${entry.tournamentId}`)}
 						onclick={(e) => e.stopPropagation()}
 					>
-						{entry.tournamentName ?? "Турнир"}
+						{entry.tournamentName ?? $_("historyList.tournament")}
 					</a>
 				{:else}
 					<span></span>
@@ -293,7 +294,7 @@
 				{#if $isAdmin}
 					<button
 						class="h-icon-btn danger"
-						title="Удалить"
+						title={$_("common.delete")}
 						onclick={(e) => {
 							e.stopPropagation();
 							handleDelete(entry.id);
@@ -307,7 +308,7 @@
 			</div>
 		</div>
 	{:else}
-		<span>{loading ? "Загрузка..." : "Игр пока нет"}</span>
+		<span>{loading ? $_("common.loading") : $_("historyList.noGames")}</span>
 	{/each}
 </div>
 
@@ -317,14 +318,16 @@
 			class="btn-common pager-btn"
 			disabled={pageIndex === 0 || loading}
 			onclick={() => loadPage(pageIndex - 1)}
-			>← Назад</button
+			>← {$_("common.back")}</button
 		>
-		<span class="pager-label">Страница {pageIndex + 1}</span>
+		<span class="pager-label"
+			>{$_("historyList.pageLabel", { values: { page: pageIndex + 1 } })}</span
+		>
 		<button
 			class="btn-common pager-btn"
 			disabled={!hasMoreAfterPage[pageIndex] || loading}
 			onclick={() => loadPage(pageIndex + 1)}
-			>Вперед →</button
+			>{$_("historyList.next")} →</button
 		>
 	</div>
 {/if}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { listArchives, listPlayers } from "$lib/backend";
+	import { _ } from "$lib/i18n";
 	import type { Archive, Player, PlayerListItem } from "$lib/types";
 	import Leaderboard from "$lib/components/Leaderboard.svelte";
 	import SidePanel from "$lib/components/SidePanel.svelte";
@@ -97,30 +98,30 @@
 					<div class="timer-icon">
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
 					</div>
-					<div class="timer-label">До конца лиги</div>
+					<div class="timer-label">{$_("pageHome.timeUntilEnd")}</div>
 				</div>
 				{#if timerParts.ended}
-					<div class="timer-ended">СЕЗОН ОКОНЧЕН</div>
+					<div class="timer-ended">{$_("pageHome.seasonEnded")}</div>
 				{:else}
 					<div class="timer-segments">
 						<div class="timer-segment">
 							<div class="timer-value gold">{timerParts.d}</div>
-							<div class="timer-unit">дней</div>
+							<div class="timer-unit">{$_("pageHome.days")}</div>
 						</div>
 						<div class="timer-colon">:</div>
 						<div class="timer-segment">
 							<div class="timer-value">{String(timerParts.h).padStart(2, "0")}</div>
-							<div class="timer-unit">час</div>
+							<div class="timer-unit">{$_("pageHome.hours")}</div>
 						</div>
 						<div class="timer-colon">:</div>
 						<div class="timer-segment">
 							<div class="timer-value">{String(timerParts.m).padStart(2, "0")}</div>
-							<div class="timer-unit">мин</div>
+							<div class="timer-unit">{$_("pageHome.minutes")}</div>
 						</div>
 						<div class="timer-colon">:</div>
 						<div class="timer-segment">
 							<div class="timer-value dim">{String(timerParts.s).padStart(2, "0")}</div>
-							<div class="timer-unit">сек</div>
+							<div class="timer-unit">{$_("pageHome.seconds")}</div>
 						</div>
 					</div>
 				{/if}
@@ -129,7 +130,7 @@
 
 		{#if filteredTournaments && filteredTournaments.length > 0}
 			<div>
-				<h2 class="section-heading">Турниры:</h2>
+				<h2 class="section-heading">{$_("pageHome.tournamentsHeading")}</h2>
 				<div class="tournament-container">
 					{#each filteredTournaments as tournament}
 						<TournamentCard {tournament} {now} />
@@ -142,13 +143,13 @@
 			<div class="search-container">
 				<h2>
 					{isViewingArchive
-						? `Архив: ${archiveKey}`
-						: "Турнирная Таблица ZZZ"}
+						? $_("pageHome.archiveTitle", { values: { name: archiveKey } })
+						: $_("pageHome.leaderboardTitle")}
 				</h2>
 				<div style="display:flex; align-items:center; gap:16px;">
 					{#if isViewingArchive}
 						<button class="btn-common current-league-btn" onclick={loadLive}
-							>← Текущая лига</button
+							>← {$_("pageHome.currentLeague")}</button
 						>
 					{/if}
 					<label class="filter-toggle">
@@ -158,13 +159,13 @@
 								<svg class="cb-check" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
 							{/if}
 						</span>
-						<p>Показать неактивных игроков</p>
+						<p>{$_("pageHome.showInactivePlayers")}</p>
 					</label>
 					<div class="search-field">
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="search-icon"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 						<input
 							class="search-input"
-							placeholder="Поиск..."
+							placeholder={$_("pageHome.searchPlaceholder")}
 							bind:value={searchQuery}
 						/>
 					</div>
@@ -193,7 +194,7 @@
 
 		{#if archives.length > 0}
 			<div class="archive-section">
-				<div class="section-label">Архив сезонов:</div>
+				<div class="section-label">{$_("pageHome.seasonArchive")}</div>
 				<div class="archive-buttons">
 					{#each [...archives].reverse() as archive (archive.id)}
 						<button
@@ -245,7 +246,7 @@
 	}
 
 	.timer-label {
-		font-size: 12px;
+		font-size: 16px;
 		font-weight: 700;
 		color: var(--text);
 	}

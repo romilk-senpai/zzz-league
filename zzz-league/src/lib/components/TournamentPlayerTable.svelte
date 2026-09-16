@@ -5,6 +5,7 @@
 	import { hasTournamentStarted } from "$lib/tournamentState";
 	import { getLvl, getTier, openProfilePopup } from "$lib/uiCommon";
 	import PointsDelta from "$lib/components/PointsDelta.svelte";
+	import { _ } from "$lib/i18n";
 
 	interface Props {
 		registrations: RegisteredPlayer[];
@@ -52,14 +53,14 @@
 <table>
 	<thead>
 		<tr>
-			<th>№</th>
-			<th>Тир</th>
-			<th>Игрок</th>
-			<th>ELO</th>
-			<th>LVL</th>
-			<th>Подтвержден</th>
-			{#if canViewRegistrations}<th>Рега</th>{/if}
-			{#if $isAdmin && !hideOptions}<th>Опции</th>{/if}
+			<th>{$_("tournamentPlayerTable.numberColumn")}</th>
+			<th>{$_("tournamentPlayerTable.tierColumn")}</th>
+			<th>{$_("tournamentPlayerTable.playerColumn")}</th>
+			<th>{$_("tournamentPlayerTable.eloColumn")}</th>
+			<th>{$_("tournamentPlayerTable.lvlColumn")}</th>
+			<th>{$_("tournamentPlayerTable.confirmedColumn")}</th>
+			{#if canViewRegistrations}<th>{$_("tournamentPlayerTable.registrationColumn")}</th>{/if}
+			{#if $isAdmin && !hideOptions}<th>{$_("tournamentPlayerTable.optionsColumn")}</th>{/if}
 		</tr>
 	</thead>
 	<tbody>
@@ -93,7 +94,7 @@
 						<button
 							class="btn-common btn-view"
 							onclick={() => onViewRegistration?.(reg.player.uid)}
-							>Смотреть</button
+							>{$_("tournamentPlayerTable.viewButton")}</button
 						>
 					</td>
 				{/if}

@@ -19,21 +19,47 @@ export async function updateTournamentGames(tournamentId,
     throw new HttpsError("not-found", "No participants data found");
   }
 
-  const matchesRes = await fetch(`https://api.challonge.com/v2.1/tournaments/${challongeTournamentId}/matches.json`, {
-    method: "GET",
-    headers,
-  });
+  const PER_PAGE = 100;
+  // Hard stop: never loop forever, even if the API misbehaves again like
+  // it did before (pagination pointers that never terminated).
+  const MAX_PAGES = 50;
+  const allMatches = [];
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const matchesRes = await fetch(
+        `https://api.challonge.com/v2.1/tournaments/${challongeTournamentId}/matches.json?page=${page}&per_page=${PER_PAGE}`,
+        {
+          method: "GET",
+          headers,
+        },
+    );
 
-  const matchesData = await matchesRes.json();
-  if (!matchesRes.ok) {
-    throw new HttpsError("internal",
-        `Challonge matches fetch error: ${JSON.stringify(matchesData)}`);
+    const matchesPage = await matchesRes.json();
+    if (!matchesRes.ok) {
+      throw new HttpsError("internal",
+          `Challonge matches fetch error: ${JSON.stringify(matchesPage)}`);
+    }
+
+    const pageData = matchesPage.data ?? [];
+    allMatches.push(...pageData);
+
+    // Last page reached: fewer results than requested (including none).
+    if (pageData.length < PER_PAGE) {
+      break;
+    }
+
+    if (page === MAX_PAGES) {
+      throw new HttpsError("internal",
+          `Challonge matches pagination exceeded ${MAX_PAGES} pages ` +
+          `for tournament ${challongeTournamentId}; aborting to avoid ` +
+          `an unbounded request loop.`);
+    }
   }
+
   let resetMatchId = null;
   if (tournament.type === "double elimination") {
-    const rounds = matchesData.data.map((m) => m.attributes.round);
+    const rounds = allMatches.map((m) => m.attributes.round);
     const maxRound = Math.max(...rounds);
-    const finalRoundMatches = matchesData.data
+    const finalRoundMatches = allMatches
         .filter((m) => m.attributes.round === maxRound)
         .sort((a, b) => a.attributes.suggested_play_order -
           b.attributes.suggested_play_order);
@@ -44,7 +70,7 @@ export async function updateTournamentGames(tournamentId,
 
   let allMatchesPlayed = true;
   const updates = {};
-  matchesData.data.forEach((m) => {
+  allMatches.forEach((m) => {
     if (m.id === resetMatchId) {
       updates[`matches/${m.id}`] = null;
       return;

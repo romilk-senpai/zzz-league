@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { mindscapeLabels } from "$lib/costData";
 	import { createContribution, createEngineContribution } from "$lib/contributions";
+	import { _ } from "$lib/i18n";
 	import { currentUser } from "$lib/store";
 
 	type Mode = "agent" | "engine-base" | "engine-agent";
@@ -45,15 +46,15 @@
 
 	const title = $derived(
 		mode === "agent"
-			? `Предложить изменение — ${agentName}`
+			? $_("contributionProposalPopup.titleAgent", { values: { agentName } })
 			: mode === "engine-base"
-				? `Предложить изменение базовой стоимости — ${weaponName}`
-				: `Предложить стоимость для агента — ${weaponName}`,
+				? $_("contributionProposalPopup.titleEngineBase", { values: { weaponName } })
+				: $_("contributionProposalPopup.titleEngineAgent", { values: { weaponName } }),
 	);
 
 	async function submit() {
 		if (submitting || !$currentUser) return;
-		const finalMessage = message.trim() || "Без комментария";
+		const finalMessage = message.trim() || $_("contributionProposalPopup.noComment");
 		if (mode === "engine-agent" && !selectedAgentId) return;
 
 		submitting = true;
@@ -83,14 +84,14 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card proposal-card" onclick={(e) => e.stopPropagation()}>
 			<div class="close-row">
-				<button class="icon-btn" onclick={() => (open = false)} aria-label="Закрыть">
+				<button class="icon-btn" onclick={() => (open = false)} aria-label={$_("common.close")}>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
 			<h2 class="popup-title">{title}</h2>
 			{#if mode === "engine-agent" && agentOptions.length > 0 && !agentId}
 				<div class="form-group">
-					<label for="agent-picker">Персонаж</label>
+					<label for="agent-picker">{$_("contributionProposalPopup.characterLabel")}</label>
 					<span class="select-wrap">
 						<select id="agent-picker" bind:value={selectedAgentId}>
 							{#each agentOptions as a (a.id)}
@@ -109,17 +110,17 @@
 					</div>
 				{/each}
 			</div>
-			<textarea rows="3" placeholder="Почему стоит изменить стоимость?" bind:value={message}></textarea>
+			<textarea rows="3" placeholder={$_("contributionProposalPopup.reasonPlaceholder")} bind:value={message}></textarea>
 			{#if !$currentUser}
-				<p class="notice">Войдите, чтобы предложить изменение.</p>
+				<p class="notice">{$_("contributionProposalPopup.loginRequired")}</p>
 			{:else if status}
 				<p class="notice error">{status}</p>
 			{/if}
 			<div class="btn-row">
 				<button class="btn-common btn-play" onclick={submit} disabled={submitting || !$currentUser}>
-					{submitting ? "Отправка…" : "Отправить предложение"}
+					{submitting ? $_("contributionProposalPopup.submitting") : $_("contributionProposalPopup.submitProposal")}
 				</button>
-				<button class="btn-common" onclick={() => (open = false)}>Отмена</button>
+				<button class="btn-common" onclick={() => (open = false)}>{$_("common.cancel")}</button>
 			</div>
 		</div>
 	</div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { listTeamsPage } from "$lib/backend";
+	import { _ } from "$lib/i18n";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TeamDetailsPopup from "$lib/components/TeamDetailsPopup.svelte";
 	import TeamFormPopup from "$lib/components/TeamFormPopup.svelte";
@@ -103,21 +104,21 @@
 
 	<div class="card main-content">
 		<div class="page-header">
-			<h2 class="page-title">Команды</h2>
+			<h2 class="page-title">{$_("pageTeams.title")}</h2>
 			<span class="search-wrap">
 				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="search-icon"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 				<input
 					class="search-input"
-					placeholder="Поиск..."
+					placeholder={$_("pageTeams.searchPlaceholder")}
 					bind:value={searchQuery}
 				/>
 			</span>
 		</div>
 
 		{#if loading}
-			<p class="notice">Загрузка...</p>
+			<p class="notice">{$_("common.loading")}</p>
 		{:else if teams.length === 0}
-			<p class="notice">Команд пока нет</p>
+			<p class="notice">{$_("pageTeams.noTeams")}</p>
 		{:else}
 			<div class="team-list">
 				{#each filteredTeams as team (team.id)}

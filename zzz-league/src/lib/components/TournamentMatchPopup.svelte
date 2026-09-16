@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { adminSetMatchResult, approveResult } from "$lib/backend";
+	import { _ } from "$lib/i18n";
 	import { useObjectUrlPreview } from "$lib/imagePreview.svelte.js";
 	import { currentUser, isAdmin, isModerator } from "$lib/store";
 	import {
@@ -91,7 +92,7 @@
 	function handleClose() {
 		if (
 			hasUnsavedInput &&
-			!confirm("Введённые данные будут потеряны. Закрыть окно?")
+			!confirm($_("tournamentMatchPopup.confirmClose"))
 		) {
 			return;
 		}
@@ -102,7 +103,7 @@
 		try {
 			const files = await pasteImageFromClipboard();
 			if (!files) {
-				alert("В буфере обмена нет изображения");
+				alert($_("tournamentMatchPopup.noImageInClipboard"));
 				return;
 			}
 			if (target === "own") {
@@ -165,16 +166,16 @@
 	async function handleApproveResult() {
 		if (isApproving) return;
 		if (!isValidResult(matchResultP1) || !isValidResult(matchResultP2)) {
-			alert(isDeadlyAssault ? "Введите очки больше 0" : "Введите время больше 00:00");
+			alert(isDeadlyAssault ? $_("tournamentMatchPopup.enterScoreAboveZero") : $_("tournamentMatchPopup.enterTimeAboveZero"));
 			return;
 		}
 		const resultScreenshot = inputScreenshot?.[0];
 		if (!resultScreenshot && !match.resultScreenshot) {
-			alert("Необходимо загрузить скриншот результата");
+			alert($_("tournamentMatchPopup.screenshotRequired"));
 			return;
 		}
 		if (resultScreenshot && isImageTooLarge(resultScreenshot)) {
-			alert(`Файл слишком большой, максимум ${MAX_IMAGE_SIZE_MB}МБ`);
+			alert($_("tournamentMatchPopup.fileTooLarge", { values: { max: MAX_IMAGE_SIZE_MB } }));
 			return;
 		}
 		try {
@@ -200,15 +201,15 @@
 	async function handleAdminSetResult() {
 		if (adminAction) return;
 		if (!isValidResult(matchResultP1) || !isValidResult(matchResultP2)) {
-			alert(isDeadlyAssault ? "Введите очки больше 0" : "Введите время больше 00:00");
+			alert(isDeadlyAssault ? $_("tournamentMatchPopup.enterScoreAboveZero") : $_("tournamentMatchPopup.enterTimeAboveZero"));
 			return;
 		}
 		const adminScreenshot = adminInputScreenshot?.[0] ?? null;
 		if (adminScreenshot && isImageTooLarge(adminScreenshot)) {
-			alert(`Файл слишком большой, максимум ${MAX_IMAGE_SIZE_MB}МБ`);
+			alert($_("tournamentMatchPopup.fileTooLarge", { values: { max: MAX_IMAGE_SIZE_MB } }));
 			return;
 		}
-		if (!confirm("Записать результат от имени администратора?")) return;
+		if (!confirm($_("tournamentMatchPopup.confirmAdminSetResult"))) return;
 		try {
 			adminAction = "result";
 			await adminSetMatchResult(
@@ -232,7 +233,7 @@
 			: getPlayerName(side === "p1" ? match.p1 : match.p2);
 		if (
 			!confirm(
-				`${loserName} получает техлуз, оппонент побеждает без ELO. Продолжить?`,
+				$_("tournamentMatchPopup.confirmTechLoss", { values: { loserName } }),
 			)
 		)
 			return;
@@ -268,14 +269,14 @@
 
 {#snippet closeRow()}
 	<div class="close-row">
-		<button class="icon-btn" onclick={handleClose} aria-label="Закрыть">
+		<button class="icon-btn" onclick={handleClose} aria-label={$_("common.close")}>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 		</button>
 	</div>
 {/snippet}
 
 {#snippet matchHeader()}
-	<div class="tournament-label">Матч · {tournament.name}</div>
+	<div class="tournament-label">{$_("tournamentMatchPopup.matchLabel", { values: { name: tournament.name } })}</div>
 	<div class="match-players">
 		<span
 			class="match-player-name match-player-left {getPlayerClass(
@@ -302,7 +303,7 @@
 	{/if}
 	{#if match.techLossUid || match.techLossTeamId}
 		<span class="techloss-label"
-			>{getSideLabel(match.techLossUid, match.techLossTeamId)} тех. луз</span
+			>{getSideLabel(match.techLossUid, match.techLossTeamId)} {$_("tournamentMatchPopup.techLossSuffix")}</span
 		>
 	{/if}
 {/snippet}
@@ -343,7 +344,7 @@
 			<img src={previewUrl ?? bustCache(fallbackUrl!)} alt="" />
 		</button>
 	{:else}
-		<div class="screenshot-placeholder">Скриншот результатов</div>
+		<div class="screenshot-placeholder">{$_("tournamentMatchPopup.screenshotPlaceholder")}</div>
 	{/if}
 {/snippet}
 
@@ -363,13 +364,13 @@
 				<div class="result-input-block">
 					<div class="result-fields input-labels">
 						<span
-							>{isDeadlyAssault ? "Введите очки" : "Введите время"} {getSideLabel(
+							>{isDeadlyAssault ? $_("tournamentMatchPopup.enterScoreLabel") : $_("tournamentMatchPopup.enterTimeLabel")} {getSideLabel(
 								match.p1,
 								match.p1TeamId,
 							)}</span
 						>
 						<span
-							>{isDeadlyAssault ? "Введите очки" : "Введите время"} {getSideLabel(
+							>{isDeadlyAssault ? $_("tournamentMatchPopup.enterScoreLabel") : $_("tournamentMatchPopup.enterTimeLabel")} {getSideLabel(
 								match.p2,
 								match.p2TeamId,
 							)}</span
@@ -392,13 +393,13 @@
 						<button
 							type="button"
 							class="btn-common btn-sm-action"
-							onclick={() => ownFileInput?.click()}>Выбрать файл</button
+							onclick={() => ownFileInput?.click()}>{$_("tournamentMatchPopup.chooseFile")}</button
 						>
 						<button
 							type="button"
 							class="btn-common btn-sm-action"
 							onclick={() => handlePasteScreenshot("own")}
-							>Вставить(Ctrl+V)</button
+							>{$_("tournamentMatchPopup.pasteCtrlV")}</button
 						>
 					</div>
 					{@render screenshotThumb(inputScreenshotPreview.url, match.resultScreenshot)}
@@ -408,17 +409,17 @@
 					<span class="approval-pill {match.p1ApprovedResult ? 'approved' : 'pending'}">
 						{#if match.p1ApprovedResult}
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-							{getSideLabel(match.p1, match.p1TeamId)} подтвердил
+							{getSideLabel(match.p1, match.p1TeamId)} {$_("tournamentMatchPopup.approvedSuffix")}
 						{:else}
-							{getSideLabel(match.p1, match.p1TeamId)} — ожидание
+							{getSideLabel(match.p1, match.p1TeamId)} {$_("tournamentMatchPopup.pendingSuffix")}
 						{/if}
 					</span>
 					<span class="approval-pill {match.p2ApprovedResult ? 'approved' : 'pending'}">
 						{#if match.p2ApprovedResult}
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-							{getSideLabel(match.p2, match.p2TeamId)} подтвердил
+							{getSideLabel(match.p2, match.p2TeamId)} {$_("tournamentMatchPopup.approvedSuffix")}
 						{:else}
-							{getSideLabel(match.p2, match.p2TeamId)} — ожидание
+							{getSideLabel(match.p2, match.p2TeamId)} {$_("tournamentMatchPopup.pendingSuffix")}
 						{/if}
 					</span>
 				</div>
@@ -426,12 +427,12 @@
 				<button
 					class="btn-common btn-play btn-block"
 					class:btn-loading={isApproving}
-					onclick={handleApproveResult}>Подтвердить результат</button
+					onclick={handleApproveResult}>{$_("tournamentMatchPopup.confirmResultButton")}</button
 				>
 			{:else if match.resultScreenshot}
 				<div class="divider"></div>
 				<div class="screenshot-block">
-					<span class="screenshot-label">Результат</span>
+					<span class="screenshot-label">{$_("tournamentMatchPopup.resultLabel")}</span>
 					{@render screenshotThumb(undefined, match.resultScreenshot)}
 				</div>
 			{/if}
@@ -445,7 +446,7 @@
 				{@render matchHeader()}
 
 				<div class="divider admin-divider"></div>
-				<div class="admin-label">Админ: изменить результат</div>
+				<div class="admin-label">{$_("tournamentMatchPopup.adminChangeResultLabel")}</div>
 
 				<div class="result-fields">
 					{@render resultFields("admin-result-p1", "admin-result-p2")}
@@ -463,13 +464,13 @@
 						<button
 							type="button"
 							class="btn-common btn-sm-action"
-							onclick={() => adminFileInput?.click()}>Выбрать файл</button
+							onclick={() => adminFileInput?.click()}>{$_("tournamentMatchPopup.chooseFile")}</button
 						>
 						<button
 							type="button"
 							class="btn-common btn-sm-action"
 							onclick={() => handlePasteScreenshot("admin")}
-							>Вставить из буфера</button
+							>{$_("tournamentMatchPopup.pasteFromClipboard")}</button
 						>
 					</div>
 					{@render screenshotThumb(adminScreenshotPreview.url, match.resultScreenshot)}
@@ -478,7 +479,7 @@
 				<button
 					class="btn-common btn-block"
 					class:btn-loading={adminAction === "result"}
-					onclick={handleAdminSetResult}>Записать результат</button
+					onclick={handleAdminSetResult}>{$_("tournamentMatchPopup.recordResultButton")}</button
 				>
 
 				<div class="admin-techloss-row">
@@ -486,13 +487,13 @@
 						class="btn-common btn-danger-ghost"
 						class:btn-loading={adminAction === "techloss-p1"}
 						onclick={() => handleAdminTechLoss("p1")}
-						>Техлуз {getSideLabel(match.p1, match.p1TeamId)}</button
+						>{$_("tournamentMatchPopup.techLossButton")} {getSideLabel(match.p1, match.p1TeamId)}</button
 					>
 					<button
 						class="btn-common btn-danger-ghost"
 						class:btn-loading={adminAction === "techloss-p2"}
 						onclick={() => handleAdminTechLoss("p2")}
-						>Техлуз {getSideLabel(match.p2, match.p2TeamId)}</button
+						>{$_("tournamentMatchPopup.techLossButton")} {getSideLabel(match.p2, match.p2TeamId)}</button
 					>
 				</div>
 			</div>

@@ -28,7 +28,8 @@
 		"@sveltejs/adapter-static": "^3.0.10",
 		"dompurify": "^3.4.11",
 		"firebase": "^12.12.1",
-		"marked": "^18.0.6"
+		"marked": "^18.0.6",
+		"svelte-i18n": "^4.0.1"
 	},
 	"allowScripts": {
 		"firebase@12.12.1": true,

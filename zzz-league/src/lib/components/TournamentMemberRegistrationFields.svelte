@@ -2,6 +2,7 @@
 	import { useObjectUrlPreview } from "$lib/imagePreview.svelte.js";
 	import type { MemberRegistrationForm } from "$lib/tournamentRegistrationForm";
 	import { bustCache, openImagePopup, pasteImageFromClipboard } from "$lib/uiCommon";
+	import { _ } from "$lib/i18n";
 
 	let {
 		idPrefix,
@@ -30,7 +31,7 @@
 		try {
 			const files = await pasteImageFromClipboard();
 			if (!files) {
-				alert("В буфере обмена нет изображения");
+				alert($_("tournamentMemberRegistrationFields.noImageInClipboard"));
 				return;
 			}
 			if (target === "roster") form.rosterScreenshot = files;
@@ -45,13 +46,13 @@
 
 <div class="form-grid">
 	<div class="form-group">
-		<label for="{idPrefix}-zzz-uid">Игровой UID</label>
+		<label for="{idPrefix}-zzz-uid">{$_("tournamentMemberRegistrationFields.gameUidLabel")}</label>
 		<input
 			id="{idPrefix}-zzz-uid"
 			type="text"
 			class:invalid={showErrors && !form.gameUid}
 			bind:value={form.gameUid}
-			placeholder="Игровой UID"
+			placeholder={$_("tournamentMemberRegistrationFields.gameUidLabel")}
 		/>
 	</div>
 	<div class="form-group toggle-field">
@@ -67,7 +68,7 @@
 					<svg class="cb-check" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
 				{/if}
 			</span>
-			<label for="{idPrefix}-prize-as-money">Взять призовые деньгами</label>
+			<label for="{idPrefix}-prize-as-money">{$_("tournamentMemberRegistrationFields.prizeAsMoneyLabel")}</label>
 		</div>
 		<input
 			id="{idPrefix}-prize-uid"
@@ -76,44 +77,44 @@
 			class:invalid={showErrors && !form.prizeAsMoney && !form.prizeUid}
 			bind:value={form.prizeUid}
 			disabled={form.prizeAsMoney}
-			placeholder={form.prizeAsMoney ? "Не требуется" : "UID для призовых"}
+			placeholder={form.prizeAsMoney ? $_("tournamentMemberRegistrationFields.prizeNotRequired") : $_("tournamentMemberRegistrationFields.prizeUidPlaceholder")}
 		/>
 	</div>
 	<div class="form-group">
-		<label for="{idPrefix}-darte-nickname">Ник на Darte</label>
+		<label for="{idPrefix}-darte-nickname">{$_("tournamentMemberRegistrationFields.darteNicknameLabel")}</label>
 		<input
 			id="{idPrefix}-darte-nickname"
 			type="text"
 			class:invalid={showErrors && !form.darteNickname}
 			bind:value={form.darteNickname}
-			placeholder="Ник на Darte"
+			placeholder={$_("tournamentMemberRegistrationFields.darteNicknameLabel")}
 		/>
 	</div>
 	<div class="form-group">
-		<label for="{idPrefix}-darte-account">Название пресета на Darte</label>
+		<label for="{idPrefix}-darte-account">{$_("tournamentMemberRegistrationFields.dartePresetOnDarteLabel")}</label>
 		<input
 			id="{idPrefix}-darte-account"
 			type="text"
 			class:invalid={showErrors && !form.darteAccount}
 			bind:value={form.darteAccount}
-			placeholder="Название пресета на Darte"
+			placeholder={$_("tournamentMemberRegistrationFields.dartePresetOnDarteLabel")}
 		/>
 	</div>
 	<div class="form-group">
-		<label for="{idPrefix}-darte-preset">Название ростера</label>
+		<label for="{idPrefix}-darte-preset">{$_("tournamentMemberRegistrationFields.rosterNameLabel")}</label>
 		<input
 			id="{idPrefix}-darte-preset"
 			type="text"
 			class:invalid={showErrors && !form.dartePreset}
 			bind:value={form.dartePreset}
-			placeholder="Название ростера"
+			placeholder={$_("tournamentMemberRegistrationFields.rosterNameLabel")}
 		/>
 	</div>
 </div>
 
 <div class="upload-grid">
 	<div class="upload-card" class:invalid={showErrors && !hasRoster}>
-		<div class="upload-card-label">Скриншот ростера</div>
+		<div class="upload-card-label">{$_("tournamentMemberRegistrationFields.rosterScreenshotLabel")}</div>
 		{#if rosterPreview.url}
 			<button type="button" class="thumb has-image" onclick={() => openImagePopup(rosterPreview.url!)}>
 				<img src={rosterPreview.url} alt="" />
@@ -127,7 +128,7 @@
 				<img src={bustCache(form.existingRosterUrl)} alt="" />
 			</button>
 		{:else}
-			<div class="thumb">Превью скриншота</div>
+			<div class="thumb">{$_("tournamentMemberRegistrationFields.screenshotPreviewPlaceholder")}</div>
 		{/if}
 		<input
 			bind:this={rosterFileInput}
@@ -138,21 +139,21 @@
 		/>
 		<div class="upload-box">
 			<button type="button" class="btn-common upload-btn" onclick={() => rosterFileInput?.click()}
-				>Выбрать файл</button
+				>{$_("tournamentMemberRegistrationFields.chooseFileButton")}</button
 			>
 			<button
 				type="button"
 				class="btn-common upload-btn"
-				onclick={() => handlePasteScreenshot("roster")}>Вставить</button
+				onclick={() => handlePasteScreenshot("roster")}>{$_("tournamentMemberRegistrationFields.pasteButton")}</button
 			>
 		</div>
 		{#if form.existingRosterUrl && !rosterPreview.url}
-			<p class="upload-hint">Оставьте пустым, чтобы не менять скриншот</p>
+			<p class="upload-hint">{$_("tournamentMemberRegistrationFields.keepEmptyHint")}</p>
 		{/if}
 	</div>
 
 	<div class="upload-card" class:invalid={showErrors && !hasHoyolab}>
-		<div class="upload-card-label">Скриншот персонажей в Hoyolab</div>
+		<div class="upload-card-label">{$_("tournamentMemberRegistrationFields.hoyolabScreenshotLabel")}</div>
 		{#if hoyolabPreview.url}
 			<button type="button" class="thumb has-image" onclick={() => openImagePopup(hoyolabPreview.url!)}>
 				<img src={hoyolabPreview.url} alt="" />
@@ -166,7 +167,7 @@
 				<img src={bustCache(form.existingHoyolabUrl)} alt="" />
 			</button>
 		{:else}
-			<div class="thumb">Превью скриншота</div>
+			<div class="thumb">{$_("tournamentMemberRegistrationFields.screenshotPreviewPlaceholder")}</div>
 		{/if}
 		<input
 			bind:this={hoyolabFileInput}
@@ -177,16 +178,16 @@
 		/>
 		<div class="upload-box">
 			<button type="button" class="btn-common upload-btn" onclick={() => hoyolabFileInput?.click()}
-				>Выбрать файл</button
+				>{$_("tournamentMemberRegistrationFields.chooseFileButton")}</button
 			>
 			<button
 				type="button"
 				class="btn-common upload-btn"
-				onclick={() => handlePasteScreenshot("hoyolab")}>Вставить</button
+				onclick={() => handlePasteScreenshot("hoyolab")}>{$_("tournamentMemberRegistrationFields.pasteButton")}</button
 			>
 		</div>
 		{#if form.existingHoyolabUrl && !hoyolabPreview.url}
-			<p class="upload-hint">Оставьте пустым, чтобы не менять скриншот</p>
+			<p class="upload-hint">{$_("tournamentMemberRegistrationFields.keepEmptyHint")}</p>
 		{/if}
 	</div>
 </div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { listMyTeams } from "$lib/backend";
+	import { _ } from "$lib/i18n";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TeamDetailsPopup from "$lib/components/TeamDetailsPopup.svelte";
 	import TeamFormPopup from "$lib/components/TeamFormPopup.svelte";
@@ -71,18 +72,18 @@
 
 	<div class="card main-content">
 		<div class="page-header">
-			<h2 class="page-title">Мои команды</h2>
+			<h2 class="page-title">{$_("pageTeamsMine.title")}</h2>
 			<button class="btn-common btn-play create-btn" onclick={openCreate}
-				>+ Создать команду</button
+				>+ {$_("pageTeamsMine.createTeamButton")}</button
 			>
 		</div>
 
 		{#if !$currentUser}
-			<p class="notice">Войдите, чтобы увидеть свои команды.</p>
+			<p class="notice">{$_("pageTeamsMine.loginPrompt")}</p>
 		{:else if loading}
-			<p class="notice">Загрузка...</p>
+			<p class="notice">{$_("common.loading")}</p>
 		{:else if teams.length === 0}
-			<p class="notice">У вас пока нет команд</p>
+			<p class="notice">{$_("pageTeamsMine.noTeams")}</p>
 		{:else}
 			<div class="team-list">
 				{#each teams as team (team.id)}

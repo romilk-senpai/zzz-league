@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TournamentCard from "$lib/components/TournamentCard.svelte";
+	import { _ } from "$lib/i18n";
 	import { isAdmin, tournaments } from "$lib/store";
 
 	let now = $state(Date.now());
@@ -27,7 +28,7 @@
 	<SidePanel></SidePanel>
 
 	<div class="card main-content">
-		<h2 class="archive-title">Архив турниров</h2>
+		<h2 class="archive-title">{$_("pageTournaments.title")}</h2>
 		{#if sortedTournaments.length > 0}
 			<div class="archive-grid">
 				{#each sortedTournaments as tournament}
@@ -35,7 +36,7 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="empty-label">Турниров пока нет</p>
+			<p class="empty-label">{$_("pageTournaments.noTournaments")}</p>
 		{/if}
 	</div>
 </div>

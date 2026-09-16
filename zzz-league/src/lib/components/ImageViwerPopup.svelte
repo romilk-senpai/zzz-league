@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { bustCache, closeImagePopup } from "$lib/uiCommon";
+	import { _ } from "$lib/i18n";
 
 	let { src = "", alt = "" } = $props();
 	let loaded = $state(false);
@@ -16,7 +17,7 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="image-popup-frame" onclick={(e) => e.stopPropagation()}>
-		<button class="close-btn" onclick={close} aria-label="Закрыть">
+		<button class="close-btn" onclick={close} aria-label={$_("common.close")}>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 		</button>
 

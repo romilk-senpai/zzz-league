@@ -4,6 +4,7 @@
 	import { page } from "$app/state";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import { getTournament, listPlayers, listRegistrations, splitTournament } from "$lib/backend";
+	import { _ } from "$lib/i18n";
 	import { isAdmin } from "$lib/store";
 	import type { Tournament } from "$lib/types";
 	import { isLocked } from "$lib/tournamentState";
@@ -72,28 +73,42 @@
 
 	let validationError = $derived.by(() => {
 		if (!canSplit) {
-			return `Недостаточно одобренных игроков для разделения (нужно минимум 4, сейчас ${approvedPlayers.length})`;
+			return $_("pageTournamentSplit.errorNotEnoughApproved", {
+				values: { count: approvedPlayers.length },
+			});
 		}
 		if (!Number.isFinite(divisionCount) || divisionCount < 2) {
-			return "Должно быть минимум 2 сетки";
+			return $_("pageTournamentSplit.errorMinDivisions");
 		}
 		if (divisionCount > maxDivisionCount) {
-			return `Слишком много сеток: максимум ${maxDivisionCount} при ${approvedPlayers.length} игроках`;
+			return $_("pageTournamentSplit.errorTooManyDivisions", {
+				values: { max: maxDivisionCount, count: approvedPlayers.length },
+			});
 		}
 		const smallIndex = divisionSizes.findIndex(
 			(n) => !Number.isFinite(n) || n < 2,
 		);
 		if (smallIndex !== -1) {
-			return `В сетке ${smallIndex + 1} должно быть минимум 2 игрока`;
+			return $_("pageTournamentSplit.errorDivisionMinPlayers", {
+				values: { division: smallIndex + 1 },
+			});
 		}
 		if (pool.length > 0) {
-			return `Не все игроки распределены (осталось ${pool.length})`;
+			return $_("pageTournamentSplit.errorNotAllAssigned", {
+				values: { count: pool.length },
+			});
 		}
 		const mismatchIndex = groups.findIndex(
 			(g, i) => g.length !== divisionSizes[i],
 		);
 		if (mismatchIndex !== -1) {
-			return `В сетке ${mismatchIndex + 1} распределено ${groups[mismatchIndex].length} игроков, а задано ${divisionSizes[mismatchIndex]}`;
+			return $_("pageTournamentSplit.errorDivisionMismatch", {
+				values: {
+					division: mismatchIndex + 1,
+					actual: groups[mismatchIndex].length,
+					expected: divisionSizes[mismatchIndex],
+				},
+			});
 		}
 		return null;
 	});
@@ -157,15 +172,15 @@
 		try {
 			const data = await getTournament(id);
 			if (!data) {
-				loadError = "Турнир не найден.";
+				loadError = $_("pageTournamentSplit.notFound");
 				return;
 			}
 			if (isLocked(data.state) || data.challongeTournamentId) {
-				loadError = "Турнир уже начался, разделение недоступно.";
+				loadError = $_("pageTournamentSplit.splitUnavailableLocked");
 				return;
 			}
 			if (data.divisionGroupId) {
-				loadError = "Турнир уже разделён на сетки.";
+				loadError = $_("pageTournamentSplit.alreadySplit");
 				return;
 			}
 			tournament = data;
@@ -197,7 +212,12 @@
 			status = validationError;
 			return;
 		}
-		if (!confirm(`Разделить турнир на ${divisionCount} сетки?`)) return;
+		if (
+			!confirm(
+				$_("pageTournamentSplit.confirmSplit", { values: { count: divisionCount } }),
+			)
+		)
+			return;
 
 		isSplitting = true;
 		try {
@@ -216,32 +236,33 @@
 
 	<div class="card main-content">
 		{#if !$isAdmin}
-			<p class="notice">Недостаточно прав для просмотра этой страницы.</p>
+			<p class="notice">{$_("pageTournamentSplit.noViewPermission")}</p>
 		{:else if !loaded}
-			<h2>Разделить на сетки</h2>
-			<p class="notice">Загрузка...</p>
+			<h2>{$_("pageTournamentSplit.pageTitle")}</h2>
+			<p class="notice">{$_("common.loading")}</p>
 		{:else if loadError}
-			<h2 class="page-title">Разделить на сетки</h2>
+			<h2 class="page-title">{$_("pageTournamentSplit.pageTitle")}</h2>
 			<p class="notice">{loadError}</p>
 		{:else}
 			<h2 class="page-title">
-				Разделить турнир «{tournament?.name}» на сетки — отменить нельзя
+				{$_("pageTournamentSplit.splitHeading", { values: { name: tournament?.name } })}
 			</h2>
 
 			{#if !canSplit}
 				<p class="notice">
-					Недостаточно одобренных игроков для разделения (нужно минимум 4,
-					сейчас {approvedPlayers.length}).
+					{$_("pageTournamentSplit.errorNotEnoughApproved", {
+						values: { count: approvedPlayers.length },
+					})}
 				</p>
 				<div class="btn-row narrow">
 					<a class="btn-common" href={resolve(`/tournaments/${id}`)}
-						>Назад</a
+						>{$_("common.back")}</a
 					>
 				</div>
 			{:else}
 				<div class="split-toolbar">
 					<div class="field-group">
-						<label for="division-count">Количество сеток</label>
+						<label for="division-count">{$_("pageTournamentSplit.divisionCountLabel")}</label>
 						<input
 							id="division-count"
 							class="count-field"
@@ -252,13 +273,20 @@
 							onblur={clampDivisionCount}
 						/>
 					</div>
-					<p class="hint">Максимум сеток: {maxDivisionCount}</p>
 					<p class="hint">
-						Распределено: {approvedPlayers.length - pool.length} / {approvedPlayers.length}
+						{$_("pageTournamentSplit.maxDivisionsHint", { values: { max: maxDivisionCount } })}
+					</p>
+					<p class="hint">
+						{$_("pageTournamentSplit.assignedHint", {
+							values: {
+								assigned: approvedPlayers.length - pool.length,
+								total: approvedPlayers.length,
+							},
+						})}
 					</p>
 					<button class="btn-common shuffle-btn" onclick={shufflePlayers}>
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-						Перемешать
+						{$_("pageTournamentSplit.shuffleButton")}
 					</button>
 				</div>
 
@@ -269,7 +297,9 @@
 						ondragover={(e) => e.preventDefault()}
 						ondrop={moveToPool}
 					>
-						<h3>Не распределены ({pool.length})</h3>
+						<h3>
+							{$_("pageTournamentSplit.unassignedHeading", { values: { count: pool.length } })}
+						</h3>
 						<div class="player-list">
 							{#each pool as player (player.uid)}
 								<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -296,10 +326,10 @@
 							ondrop={() => moveToDivision(i)}
 						>
 							<h3 class:division-full={isDivisionFull(i)}>
-								Сетка {i + 1}
+								{$_("pageTournamentSplit.divisionHeading", { values: { index: i + 1 } })}
 							</h3>
 							<div class="field-group">
-								<label for="division-size-{i}">Игроков</label>
+								<label for="division-size-{i}">{$_("pageTournamentSplit.playersLabel")}</label>
 								<input
 									id="division-size-{i}"
 									class="size-field"
@@ -310,7 +340,9 @@
 								/>
 							</div>
 							<p class="hint" class:division-full={isDivisionFull(i)}>
-								Распределено: {group.length} / {divisionSizes[i]}
+								{$_("pageTournamentSplit.assignedHint", {
+									values: { assigned: group.length, total: divisionSizes[i] },
+								})}
 							</p>
 							<div class="player-list">
 								{#each group as uid (uid)}
@@ -331,7 +363,7 @@
 				</div>
 
 				<p class="hint">
-					Перетащите игроков между колонками для распределения.
+					{$_("pageTournamentSplit.dragHint")}
 				</p>
 
 				{#if status}<p class="status error">{status}</p>{/if}
@@ -339,10 +371,10 @@
 					<button
 						class="btn-common btn-play"
 						class:btn-loading={isSplitting}
-						onclick={handleSplit}>Разделить</button
+						onclick={handleSplit}>{$_("pageTournamentSplit.splitButton")}</button
 					>
 					<a class="btn-common" href={resolve(`/tournaments/${id}`)}
-						>Отмена</a
+						>{$_("common.cancel")}</a
 					>
 				</div>
 			{/if}

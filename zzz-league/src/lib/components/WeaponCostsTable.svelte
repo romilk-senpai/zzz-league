@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { agentCosts, specialties, type Specialty } from "$lib/costData";
 	import { getAgentAvatar } from "$lib/agentAvatars";
+	import { _ } from "$lib/i18n";
 	import { getWeaponAvatar } from "$lib/weaponAvatars";
 	import { engineBaseRankLabels, engineRankLabels, weaponCosts, type WeaponCost } from "$lib/weaponData";
 	import { contributionColor, contributions, type ContributionListItem } from "$lib/contributions";
@@ -164,7 +165,7 @@
 			currentCosts: row.baseCosts,
 			rankLabels: engineBaseRankLabels,
 		};
-		menuTitle = `${row.name} — базовая стоимость`;
+		menuTitle = `${row.name} — ${$_("weaponCostsTable.baseCost")}`;
 		menuItems = row.baseAll;
 		menuOpen = true;
 	}
@@ -212,7 +213,7 @@
 		selectedContributionId = c.id;
 		reviewTitle = menuContext.overrideAgentId
 			? `${menuContext.weaponName} — ${menuContext.agentDisplayName}`
-			: `${menuContext.weaponName} — базовая стоимость`;
+			: `${menuContext.weaponName} — ${$_("weaponCostsTable.baseCost")}`;
 		reviewRankLabels = menuContext.rankLabels;
 		reviewCurrentCosts = menuContext.currentCosts;
 		reviewOpen = true;
@@ -260,7 +261,7 @@
 			reviewRankLabels = engineRankLabels;
 		} else {
 			reviewCurrentCosts = weapon.baseCosts;
-			reviewTitle = `${weapon.name} — базовая стоимость`;
+			reviewTitle = `${weapon.name} — ${$_("weaponCostsTable.baseCost")}`;
 			reviewRankLabels = engineBaseRankLabels;
 		}
 		reviewOpen = true;
@@ -289,13 +290,13 @@
 		<h3>{activeInfo.label}</h3>
 		{#if groupsWithOverrides.length > 0}
 			<button type="button" class="toggle-all-btn" onclick={toggleAllGroups}>
-				{allCollapsed ? "Развернуть всё" : "Свернуть всё"}
+				{allCollapsed ? $_("weaponCostsTable.expandAll") : $_("weaponCostsTable.collapseAll")}
 			</button>
 		{/if}
 	</div>
 
 	{#if rows.length === 0}
-		<p class="notice">Нет W-engine в этой категории.</p>
+		<p class="notice">{$_("weaponCostsTable.noWeaponsInCategory")}</p>
 	{:else}
 		<div class="weapon-scroll">
 			<div class="weapon-grid">
@@ -322,7 +323,7 @@
 										<span
 											class="contrib-alert"
 											style="background:{contributionColor(row.baseScore)}"
-											title="Есть предложение по изменению базовой стоимости"
+											title={$_("weaponCostsTable.baseCostProposalTooltip")}
 										>!</span>
 									{/if}
 								</button>
@@ -331,7 +332,7 @@
 										type="button"
 										class="group-toggle"
 										onclick={() => toggleGroup(row.engineId)}
-										title={collapsed ? "Показать стоимость по агентам" : "Свернуть стоимость по агентам"}
+										title={collapsed ? $_("weaponCostsTable.showAgentCosts") : $_("weaponCostsTable.hideAgentCosts")}
 									>
 										<svg class="group-toggle-caret" class:collapsed width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
 										{row.overrideRows.length}
@@ -339,7 +340,7 @@
 											<span
 												class="contrib-alert small"
 												style="background:{contributionColor(row.overridesPendingScore)}"
-												title="Внутри есть предложения по изменению стоимости"
+												title={$_("weaponCostsTable.innerProposalsTooltip")}
 											>!</span>
 										{/if}
 									</button>
@@ -362,13 +363,13 @@
 										{/if}
 										<span class="weapon-name">{info.name}</span>
 										{#if o.isNew}
-											<span class="new-tag">новое</span>
+											<span class="new-tag">{$_("weaponCostsTable.newTag")}</span>
 										{/if}
 										{#if o.pendingScore !== null}
 											<span
 												class="contrib-alert small"
 												style="background:{contributionColor(o.pendingScore)}"
-												title="Есть предложение по изменению стоимости"
+												title={$_("weaponCostsTable.costProposalTooltip")}
 											>!</span>
 										{/if}
 									</button>
@@ -381,7 +382,7 @@
 							{/each}
 
 							<button type="button" class="add-agent-row" onclick={() => openAddAgentFlow(row)}>
-								+ Добавить агента
+								+ {$_("weaponCostsTable.addAgent")}
 							</button>
 						{/if}
 					</div>
@@ -393,9 +394,9 @@
 
 <div class="log-columns">
 	<div class="card log-card">
-		<h2 class="log-heading rejected">Отклонённые изменения</h2>
+		<h2 class="log-heading rejected">{$_("weaponCostsTable.rejectedChangesTitle")}</h2>
 		{#if rejectedLog.length === 0}
-			<p class="notice">Пока нет отклонённых предложений.</p>
+			<p class="notice">{$_("weaponCostsTable.noRejectedProposals")}</p>
 		{:else}
 			<div class="log-list">
 				{#each rejectedLog as c (c.id)}
@@ -415,9 +416,9 @@
 	</div>
 
 	<div class="card log-card">
-		<h2 class="log-heading approved">Принятые изменения</h2>
+		<h2 class="log-heading approved">{$_("weaponCostsTable.approvedChangesTitle")}</h2>
 		{#if approvedLog.length === 0}
-			<p class="notice">Пока нет принятых предложений.</p>
+			<p class="notice">{$_("weaponCostsTable.noApprovedProposals")}</p>
 		{:else}
 			<div class="log-list">
 				{#each approvedLog as c (c.id)}

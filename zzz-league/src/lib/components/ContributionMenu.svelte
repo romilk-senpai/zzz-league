@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { contributionColor, type ContributionListItem } from "$lib/contributions";
+	import { _ } from "$lib/i18n";
 
 	let {
 		open = $bindable(false),
@@ -16,9 +17,9 @@
 	} = $props();
 
 	function statusLabel(c: ContributionListItem): string {
-		if (c.status === "approved") return "Принято";
-		if (c.status === "rejected") return "Отклонено";
-		return "На рассмотрении";
+		if (c.status === "approved") return $_("contributionMenu.statusApproved");
+		if (c.status === "rejected") return $_("contributionMenu.statusRejected");
+		return $_("contributionMenu.statusPending");
 	}
 </script>
 
@@ -30,14 +31,14 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card menu-card" onclick={(e) => e.stopPropagation()}>
 			<div class="close-row">
-				<button class="icon-btn" onclick={() => (open = false)} aria-label="Закрыть">
+				<button class="icon-btn" onclick={() => (open = false)} aria-label={$_("common.close")}>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
 
 			<h2 class="popup-title">{agentName}</h2>
 			{#if items.length === 0}
-				<p class="notice">Пока нет предложений по изменению стоимости.</p>
+				<p class="notice">{$_("contributionMenu.emptyState")}</p>
 			{:else}
 				<div class="menu-list">
 					{#each items as c (c.id)}
@@ -56,7 +57,7 @@
 					{/each}
 				</div>
 			{/if}
-			<button class="btn-common btn-play btn-block" onclick={onPropose}>+ Предложить изменение</button>
+			<button class="btn-common btn-play btn-block" onclick={onPropose}>+ {$_("contributionMenu.proposeChange")}</button>
 		</div>
 	</div>
 {/if}

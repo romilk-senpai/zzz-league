@@ -5,6 +5,7 @@
 	import { getTournament, updateTournament } from "$lib/backend";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TournamentFormFields from "$lib/components/TournamentFormFields.svelte";
+	import { _ } from "$lib/i18n";
 	import { isAdmin } from "$lib/store";
 	import { isLocked } from "$lib/tournamentState";
 	import type { TournamentGameMode, TournamentRegistrationKind } from "$lib/types";
@@ -50,12 +51,12 @@
 		try {
 			const tournament = await getTournament(id);
 			if (!tournament) {
-				loadError = "Турнир не найден.";
+				loadError = $_("pageTournamentEdit.notFound");
 				return;
 			}
 			if (isLocked(tournament.state)) {
 				editable = false;
-				loadError = "Турнир уже начался, редактирование недоступно.";
+				loadError = $_("pageTournamentEdit.editUnavailableLocked");
 				return;
 			}
 
@@ -105,6 +106,8 @@
 			tournamentType,
 			overrideEloEnabled,
 			overrideEloValue,
+			discordRoleName,
+			discordChannelName,
 		});
 		if (result.error !== null) {
 			showErrors = true;
@@ -153,10 +156,10 @@
 
 	<div class="card main-content">
 		{#if $isAdmin}
-			<h2 class="page-title">Редактировать турнир</h2>
+			<h2 class="page-title">{$_("pageTournamentEdit.pageTitle")}</h2>
 
 			{#if !loaded}
-				<p class="notice">Загрузка...</p>
+				<p class="notice">{$_("common.loading")}</p>
 			{:else if loadError}
 				<p class="notice">{loadError}</p>
 			{:else if editable}
@@ -192,12 +195,12 @@
 					<button
 						class="btn-common btn-play"
 						class:btn-loading={savingTournament}
-						onclick={handleSaveTournament}>Сохранить</button
+						onclick={handleSaveTournament}>{$_("common.save")}</button
 					>
 				</div>
 			{/if}
 		{:else}
-			<p class="notice">Недостаточно прав для просмотра этой страницы.</p>
+			<p class="notice">{$_("pageTournamentEdit.noViewPermission")}</p>
 		{/if}
 	</div>
 </div>

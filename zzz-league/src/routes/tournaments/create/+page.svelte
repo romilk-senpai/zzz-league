@@ -2,6 +2,7 @@
 	import { goto } from "$app/navigation";
 	import { resolve } from "$app/paths";
 	import { createTournament } from "$lib/backend";
+	import { _ } from "$lib/i18n";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TournamentFormFields from "$lib/components/TournamentFormFields.svelte";
 	import { isAdmin } from "$lib/store";
@@ -46,6 +47,8 @@
 			tournamentType,
 			overrideEloEnabled,
 			overrideEloValue,
+			discordRoleName,
+			discordChannelName,
 		});
 		if (result.error !== null) {
 			showErrors = true;
@@ -94,7 +97,7 @@
 
 	<div class="card main-content">
 		{#if $isAdmin}
-			<h2 class="page-title">Создать турнир</h2>
+			<h2 class="page-title">{$_("pageTournamentsCreate.title")}</h2>
 
 			<TournamentFormFields
 				bind:name
@@ -127,11 +130,11 @@
 				<button
 					class="btn-common btn-play"
 					class:btn-loading={creatingTournament}
-					onclick={handleCreateTournament}>Создать</button
+					onclick={handleCreateTournament}>{$_("common.create")}</button
 				>
 			</div>
 		{:else}
-			<p class="notice">Недостаточно прав для просмотра этой страницы.</p>
+			<p class="notice">{$_("pageTournamentsCreate.noPermission")}</p>
 		{/if}
 	</div>
 </div>

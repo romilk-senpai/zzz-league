@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getAgentAvatar } from "$lib/agentAvatars";
 	import AvatarPickerPopup from "$lib/components/AvatarPickerPopup.svelte";
+	import { _ } from "$lib/i18n";
 	import { openDiscordOAuth } from "$lib/discord";
 	import { auth, unlinkDiscord } from "$lib/firebase";
 	import { updateProfile } from "$lib/backend";
@@ -68,7 +69,7 @@
 
 			if (newPassword.length > 0) {
 				if (newPassword !== confirmPass) {
-					status = "Пароли не совпадают";
+					status = $_("settingsPopup.passwordsMismatch");
 					return;
 				}
 
@@ -122,11 +123,11 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="card settings-card" onclick={(e) => e.stopPropagation()}>
 		<div class="close-row">
-			<button class="icon-btn" onclick={close} aria-label="Закрыть">
+			<button class="icon-btn" onclick={close} aria-label={$_("common.close")}>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 			</button>
 		</div>
-		<h2 class="popup-title">Настройки аккаунта</h2>
+		<h2 class="popup-title">{$_("settingsPopup.title")}</h2>
 		<button
 			type="button"
 			class="avatar-preview"
@@ -138,37 +139,37 @@
 				<span class="avatar-placeholder">?</span>
 			{/if}
 		</button>
-		<div class="avatar-hint">Нажмите, чтобы сменить аватар</div>
+		<div class="avatar-hint">{$_("settingsPopup.avatarHint")}</div>
 
 		<div class="settings-form-row">
 			<div class="form-row">
-				<label for="settings-email">Email</label>
+				<label for="settings-email">{$_("settingsPopup.emailLabel")}</label>
 				<input
 					id="settings-email"
 					class="input-disabled"
 					type="email"
 					bind:value={email}
-					placeholder="Email"
+					placeholder={$_("settingsPopup.emailLabel")}
 					disabled
 				/>
 			</div>
 			<div class="form-row">
-				<label for="settings-username">Ник</label>
+				<label for="settings-username">{$_("settingsPopup.usernameLabel")}</label>
 				<input
 					id="settings-username"
 					type="text"
 					bind:value={username}
-					placeholder="Ник"
+					placeholder={$_("settingsPopup.usernameLabel")}
 				/>
 			</div>
 			<div class="form-row">
-				<label for="settings-discord">Discord</label>
+				<label for="settings-discord">{$_("settingsPopup.discordLabel")}</label>
 				<input
 					id="settings-discord"
 					type="text"
 					class="input-disabled"
 					value={user.discordUsername ?? ""}
-					placeholder="Discord"
+					placeholder={$_("settingsPopup.discordLabel")}
 					disabled
 				/>
 			</div>
@@ -179,11 +180,11 @@
 				class="btn-common"
 				class:btn-loading={unlinkingDiscord}
 				disabled={unlinkingDiscord}
-				onclick={() => handleUnlinkDiscord()}>Отвязать Discord</button
+				onclick={() => handleUnlinkDiscord()}>{$_("settingsPopup.unlinkDiscord")}</button
 			>
 		{:else}
 			<button class="btn-common" onclick={() => handleLinkDiscord()}
-				>Привязать Discord</button
+				>{$_("settingsPopup.linkDiscord")}</button
 			>
 		{/if}
 
@@ -191,30 +192,30 @@
 
 		<div class="settings-form-row">
 			<div class="form-row">
-				<label for="settings-current-password">Текущий пароль</label>
+				<label for="settings-current-password">{$_("settingsPopup.currentPasswordLabel")}</label>
 				<input
 					id="settings-current-password"
 					type="password"
 					bind:value={currentPassword}
-					placeholder="Текущий пароль"
+					placeholder={$_("settingsPopup.currentPasswordLabel")}
 				/>
 			</div>
 			<div class="form-row">
-				<label for="settings-new-password">Новый пароль</label>
+				<label for="settings-new-password">{$_("settingsPopup.newPasswordLabel")}</label>
 				<input
 					id="settings-new-password"
 					type="password"
 					bind:value={newPassword}
-					placeholder="Новый пароль"
+					placeholder={$_("settingsPopup.newPasswordLabel")}
 				/>
 			</div>
 			<div class="form-row">
-				<label for="settings-confirm-password">Подтвердите пароль</label>
+				<label for="settings-confirm-password">{$_("settingsPopup.confirmPasswordLabel")}</label>
 				<input
 					id="settings-confirm-password"
 					type="password"
 					bind:value={confirmPass}
-					placeholder="Подтвердите пароль"
+					placeholder={$_("settingsPopup.confirmPasswordLabel")}
 				/>
 			</div>
 		</div>
@@ -223,7 +224,7 @@
 		<button
 			class="btn-common btn-play"
 			class:btn-loading={savingSettings}
-			onclick={() => handleSaveSettings()}>Сохранить</button
+			onclick={() => handleSaveSettings()}>{$_("common.save")}</button
 		>
 	</div>
 </div>

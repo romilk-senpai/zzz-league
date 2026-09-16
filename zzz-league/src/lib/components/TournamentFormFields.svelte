@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { _ } from "$lib/i18n";
 	import type { TournamentGameMode, TournamentRegistrationKind } from "$lib/types";
 	import { renderMarkdown } from "$lib/uiCommon";
 
@@ -68,10 +69,10 @@
 {/snippet}
 
 <div class="form-section">
-	<div class="section-label">Основное</div>
+	<div class="section-label">{$_("tournamentFormFields.sectionBasic")}</div>
 	<div class="form-grid name-row">
 		<div class="form-group">
-			<label for="f-name">Название</label>
+			<label for="f-name">{$_("tournamentFormFields.nameLabel")}</label>
 			<input
 				id="f-name"
 				type="text"
@@ -82,14 +83,14 @@
 		</div>
 		{#if editableTypeAndMode}
 			<div class="form-group">
-				<label for="f-registration-type">Тип регистрации</label>
+				<label for="f-registration-type">{$_("tournamentFormFields.registrationTypeLabel")}</label>
 				<select id="f-registration-type" bind:value={registrationType}>
 					<option value="solo">1x1</option>
 					<option value="team">2x2</option>
 				</select>
 			</div>
 			<div class="form-group">
-				<label for="f-game-mode">Режим игры</label>
+				<label for="f-game-mode">{$_("tournamentFormFields.gameModeLabel")}</label>
 				<select id="f-game-mode" bind:value={gameMode}>
 					<option value="shiyu_defense">Shiyu Defense</option>
 					<option value="deadly_assault">Deadly Assault</option>
@@ -98,27 +99,27 @@
 		{/if}
 	</div>
 	<div class="form-group description-group">
-		<label for="f-description">Описание</label>
+		<label for="f-description">{$_("tournamentFormFields.descriptionLabel")}</label>
 		<textarea
 			id="f-description"
 			rows="3"
-			placeholder="Markdown поддерживается…"
+			placeholder={$_("tournamentFormFields.descriptionPlaceholder")}
 			bind:value={description}
 		></textarea>
 	</div>
 	{#if description.trim()}
 		<div class="form-group description-group">
-			<label for="f-description-preview">Превью</label>
+			<label for="f-description-preview">{$_("tournamentFormFields.previewLabel")}</label>
 			<div id="f-description-preview" class="description-preview">{@html descriptionPreview}</div>
 		</div>
 	{/if}
 </div>
 
 <div class="form-section">
-	<div class="section-label">Формат</div>
+	<div class="section-label">{$_("tournamentFormFields.sectionFormat")}</div>
 	<div class="form-grid">
 		<div class="form-group">
-			<label for="f-type">Тип турнира</label>
+			<label for="f-type">{$_("tournamentFormFields.tournamentTypeLabel")}</label>
 			<select id="f-type" bind:value={tournamentType}>
 				<option value="single elimination">Single elimination</option>
 				<option value="double elimination">Double elimination</option>
@@ -129,14 +130,14 @@
 			{@render checkbox(
 				"f-break-ties",
 				breakTiesEnabled,
-				"Break ties with placement matches",
+				$_("tournamentFormFields.breakTiesLabel"),
 				() => (breakTiesEnabled = !breakTiesEnabled),
 			)}
 			<input
 				id="f-break-ties-place"
 				type="number"
 				min="1"
-				aria-label="Место"
+				aria-label={$_("tournamentFormFields.placeLabel")}
 				class:input-disabled={!breakTiesEnabled}
 				bind:value={breakTiesPlace}
 				disabled={!breakTiesEnabled}
@@ -147,14 +148,14 @@
 			{@render checkbox(
 				"f-elo-enabled",
 				overrideEloEnabled,
-				"Фиксированное эло за победу/поражение",
+				$_("tournamentFormFields.fixedEloLabel"),
 				() => (overrideEloEnabled = !overrideEloEnabled),
 			)}
 			<input
 				id="f-elo-value"
 				type="number"
 				min="1"
-				aria-label="Значение"
+				aria-label={$_("tournamentFormFields.valueLabel")}
 				class:input-disabled={!overrideEloEnabled}
 				bind:value={overrideEloValue}
 				disabled={!overrideEloEnabled}
@@ -164,10 +165,10 @@
 </div>
 
 <div class="form-section">
-	<div class="section-label">Требования к участникам</div>
+	<div class="section-label">{$_("tournamentFormFields.sectionRequirements")}</div>
 	<div class="form-grid">
 		<div class="form-group">
-			<label for="f-min-tier">Мин. тир</label>
+			<label for="f-min-tier">{$_("tournamentFormFields.minTierLabel")}</label>
 			<select id="f-min-tier" bind:value={minTier}>
 				<option value="0">NEWBIE</option>
 				<option value="100">MID TIER</option>
@@ -175,7 +176,7 @@
 			</select>
 		</div>
 		<div class="form-group">
-			<label for="f-max-tier">Макс. тир</label>
+			<label for="f-max-tier">{$_("tournamentFormFields.maxTierLabel")}</label>
 			<select id="f-max-tier" bind:value={maxTier}>
 				<option value="0">NEWBIE</option>
 				<option value="100">MID TIER</option>
@@ -183,18 +184,18 @@
 			</select>
 		</div>
 		<div class="form-group">
-			<label for="f-min-characters">Мин. персонажей</label>
+			<label for="f-min-characters">{$_("tournamentFormFields.minCharactersLabel")}</label>
 			<input id="f-min-characters" type="number" bind:value={minCharacters} />
 		</div>
 		<div class="form-group">
-			<label for="f-min-cost">Мин. кост</label>
+			<label for="f-min-cost">{$_("tournamentFormFields.minCostLabel")}</label>
 			<input id="f-min-cost" type="number" bind:value={minCost} />
 		</div>
 		<div class="form-group">
-			<label for="f-max-cost">Макс. кост</label>
+			<label for="f-max-cost">{$_("tournamentFormFields.maxCostLabel")}</label>
 			<input id="f-max-cost" type="number" bind:value={maxCost} />
 		</div>
-		{@render checkbox("f-visible", visible, "Публичный", () => (visible = !visible))}
+		{@render checkbox("f-visible", visible, $_("tournamentFormFields.publicLabel"), () => (visible = !visible))}
 	</div>
 </div>
 
@@ -202,31 +203,33 @@
 	<div class="section-label">Discord</div>
 	<div class="form-grid">
 		<div class="form-group">
-			<label for="f-discord-role">Роль</label>
+			<label for="f-discord-role">{$_("tournamentFormFields.roleLabel")}</label>
 			<input
 				id="f-discord-role"
 				type="text"
+				class:invalid={showErrors && !discordRoleName.trim()}
 				bind:value={discordRoleName}
-				placeholder="Название роли"
+				placeholder={$_("tournamentFormFields.roleNamePlaceholder")}
 			/>
 		</div>
 		<div class="form-group">
-			<label for="f-discord-channel">Канал</label>
+			<label for="f-discord-channel">{$_("tournamentFormFields.channelLabel")}</label>
 			<input
 				id="f-discord-channel"
 				type="text"
+				class:invalid={showErrors && !discordChannelName.trim()}
 				bind:value={discordChannelName}
-				placeholder="Название канала"
+				placeholder={$_("tournamentFormFields.channelNamePlaceholder")}
 			/>
 		</div>
 	</div>
 </div>
 
 <div class="form-section">
-	<div class="section-label">Расписание</div>
+	<div class="section-label">{$_("tournamentFormFields.sectionSchedule")}</div>
 	<div class="form-grid">
 		<div class="form-group">
-			<label for="f-reg-start">Начало регистрации</label>
+			<label for="f-reg-start">{$_("tournamentFormFields.registrationStartLabel")}</label>
 			<input
 				id="f-reg-start"
 				type="datetime-local"
@@ -235,7 +238,7 @@
 			/>
 		</div>
 		<div class="form-group">
-			<label for="f-reg-end">Конец регистрации</label>
+			<label for="f-reg-end">{$_("tournamentFormFields.registrationEndLabel")}</label>
 			<input
 				id="f-reg-end"
 				type="datetime-local"
@@ -246,7 +249,7 @@
 	</div>
 	<div class="form-grid">
 		<div class="form-group">
-			<label for="f-tour-start">Начало турнира</label>
+			<label for="f-tour-start">{$_("tournamentFormFields.tournamentStartLabel")}</label>
 			<input
 				id="f-tour-start"
 				type="datetime-local"
@@ -255,7 +258,7 @@
 			/>
 		</div>
 		<div class="form-group">
-			<label for="f-tour-end">Конец турнира</label>
+			<label for="f-tour-end">{$_("tournamentFormFields.tournamentEndLabel")}</label>
 			<input
 				id="f-tour-end"
 				type="datetime-local"

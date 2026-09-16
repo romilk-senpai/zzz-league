@@ -1,10 +1,29 @@
 <script lang="ts">
 	import { page } from "$app/state";
 	import { resolve } from "$app/paths";
+	import { _, locale, setLocale, SUPPORTED_LOCALES, LOCALE_LABELS, type SupportedLocale } from "$lib/i18n";
 
 	function isActive(path: string, exact = false): boolean {
 		if (exact) return page.url.pathname === path;
 		return page.url.pathname === path || page.url.pathname.startsWith(path + "/");
+	}
+
+	let langMenuOpen = $state(false);
+	let langSwitcherEl: HTMLDivElement | undefined = $state();
+
+	function selectLocale(loc: SupportedLocale) {
+		setLocale(loc);
+		langMenuOpen = false;
+	}
+
+	function handleWindowClick(e: MouseEvent) {
+		if (langMenuOpen && langSwitcherEl && !langSwitcherEl.contains(e.target as Node)) {
+			langMenuOpen = false;
+		}
+	}
+
+	function handleWindowKeydown(e: KeyboardEvent) {
+		if (e.key === "Escape") langMenuOpen = false;
 	}
 
 	const links = [
@@ -30,14 +49,47 @@
 	<div class="header-left">
 		<a class="site-logo" href={resolve("/")}>NESC</a>
 		<nav class="nav-links">
-			<a class="nav-link" class:active={isActive(resolve("/"), true)} href={resolve("/")}>Главная</a>
-			<a class="nav-link" class:active={isActive(resolve("/tournaments"))} href={resolve("/tournaments")}>Архив турниров</a>
-			<a class="nav-link" class:active={isActive(resolve("/teams"))} href={resolve("/teams")}>Команды</a>
-			<a class="nav-link" class:active={isActive(resolve("/history"))} href={resolve("/history")}>История матчей</a>
-			<a class="nav-link" class:active={isActive(resolve("/costs"))} href={resolve("/costs")}>Коммунити кост</a>
+			<a class="nav-link" class:active={isActive(resolve("/"), true)} href={resolve("/")}>{$_("header.home")}</a>
+			<a class="nav-link" class:active={isActive(resolve("/tournaments"))} href={resolve("/tournaments")}>{$_("header.tournamentArchive")}</a>
+			<a class="nav-link" class:active={isActive(resolve("/teams"))} href={resolve("/teams")}>{$_("header.teams")}</a>
+			<a class="nav-link" class:active={isActive(resolve("/history"))} href={resolve("/history")}>{$_("header.matchHistory")}</a>
+			<a class="nav-link" class:active={isActive(resolve("/costs"))} href={resolve("/costs")}>{$_("header.communityCost")}</a>
 		</nav>
 	</div>
 	<div class="social-links">
+		<div class="lang-switcher" bind:this={langSwitcherEl}>
+			<button
+				type="button"
+				class="lang-trigger"
+				class:open={langMenuOpen}
+				aria-haspopup="listbox"
+				aria-expanded={langMenuOpen}
+				aria-label={$_("header.language")}
+				onclick={() => (langMenuOpen = !langMenuOpen)}
+			>
+				<svg class="lang-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+				<span class="lang-current">{LOCALE_LABELS[($locale ?? "en") as SupportedLocale]}</span>
+				<svg class="lang-chevron" class:flipped={langMenuOpen} width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+			</button>
+			{#if langMenuOpen}
+				<ul class="lang-menu" role="listbox">
+					{#each SUPPORTED_LOCALES as loc (loc)}
+						<li role="presentation">
+							<button
+								type="button"
+								class="lang-option"
+								class:active={$locale === loc}
+								role="option"
+								aria-selected={$locale === loc}
+								onclick={() => selectLocale(loc)}
+							>
+								{LOCALE_LABELS[loc]}
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
 		{#each links as link (link.label)}
 			<a
 				href={link.href}
@@ -53,6 +105,8 @@
 		{/each}
 	</div>
 </header>
+
+<svelte:window onclick={handleWindowClick} onkeydown={handleWindowKeydown} />
 
 <style>
 	.site-header {
@@ -113,6 +167,94 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
+	}
+
+	.lang-switcher {
+		position: relative;
+		margin-right: 6px;
+	}
+
+	.lang-trigger {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 32px;
+		padding: 0 9px;
+		border-radius: var(--r-md);
+		background: var(--surface-2);
+		border: 1px solid var(--border);
+		color: var(--text-muted);
+		transition: 0.15s;
+	}
+
+	.lang-trigger:hover,
+	.lang-trigger.open {
+		background: var(--surface-hover);
+		color: var(--text);
+		border-color: var(--gold-border);
+	}
+
+	.lang-icon {
+		flex-shrink: 0;
+	}
+
+	.lang-current {
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+	}
+
+	.lang-chevron {
+		flex-shrink: 0;
+		opacity: 0.7;
+		transition: transform 0.15s;
+	}
+
+	.lang-chevron.flipped {
+		transform: rotate(180deg);
+	}
+
+	.lang-menu {
+		position: absolute;
+		top: calc(100% + 6px);
+		right: 0;
+		min-width: 100%;
+		list-style: none;
+		margin: 0;
+		padding: 4px;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--r-md);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+		z-index: 50;
+	}
+
+	.lang-option {
+		width: 100%;
+		padding: 6px 10px;
+		border: none;
+		border-radius: calc(var(--r-md) - 2px);
+		font-size: 12px;
+		font-weight: 600;
+		text-align: left;
+		color: var(--text-muted);
+		background: transparent;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: 0.15s;
+	}
+
+	.lang-option.active {
+		background: var(--gold-dim);
+		color: var(--gold);
+	}
+
+	.lang-option:hover:not(.active) {
+		background: var(--surface-2);
+		color: var(--text);
 	}
 
 	.social-link {

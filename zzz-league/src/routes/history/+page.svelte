@@ -1,13 +1,14 @@
 <script lang="ts">
 	import HistoryList from "$lib/components/HistoryList.svelte";
 	import SidePanel from "$lib/components/SidePanel.svelte";
+	import { _ } from "$lib/i18n";
 </script>
 
 <div class="layout">
 	<SidePanel></SidePanel>
 
 	<div class="card main-content">
-		<h2 class="page-title">Вся история</h2>
+		<h2 class="page-title">{$_("pageHistory.title")}</h2>
 		<HistoryList />
 	</div>
 </div>

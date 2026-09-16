@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { adminAddTeamRegistration, listTeamsPage } from "$lib/backend";
+	import { _ } from "$lib/i18n";
 	import type { Team } from "$lib/types";
 
 	let {
@@ -58,32 +59,32 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card add-team-card" onclick={(e) => e.stopPropagation()}>
 			<div class="close-row">
-				<button class="icon-btn" onclick={() => (open = false)} aria-label="Закрыть">
+				<button class="icon-btn" onclick={() => (open = false)} aria-label={$_("common.close")}>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
 
-			<h2 class="popup-title">Добавить команду</h2>
+			<h2 class="popup-title">{$_("tournamentAddTeamPopup.title")}</h2>
 
 			<div class="form-group">
-				<label for="add-team-search">Поиск команды</label>
+				<label for="add-team-search">{$_("tournamentAddTeamPopup.searchLabel")}</label>
 				<span class="search-wrap">
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="search-icon"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 					<input
 						id="add-team-search"
 						type="text"
 						class="search-input"
-						placeholder="Поиск команды..."
+						placeholder={$_("tournamentAddTeamPopup.searchPlaceholder")}
 						bind:value={searchQuery}
 					/>
 				</span>
 			</div>
 
 			<div class="form-group">
-				<label for="add-team-select">Команда</label>
+				<label for="add-team-select">{$_("tournamentAddTeamPopup.teamLabel")}</label>
 				<span class="select-wrap">
 					<select id="add-team-select" bind:value={selectedTeamId}>
-						<option value="">Выберите команду</option>
+						<option value="">{$_("tournamentAddTeamPopup.selectTeamOption")}</option>
 						{#each availableTeams as team}
 							<option value={team.id}>{team.name} ({team.creator.name} + {team.player2.name})</option>
 						{/each}
@@ -97,7 +98,7 @@
 				class="btn-common btn-play"
 				class:btn-loading={isAdding}
 				disabled={!selectedTeamId}
-				onclick={handleAdd}>Добавить</button
+				onclick={handleAdd}>{$_("common.add")}</button
 			>
 		</div>
 	</div>

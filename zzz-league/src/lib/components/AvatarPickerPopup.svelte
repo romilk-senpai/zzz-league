@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { agentAvatars } from "$lib/agentAvatars";
 	import { updateAvatar } from "$lib/backend";
+	import { _ } from "$lib/i18n";
 	import { applyPlayerUpdate, currentUser } from "$lib/store";
 
 	let {
@@ -59,19 +60,19 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card avatar-picker-card" onclick={(e) => e.stopPropagation()}>
 			<div class="close-row">
-				<button class="icon-btn" onclick={close} aria-label="Закрыть">
+				<button class="icon-btn" onclick={close} aria-label={$_("common.close")}>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
-			<h2 class="popup-title">Выберите аватар</h2>
+			<h2 class="popup-title">{$_("avatarPickerPopup.title")}</h2>
 			<div class="form-group">
-				<label for="avatar-search">Поиск аватара</label>
+				<label for="avatar-search">{$_("avatarPickerPopup.searchLabel")}</label>
 				<span class="search-wrap">
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="search-icon"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 					<input
 						id="avatar-search"
 						class="search-input"
-						placeholder="Поиск..."
+						placeholder={$_("avatarPickerPopup.searchPlaceholder")}
 						bind:value={searchQuery}
 					/>
 				</span>
@@ -88,7 +89,7 @@
 						<span>{agent.name}</span>
 					</button>
 				{:else}
-					<span class="no-results">Ничего не найдено</span>
+					<span class="no-results">{$_("avatarPickerPopup.noResults")}</span>
 				{/each}
 			</div>
 			{#if status}<p class="status error">{status}</p>{/if}
@@ -96,7 +97,7 @@
 				class="btn-common btn-play"
 				class:btn-loading={saving}
 				disabled={!selectedId || selectedId === selected}
-				onclick={handleSave}>Сохранить</button
+				onclick={handleSave}>{$_("common.save")}</button
 			>
 		</div>
 	</div>

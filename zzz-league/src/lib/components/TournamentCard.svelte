@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from "$app/paths";
+	import { _, locale, formatDate } from "$lib/i18n";
 	import type { Tournament } from "$lib/types";
 	import {
 		TOURNAMENT_STATE,
@@ -56,14 +57,8 @@
 	</div>
 	<div class="tournament-row">
 		<p class="tournament-dates">
-			{new Date(tournament.tournamentStartDate).toLocaleString(
-				"ru",
-				dateDisplayOptions,
-			)}
-			- {new Date(tournament.tournamentEndDate).toLocaleString(
-				"ru",
-				dateDisplayOptions,
-			)}
+			{formatDate(new Date(tournament.tournamentStartDate), dateDisplayOptions, $locale)}
+			- {formatDate(new Date(tournament.tournamentEndDate), dateDisplayOptions, $locale)}
 		</p>
 		<span class="meta-tag"
 			>{tournament.gameMode === "deadly_assault" ? "Deadly Assault" : "Shiyu Defense"}</span
@@ -72,24 +67,27 @@
 	<div class="tournament-row">
 		{#if registrationWindowOpen}
 			<p class="tournament-status">
-				Регистрация до {new Date(
-					tournament.registrationEndDate,
-				).toLocaleString("ru", dateDisplayOptions)}
+				{$_("tournamentCard.registrationUntil", {
+					values: {
+						date: formatDate(new Date(tournament.registrationEndDate), dateDisplayOptions, $locale),
+					},
+				})}
 			</p>
 		{/if}
 		{#if isRegistrationClosed(tournament.state)}
 			<p class="tournament-status">
-				Начало {new Date(tournament.tournamentStartDate).toLocaleString(
-					"ru",
-					dateDisplayOptions,
-				)}
+				{$_("tournamentCard.startsOn", {
+					values: {
+						date: formatDate(new Date(tournament.tournamentStartDate), dateDisplayOptions, $locale),
+					},
+				})}
 			</p>
 		{/if}
 		{#if tournament.state === TOURNAMENT_STATE.STARTED || tournament.state === TOURNAMENT_STATE.AWAITING_REVIEW}
-			<p class="tournament-status">Турнир идёт</p>
+			<p class="tournament-status">{$_("tournamentCard.ongoing")}</p>
 		{/if}
 		{#if tournament.state === TOURNAMENT_STATE.COMPLETE}
-			<p class="tournament-status">Турнир окончен</p>
+			<p class="tournament-status">{$_("tournamentCard.ended")}</p>
 		{/if}
 		<div class="tier-tags">
 			{#if tournament.minTier === tournament.maxTier}

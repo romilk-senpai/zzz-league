@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { deleteTeam, listPlayers } from "$lib/backend";
+	import { _ } from "$lib/i18n";
 	import { currentUser, isAdmin } from "$lib/store";
 	import type { PlayerListItem, Team } from "$lib/types";
 	import { bustCache, openProfilePopup } from "$lib/uiCommon";
@@ -46,7 +47,12 @@
 
 	async function handleDelete() {
 		if (deleting || !team) return;
-		if (!confirm(`Удалить команду "${team.name}"? Это действие необратимо.`)) return;
+		if (
+			!confirm(
+				$_("teamDetailsPopup.confirmDelete", { values: { name: team.name } }),
+			)
+		)
+			return;
 		deleting = true;
 		try {
 			await deleteTeam(team.id);
@@ -74,7 +80,7 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card team-details-card" onclick={(e) => e.stopPropagation()}>
 			<div class="close-row">
-				<button class="icon-btn" onclick={() => (open = false)} aria-label="Закрыть">
+				<button class="icon-btn" onclick={() => (open = false)} aria-label={$_("common.close")}>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
@@ -88,22 +94,22 @@
 
 			<div class="member-list">
 				<button class="member-chip" onclick={() => openMemberProfile(team!.creator.uid)}>
-					<span class="member-label">Игрок 1</span>
+					<span class="member-label">{$_("teamDetailsPopup.player1Label")}</span>
 					<span class="member-name">{team.creator.name}</span>
 				</button>
 				<button class="member-chip" onclick={() => openMemberProfile(team!.player2.uid)}>
-					<span class="member-label">Игрок 2</span>
+					<span class="member-label">{$_("teamDetailsPopup.player2Label")}</span>
 					<span class="member-name">{team.player2.name}</span>
 				</button>
 			</div>
 
 			{#if canEdit}
 				<div class="btn-row">
-					<button class="btn-common" onclick={() => onEdit?.(team!)}>Изменить</button>
+					<button class="btn-common" onclick={() => onEdit?.(team!)}>{$_("common.edit")}</button>
 					<button
 						class="btn-common btn-danger-ghost"
 						class:btn-loading={deleting}
-						onclick={handleDelete}>Удалить</button
+						onclick={handleDelete}>{$_("common.delete")}</button
 					>
 				</div>
 			{/if}

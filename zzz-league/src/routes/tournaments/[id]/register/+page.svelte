@@ -4,6 +4,7 @@
 	import { page } from "$app/state";
 	import SidePanel from "$lib/components/SidePanel.svelte";
 	import TournamentMemberRegistrationFields from "$lib/components/TournamentMemberRegistrationFields.svelte";
+	import { _, locale, formatDate } from "$lib/i18n";
 	import { applyForTournament, getTournament, listRegistrations } from "$lib/backend";
 	import { currentUser, isAdmin } from "$lib/store";
 	import type { Tournament, TournamentRegistration } from "$lib/types";
@@ -91,18 +92,18 @@
 
 		if (!awareness) {
 			showErrors = true;
-			status = "Ты не ОСОЗНАЛ.";
+			status = $_("pageTournamentRegister.awarenessRequired");
 			return;
 		}
 
 		if (!isMemberRegistrationFormComplete(form)) {
 			showErrors = true;
-			status = "Заполните все поля";
+			status = $_("pageTournamentRegister.fillAllFields");
 			return;
 		}
 
 		if (memberRegistrationScreenshotFiles(form).some(isImageTooLarge)) {
-			status = `Файл слишком большой, максимум ${MAX_IMAGE_SIZE_MB}МБ`;
+			status = $_("pageTournamentRegister.fileTooLarge", { values: { maxSize: MAX_IMAGE_SIZE_MB } });
 			return;
 		}
 
@@ -165,25 +166,25 @@
 
 	<div class="card main-content">
 		{#if tournament}
-			<h2 class="page-title">Регистрация: {tournament.name}</h2>
+			<h2 class="page-title">{$_("pageTournamentRegister.pageTitle", { values: { name: tournament.name } })}</h2>
 
 			{#if tournament.visible === false && !$isAdmin}
-				<p class="notice">Недостаточно прав для просмотра этой страницы.</p>
+				<p class="notice">{$_("pageTournamentRegister.noPermission")}</p>
 			{:else if !$currentUser}
-				<p class="notice">Войдите, чтобы зарегистрироваться на турнир.</p>
+				<p class="notice">{$_("pageTournamentRegister.loginRequired")}</p>
 			{:else if !tierEligible}
-				<p class="notice">Ваш тир не подходит для этого турнира.</p>
+				<p class="notice">{$_("pageTournamentRegister.tierNotEligible")}</p>
 			{:else if isLocked(tournament.state) || tournament.challongeTournamentId}
-				<p class="notice">Турнир уже начался, регистрация закрыта.</p>
+				<p class="notice">{$_("pageTournamentRegister.tournamentStarted")}</p>
 			{:else if !registrationWindowOpen}
-				<p class="notice">Регистрация на турнир закрыта.</p>
+				<p class="notice">{$_("pageTournamentRegister.registrationClosed")}</p>
 			{:else if regLoaded}
 				{#if $currentUser?.lastRegistration}
 					<button
 						type="button"
 						class="btn-common prefill-btn"
 						onclick={handlePrefillFromLastRegistration}
-						>Заполнить из прошлой регистрации</button
+						>{$_("pageTournamentRegister.prefillButton")}</button
 					>
 				{/if}
 
@@ -205,19 +206,12 @@
 						{/if}
 					</span>
 					<label for="awareness"
-						>Конечно, я полностью прочитал регламент, и осознаю, что
-						турнир проходит с <span class="value-highlight"
-							>{new Date(tournament.tournamentStartDate).toLocaleString(
-								"ru",
-								dateDisplayOptions,
-							)}</span
+						>{$_("pageTournamentRegister.awarenessPrefix")} <span class="value-highlight"
+							>{formatDate(new Date(tournament.tournamentStartDate), dateDisplayOptions, $locale)}</span
 						>
-						по
+						{$_("pageTournamentRegister.awarenessBetween")}
 						<span class="value-highlight"
-							>{new Date(tournament.tournamentEndDate).toLocaleString(
-								"ru",
-								dateDisplayOptions,
-							)}</span
+							>{formatDate(new Date(tournament.tournamentEndDate), dateDisplayOptions, $locale)}</span
 						>
 					</label>
 				</div>
@@ -228,11 +222,11 @@
 						class="btn-common btn-play"
 						class:btn-loading={isRegistering}
 						onclick={handleRegister}
-						>{#if myRegistration}Обновить регистрацию{:else}Зарегистрироваться{/if}</button
+						>{#if myRegistration}{$_("pageTournamentRegister.updateRegistration")}{:else}{$_("pageTournamentRegister.register")}{/if}</button
 					>
 					<a
 						class="btn-common"
-						href={resolve(`/tournaments/${tournament.id}`)}>Отмена</a
+						href={resolve(`/tournaments/${tournament.id}`)}>{$_("common.cancel")}</a
 					>
 				</div>
 			{/if}

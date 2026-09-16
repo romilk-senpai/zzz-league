@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { API_BASE_URL } from "$lib/api";
 	import { importAgentCostsCsv, importEngineCostsCsv } from "$lib/api/communityCosts";
+	import { _ } from "$lib/i18n";
 	import CommunityCostsTable from "$lib/components/CommunityCostsTable.svelte";
 	import WeaponCostsTable from "$lib/components/WeaponCostsTable.svelte";
 	import SidePanel from "$lib/components/SidePanel.svelte";
@@ -35,7 +36,7 @@
 				await importEngineCostsCsv(csv);
 				await refreshEngineCosts();
 			}
-			importStatus = "Импорт выполнен.";
+			importStatus = $_("pageCosts.importSuccess");
 		} catch (error: any) {
 			importStatus = error.message;
 		} finally {
@@ -54,7 +55,7 @@
 				class:active={activeTab === "agents"}
 				onclick={() => (activeTab = "agents")}
 			>
-				Персонажи
+				{$_("pageCosts.agentsTab")}
 			</button>
 			<button
 				class="top-tab"
@@ -67,11 +68,11 @@
 			<div class="csv-actions">
 				{#if activeTab === "agents"}
 					<a class="btn-common" href="{API_BASE_URL}/api/community-costs/agents/export.csv" download>
-						Экспорт CSV
+						{$_("pageCosts.exportCsv")}
 					</a>
 					{#if $isAdmin}
 						<button class="btn-common" disabled={importing} onclick={() => agentFileInput?.click()}>
-							{importing ? "Импорт…" : "Импорт CSV"}
+							{importing ? $_("pageCosts.importing") : $_("pageCosts.importCsv")}
 						</button>
 						<input
 							bind:this={agentFileInput}
@@ -83,11 +84,11 @@
 					{/if}
 				{:else}
 					<a class="btn-common" href="{API_BASE_URL}/api/community-costs/engines/export.csv" download>
-						Экспорт CSV
+						{$_("pageCosts.exportCsv")}
 					</a>
 					{#if $isAdmin}
 						<button class="btn-common" disabled={importing} onclick={() => engineFileInput?.click()}>
-							{importing ? "Импорт…" : "Импорт CSV"}
+							{importing ? $_("pageCosts.importing") : $_("pageCosts.importCsv")}
 						</button>
 						<input
 							bind:this={engineFileInput}

@@ -2,6 +2,7 @@
 	import { resolve } from "$app/paths";
 	import { getAgentAvatar } from "$lib/agentAvatars";
 	import avatarPlaceholder from "$lib/assets/avatar-placeholder.webp";
+	import { _ } from "$lib/i18n";
 	import { isAdmin } from "$lib/store";
 	import type { PlayerListItem } from "$lib/types";
 	import { closeProfilePopup, getTier } from "$lib/uiCommon";
@@ -43,12 +44,12 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="card profile-card" onclick={(e) => e.stopPropagation()}>
 		<div class="close-row">
-			<button class="icon-btn" onclick={closeProfilePopup} aria-label="Закрыть">
+			<button class="icon-btn" onclick={closeProfilePopup} aria-label={$_("common.close")}>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 			</button>
 		</div>
 		{#if !player}
-			<h1>Игрок не найден</h1>
+			<h1>{$_("playerProfilePopup.playerNotFound")}</h1>
 		{:else}
 			{@const tier = getTier(player)}
 
@@ -90,12 +91,12 @@
 						class:copied={copiedField === "discord"}
 						disabled={!player.discordUsername}
 						onclick={() => copyToClipboard(player.discordUsername ?? "", "discord")}
-						title="Скопировать"
+						title={$_("playerProfilePopup.copyTooltip")}
 					>
 						<span class="info-label">Discord</span>
 						<span class="info-value">{player.discordUsername ?? "-"}</span>
 						{#if copiedField === "discord"}
-							<span class="copied-label">Скопировано</span>
+							<span class="copied-label">{$_("playerProfilePopup.copied")}</span>
 						{/if}
 						<span class="copy-icon">{@render copyIcon()}</span>
 					</button>
@@ -105,12 +106,12 @@
 							class="info-card"
 							class:copied={copiedField === "uid"}
 							onclick={() => copyToClipboard(player.uid, "uid")}
-							title="Скопировать"
+							title={$_("playerProfilePopup.copyTooltip")}
 						>
 							<span class="info-label">UID</span>
 							<span class="info-value">{player.uid}</span>
 							{#if copiedField === "uid"}
-								<span class="copied-label">Скопировано</span>
+								<span class="copied-label">{$_("playerProfilePopup.copied")}</span>
 							{/if}
 							<span class="copy-icon">{@render copyIcon()}</span>
 						</button>
@@ -131,31 +132,31 @@
 					</div>
 				</div>
 				<div class="stat-item">
-					<div class="stat-label">Сыграно игр</div>
+					<div class="stat-label">{$_("playerProfilePopup.gamesPlayed")}</div>
 					<div id="totalGames" class="stat-value">{stats.total}</div>
 				</div>
 				<div class="stat-item">
-					<div class="stat-label">Винрейт</div>
+					<div class="stat-label">{$_("playerProfilePopup.winRate")}</div>
 					<div id="winRate" class="stat-value winrate">
 						{stats.winRate}%
 					</div>
 				</div>
 				<div class="stat-item">
-					<div class="stat-label">Победы</div>
+					<div class="stat-label">{$_("playerProfilePopup.wins")}</div>
 					<div id="wins" class="stat-value gain">{stats.wins}</div>
 				</div>
 				<div class="stat-item">
-					<div class="stat-label">Поражения</div>
+					<div class="stat-label">{$_("playerProfilePopup.losses")}</div>
 					<div id="losses" class="stat-value loss">{stats.losses}</div>
 				</div>
 				<div class="stat-item">
-					<div class="stat-label">Сыграно турниров</div>
+					<div class="stat-label">{$_("playerProfilePopup.tournamentsPlayed")}</div>
 					<div id="tournamentCount" class="stat-value">
 						{player.playedTournamentCount ?? 0}
 					</div>
 				</div>
 				<div class="stat-item">
-					<div class="stat-label">Турниров в сезоне</div>
+					<div class="stat-label">{$_("playerProfilePopup.tournamentsInSeason")}</div>
 					<div id="seasonalTournamentCount" class="stat-value">
 						{player.seasonalPlayedTournamentCount ?? 0}
 					</div>
@@ -167,7 +168,7 @@
 				href={resolve(`/history/${player.uid}`)}
 				onclick={closeProfilePopup}
 			>
-				История матчей
+				{$_("playerProfilePopup.matchHistory")}
 			</a>
 		{/if}
 	</div>

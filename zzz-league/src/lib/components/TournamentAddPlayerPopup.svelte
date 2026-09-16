@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { adminAddTournamentRegistration, listPlayers } from "$lib/backend";
+	import { _ } from "$lib/i18n";
 	import type { PlayerListItem } from "$lib/types";
 
 	let {
@@ -56,32 +57,32 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="card add-player-card" onclick={(e) => e.stopPropagation()}>
 			<div class="close-row">
-				<button class="icon-btn" onclick={() => (open = false)} aria-label="Закрыть">
+				<button class="icon-btn" onclick={() => (open = false)} aria-label={$_("common.close")}>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				</button>
 			</div>
 
-			<h2 class="popup-title">Добавить игрока</h2>
+			<h2 class="popup-title">{$_("tournamentAddPlayerPopup.title")}</h2>
 
 			<div class="form-group">
-				<label for="add-player-search">Поиск игрока</label>
+				<label for="add-player-search">{$_("tournamentAddPlayerPopup.searchLabel")}</label>
 				<span class="search-wrap">
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="search-icon"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 					<input
 						id="add-player-search"
 						type="text"
 						class="search-input"
-						placeholder="Поиск игрока..."
+						placeholder={$_("tournamentAddPlayerPopup.searchPlaceholder")}
 						bind:value={searchQuery}
 					/>
 				</span>
 			</div>
 
 			<div class="form-group">
-				<label for="add-player-select">Игрок</label>
+				<label for="add-player-select">{$_("tournamentAddPlayerPopup.playerLabel")}</label>
 				<span class="select-wrap">
 					<select id="add-player-select" bind:value={selectedUid}>
-						<option value="">Выберите игрока</option>
+						<option value="">{$_("tournamentAddPlayerPopup.selectPlayerOption")}</option>
 						{#each availablePlayers as player}
 							<option value={player.uid}>{player.name}</option>
 						{/each}
@@ -95,7 +96,7 @@
 				class="btn-common btn-play"
 				class:btn-loading={isAdding}
 				disabled={!selectedUid}
-				onclick={handleAdd}>Добавить</button
+				onclick={handleAdd}>{$_("common.add")}</button
 			>
 		</div>
 	</div>

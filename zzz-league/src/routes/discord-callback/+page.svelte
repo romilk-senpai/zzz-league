@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import { goto } from "$app/navigation";
 	import { handleDiscordCallback } from "$lib/discord";
+	import { _ } from "$lib/i18n";
 
 	let error = $state(false);
 	let errorText = $state("");
@@ -24,8 +25,8 @@
 </script>
 
 {#if error}
-	<p class="error">Ошибка {errorText}</p>
-	<p>Возврат на главую страницу...</p>
+	<p class="error">{$_("pageDiscordCallback.errorLabel", { values: { error: errorText } })}</p>
+	<p>{$_("pageDiscordCallback.redirecting")}</p>
 {:else}
-	<p>Подключение Discord...</p>
+	<p>{$_("pageDiscordCallback.connecting")}</p>
 {/if}
