@@ -26,6 +26,10 @@
 		match = $bindable(),
 		registeredPlayers = $bindable([]),
 		teamsById = new Map(),
+		// Called after any successful result submit (player or admin) so the page can re-fetch
+		// right away instead of relying only on the SignalR push, which anonymous/disconnected
+		// clients never get and which can arrive late.
+		onResultSubmitted = () => {},
 	} = $props();
 
 	let isTeamMatch = $derived(!!match.p1TeamId || !!match.p2TeamId);
@@ -330,6 +334,7 @@
 				matchResultP2,
 				resultScreenshot,
 			);
+			onResultSubmitted();
 		} catch (error) {
 			notify(error);
 		} finally {
@@ -365,6 +370,7 @@
 		try {
 			isApproving = true;
 			await approveResult(tournament.id, match.id, null, null, null, url || null, url ? ownNexus.p1Side : null);
+			onResultSubmitted();
 		} catch (error) {
 			notify(nexusErrorMessage(error));
 		} finally {
@@ -387,6 +393,7 @@
 		try {
 			isApproving = true;
 			await approveResult(tournament.id, match.id, matchResultP1, matchResultP2, null, url || null, null);
+			onResultSubmitted();
 		} catch (error) {
 			notify(nexusErrorMessage(error));
 		} finally {
@@ -429,6 +436,7 @@
 				adminNexusUrl || null,
 				adminNexusUrl ? adminNexus.p1Side : null,
 			);
+			onResultSubmitted();
 		} catch (error) {
 			notify(nexusErrorMessage(error));
 		} finally {
@@ -470,6 +478,7 @@
 					side === "p1" ? match.p1 : match.p2,
 				);
 			}
+			onResultSubmitted();
 		} catch (error) {
 			notify(error);
 		} finally {

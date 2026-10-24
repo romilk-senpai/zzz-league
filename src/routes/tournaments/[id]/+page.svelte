@@ -77,6 +77,9 @@
 	let userPlayer1 = $state<PlayerListItem | undefined>();
 	let userPlayer2 = $state<PlayerListItem | undefined>();
 	let registrations = $state<TournamentRegistration[]>([]);
+	// Re-fetches the match list and the participants table's player data (Elo/tier); assigned in
+	// onMount, where the loaders live. Called by the match popup right after a result is submitted.
+	let refreshMatchesAndTable = $state(() => {});
 	// Batch-resolved from registrations' playerIds — this tournament's registrants only, not the
 	// whole roster (see the player-list refactor: no more global players/playersByUid cache).
 	let registeredPlayersData = $state<PlayerListItem[]>([]);
@@ -495,6 +498,11 @@
 			if (!cancelled) registrations = loaded;
 			await loadRegisteredPlayersData();
 		}
+
+		refreshMatchesAndTable = () => {
+			loadMatches();
+			loadRegisteredPlayersData();
+		};
 
 		loadTournament();
 		loadMatches();
@@ -1017,6 +1025,7 @@
 		match={currentMatch}
 		{registeredPlayers}
 		{teamsById}
+		onResultSubmitted={refreshMatchesAndTable}
 	></TournamentGamePopup>
 {/if}
 {#if addPlayerPopupOpen}
