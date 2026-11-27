@@ -417,14 +417,6 @@
 		return [m.p1, m.p2, m.p1TeamId, m.p2TeamId].includes(myEntrantKey);
 	}
 
-	// Mirrors the server's prize Elo (TournamentLifecycleService.ApplyPrizeEloBonusAsync).
-	function prizeElo(rank: number) {
-		if (!tournament?.isRanked) return undefined;
-		const seasonal = (tournament?.overrideEloChange ?? -1) === -1;
-		const prizes: Record<number, number> = seasonal ? { 1: 40, 2: 20, 3: 10 } : { 1: 15, 2: 10 };
-		return prizes[rank];
-	}
-
 	// Team side: the team's own uploaded photo (no per-member agent avatar to pick between).
 	// Solo side: the registrant's chosen agent avatar, same lookup Leaderboard/ProfilePopup use.
 	function getMatchSideAvatarSrc(uid: string | null, teamId: string | null) {
@@ -821,20 +813,6 @@
 				</div>
 			{/if}
 
-			{#if bracket && bracket.standings.length > 0}
-				<h2 class="section-heading">{$_("bracket.finalStandings")}</h2>
-				<div class="standings">
-					{#each bracket.standings as standing (standing.playerId ?? standing.teamId)}
-						{@const prize = prizeElo(standing.rank)}
-						<div class="standing">
-							<span class="standing-rank rank-{standing.rank}">{standing.rank}</span>
-							<span class="standing-name">{getEntrantLabel((standing.playerId ?? standing.teamId)!) ?? "…"}</span>
-							{#if prize}<span class="standing-prize">{$_("bracket.prizeElo", { values: { n: prize } })}</span>{/if}
-						</div>
-					{/each}
-				</div>
-			{/if}
-
 			{#if bracket && isLocked(tournament.state)}
 				<h2 class="collapsible-heading">
 					<button type="button" class="collapsible-header" aria-expanded={bracketExpanded} onclick={() => (bracketExpanded = !bracketExpanded)}>
@@ -1124,75 +1102,6 @@
 <TeamDetailsPopup bind:open={teamDetailsOpen} team={selectedTeam} />
 
 <style>
-	.section-heading {
-		font-size: 16px;
-	}
-
-	.standings {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-		gap: 8px;
-	}
-
-	.standing {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		min-width: 0;
-		padding: 10px 14px;
-		border-radius: var(--r-md);
-		background: var(--surface-2);
-		border: 1px solid var(--border-soft);
-	}
-
-	.standing-rank {
-		width: 26px;
-		height: 26px;
-		flex-shrink: 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 50%;
-		font-size: var(--fs-sm);
-		font-weight: 800;
-		background: var(--bg-elevated);
-		color: var(--text-muted);
-		border: 1px solid var(--border);
-	}
-
-	.standing-rank.rank-1 {
-		background: var(--gold-dim);
-		color: var(--gold);
-		border-color: var(--gold-border);
-	}
-
-	.standing-rank.rank-2 {
-		background: var(--rank-silver-dim);
-		color: var(--rank-silver);
-		border-color: color-mix(in oklch, var(--rank-silver) 35%, transparent);
-	}
-
-	.standing-rank.rank-3 {
-		background: var(--rank-bronze-dim);
-		color: var(--rank-bronze);
-		border-color: color-mix(in oklch, var(--rank-bronze) 40%, transparent);
-	}
-
-	.standing-name {
-		flex: 1;
-		min-width: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		font-weight: 700;
-	}
-
-	.standing-prize {
-		font-size: var(--fs-sm);
-		font-weight: 800;
-		color: var(--success);
-	}
-
 	.bracket-resizable {
 		resize: vertical;
 		overflow: auto;

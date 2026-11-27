@@ -618,8 +618,6 @@
 		"eliminated": "out",
 		"toLosersBracket": "losers bracket",
 		"championNext": "Winner is the tournament champion",
-		"finalStandings": "Final standings",
-		"prizeElo": "+{n} Elo",
 		"confirmReset": "Reset and save",
 		"confirmResetMessage": "Changing the winner resets matches that were already played after this one: {matches}. Their results and Elo will be undone.",
 		"moveEntrant": "Move {name}"

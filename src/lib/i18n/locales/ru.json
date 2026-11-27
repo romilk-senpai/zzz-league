@@ -618,8 +618,6 @@
 		"eliminated": "выбывает",
 		"toLosersBracket": "нижняя сетка",
 		"championNext": "Победитель становится чемпионом турнира",
-		"finalStandings": "Итоговые места",
-		"prizeElo": "+{n} Elo",
 		"confirmReset": "Сбросить и сохранить",
 		"confirmResetMessage": "Смена победителя сбросит уже сыгранные после этого матчи: {matches}. Их результаты и Elo будут отменены.",
 		"moveEntrant": "Переместить {name}"

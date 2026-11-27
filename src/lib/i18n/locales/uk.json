@@ -618,8 +618,6 @@
 		"eliminated": "вибуває",
 		"toLosersBracket": "нижня сітка",
 		"championNext": "Переможець стає чемпіоном турніру",
-		"finalStandings": "Підсумкові місця",
-		"prizeElo": "+{n} Elo",
 		"confirmReset": "Скинути і зберегти",
 		"confirmResetMessage": "Зміна переможця скине вже зіграні після цього матчі: {matches}. Їхні результати та Elo буде скасовано.",
 		"moveEntrant": "Перемістити {name}"
